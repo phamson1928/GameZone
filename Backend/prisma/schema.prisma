@@ -1,0 +1,303 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+////////////////////
+/// ENUMS
+////////////////////
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+}
+
+enum RankLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  PRO
+}
+
+enum ZoneStatus {
+  OPEN
+  FULL
+  CLOSED
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum GroupMemberRole {
+  LEADER
+  MEMBER
+}
+
+enum ScheduleStatus {
+  UPCOMING
+  ONGOING
+  FINISHED
+}
+
+enum ScheduleResponse {
+  ACCEPTED
+  DECLINED
+  PENDING
+}
+
+enum ContactMethodType {
+  DISCORD
+  INGAME
+  OTHER
+}
+
+enum ReportTargetType {
+  USER
+  ZONE
+  GROUP
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+}
+
+////////////////////
+/// USER & AUTH
+////////////////////
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  username     String     @unique
+  avatarUrl    String?
+  role         UserRole   @default(USER)
+  status       UserStatus @default(ACTIVE)
+
+  profile       UserProfile?
+  refreshTokens RefreshToken[]
+
+  gameProfiles  UserGameProfile[]
+  zones         Zone[]            @relation("ZoneOwner")
+  joinRequests  ZoneJoinRequest[]
+  groupsLed     Group[]           @relation("GroupLeader")
+  groupMembers  GroupMember[]
+  messages      Message[]
+  notifications Notification[]
+  reports       Report[]          @relation("ReportReporter")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserProfile {
+  userId       String    @id
+  bio          String?
+  playStyle    String?
+  timezone     String?
+  lastActiveAt DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+////////////////////
+/// GAME
+////////////////////
+
+model Game {
+  id        String  @id @default(uuid())
+  name      String
+  iconUrl   String?
+  bannerUrl String?
+  isActive  Boolean @default(true)
+
+  zones        Zone[]
+  groups       Group[]
+  userProfiles UserGameProfile[]
+
+  createdAt DateTime @default(now())
+}
+
+model UserGameProfile {
+  id        String    @id @default(uuid())
+  userId    String
+  gameId    String
+  rankLevel RankLevel
+
+  user User @relation(fields: [userId], references: [id])
+  game Game @relation(fields: [gameId], references: [id])
+
+  @@unique([userId, gameId])
+}
+
+////////////////////
+/// ZONE (TÌM BẠN)
+////////////////////
+
+model Zone {
+  id              String     @id @default(uuid())
+  gameId          String
+  ownerId         String
+  title           String
+  description     String
+  minRankLevel    RankLevel
+  maxRankLevel    RankLevel
+  requiredPlayers Int
+  status          ZoneStatus @default(OPEN)
+
+  game  Game @relation(fields: [gameId], references: [id])
+  owner User @relation("ZoneOwner", fields: [ownerId], references: [id])
+
+  tags         ZoneTagRelation[]
+  contacts     ZoneContactMethod[]
+  joinRequests ZoneJoinRequest[]
+  group        Group?
+
+  createdAt DateTime @default(now())
+}
+
+model ZoneTag {
+  id   String @id @default(uuid())
+  name String @unique
+
+  zones ZoneTagRelation[]
+}
+
+model ZoneTagRelation {
+  zoneId String
+  tagId  String
+
+  zone Zone    @relation(fields: [zoneId], references: [id])
+  tag  ZoneTag @relation(fields: [tagId], references: [id])
+
+  @@id([zoneId, tagId])
+}
+
+model ZoneContactMethod {
+  id     String            @id @default(uuid())
+  zoneId String
+  type   ContactMethodType
+  value  String
+
+  zone Zone @relation(fields: [zoneId], references: [id])
+}
+
+////////////////////
+/// MATCHING & GROUP
+////////////////////
+
+model ZoneJoinRequest {
+  id     String            @id @default(uuid())
+  zoneId String
+  userId String
+  status JoinRequestStatus @default(PENDING)
+
+  zone Zone @relation(fields: [zoneId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([zoneId, userId])
+}
+
+model Group {
+  id       String  @id @default(uuid())
+  zoneId   String  @unique
+  leaderId String
+  gameId   String
+  isActive Boolean @default(true)
+
+  zone   Zone @relation(fields: [zoneId], references: [id])
+  leader User @relation("GroupLeader", fields: [leaderId], references: [id])
+  game   Game @relation(fields: [gameId], references: [id])
+
+  members  GroupMember[]
+  messages Message[]
+
+  createdAt DateTime @default(now())
+}
+
+model GroupMember {
+  groupId String
+  userId  String
+  role    GroupMemberRole
+
+  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  joinedAt DateTime @default(now())
+
+  @@id([groupId, userId])
+}
+
+////////////////////
+/// CHAT
+////////////////////
+
+model Message {
+  id       String @id @default(uuid())
+  groupId  String
+  senderId String
+  content  String
+
+  group  Group @relation(fields: [groupId], references: [id])
+  sender User  @relation(fields: [senderId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+////////////////////
+/// NOTIFICATION
+////////////////////
+
+model Notification {
+  id      String  @id @default(uuid())
+  userId  String
+  type    String
+  payload Json
+  isRead  Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+////////////////////
+/// REPORT / MODERATION
+////////////////////
+
+model Report {
+  id         String           @id @default(uuid())
+  reporterId String
+  targetType ReportTargetType
+  targetId   String
+  reason     String
+  status     ReportStatus     @default(OPEN)
+
+  reporter User @relation("ReportReporter", fields: [reporterId], references: [id])
+
+  createdAt DateTime @default(now())
+}
