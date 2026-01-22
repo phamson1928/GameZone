@@ -25,21 +25,21 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 - [x] Khởi tạo NestJS project
 - [x] Setup Docker + PostgreSQL
 - [x] Setup Prisma schema
-- [ ] Cấu hình environment variables
-- [ ] Setup validation (class-validator)
-- [ ] Setup Swagger documentation
-- [ ] Setup error handling global
+- [x] Cấu hình environment variables
+- [x] Setup validation (class-validator)
+- [x] Setup Swagger documentation
+- [x] Setup error handling global
 
 ### 1.2 Prisma Module
-- [ ] Tạo `PrismaModule` + `PrismaService`
-- [ ] Config connection pooling
+- [x] Tạo `PrismaModule` + `PrismaService`
+- [x] Config connection pooling
 - [ ] Tạo base repository pattern (optional)
 
 ### 1.3 Common Utilities
-- [ ] Response DTO chuẩn (success/error)
-- [ ] Pagination DTO
-- [ ] Custom decorators (@CurrentUser, @Public)
-- [ ] Guards (AuthGuard, RolesGuard)
+- [x] Response DTO chuẩn (success/error)
+- [x] Pagination DTO
+- [x] Custom decorators (@CurrentUser, @Public)
+- [x] Guards (AuthGuard, RolesGuard)
 
 ---
 
