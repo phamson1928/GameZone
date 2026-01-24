@@ -1,23 +1,23 @@
 import {
   Injectable,
-  CanActivate,
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
-import { RequestWithUser } from '../interfaces/request.interface.js';
+import { AuthGuard } from '@nestjs/passport';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 /**
- * Base JWT Auth Guard
- * Checks if route is public, otherwise requires authentication
- * Actual JWT validation should be implemented in auth module
+ * JWT Auth Guard that extends Passport AuthGuard
+ * Checks if route is public, otherwise requires JWT authentication
  */
 @Injectable()
-export class JwtAuthGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  constructor(private reflector: Reflector) {
+    super();
+  }
 
-  canActivate(context: ExecutionContext): boolean {
+  canActivate(context: ExecutionContext) {
     // Check if route is marked as public
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
@@ -28,13 +28,24 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<RequestWithUser>();
-    const user = request.user;
+    // Use Passport JWT authentication
+    return super.canActivate(context);
+  }
 
-    if (!user) {
-      throw new UnauthorizedException('Authentication required');
+  handleRequest<TUser>(
+    err: Error | null,
+    user: TUser | false,
+    info: Error | undefined,
+  ): TUser {
+    if (err || !user) {
+      if (info?.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Access token has expired');
+      }
+      if (info?.name === 'JsonWebTokenError') {
+        throw new UnauthorizedException('Invalid access token');
+      }
+      throw err || new UnauthorizedException('Authentication required');
     }
-
-    return true;
+    return user;
   }
 }
