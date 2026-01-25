@@ -76,18 +76,18 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 
 ### 3.1 Game Module (Admin)
 
-- [ ] `GET /games` - Danh sách game
-- [ ] `GET /games/:id` - Chi tiết game
-- [ ] `POST /games` - Thêm game (Admin)
-- [ ] `PATCH /games/:id` - Cập nhật game (Admin)
-- [ ] `DELETE /games/:id` - Xóa game (Admin)
+- [x] `GET /games` - Danh sách game
+- [x] `GET /games/:id` - Chi tiết game
+- [x] `POST /games` - Thêm game (Admin)
+- [x] `PATCH /games/:id` - Cập nhật game (Admin)
+- [x] `DELETE /games/:id` - Xóa game (Admin)
 
 ### 3.2 User Game Profile
 
-- [ ] `GET /users/me/games` - Danh sách game của user
-- [ ] `POST /users/me/games` - Thêm game profile
-- [ ] `PATCH /users/me/games/:gameId` - Cập nhật rank
-- [ ] `DELETE /users/me/games/:gameId` - Xóa game profile
+- [x] `GET /users/me/games` - Danh sách game của user
+- [x] `POST /users/me/games` - Thêm game profile
+- [x] `PATCH /users/me/games/:gameId` - Cập nhật rank
+- [x] `DELETE /users/me/games/:gameId` - Xóa game profile
 
 ---
 

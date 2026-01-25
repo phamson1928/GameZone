@@ -14,6 +14,7 @@ import { GroupsModule } from './groups/groups.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ReportsModule } from './reports/reports.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { UserGameProfilesModule } from './user-game-profiles/user-game-profiles.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     GroupsModule,
     NotificationsModule,
     ReportsModule,
+    UserGameProfilesModule,
   ],
   controllers: [AppController],
   providers: [
