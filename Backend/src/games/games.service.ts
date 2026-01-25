@@ -1,26 +1,79 @@
-import { Injectable } from '@nestjs/common';
-import { CreateGameDto } from './dto/create-game.dto.js';
-import { UpdateGameDto } from './dto/update-game.dto.js';
+import { CreateGameDto } from './dto/create-game.dto';
+import { UpdateGameDto } from './dto/update-game.dto';
+import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class GamesService {
-  create(_createGameDto: CreateGameDto): string {
-    return 'This action adds a new game';
+  constructor(private prisma: PrismaService) {}
+
+  async create(dto: CreateGameDto) {
+    return this.prisma.game.create({
+      data: dto,
+    });
   }
 
-  findAll(): string {
-    return `This action returns all games`;
+  async findAllForAdmin() {
+    return this.prisma.game.findMany({
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+        createdAt: true,
+        _count: {
+          select: { groups: true },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 
-  findOne(id: number): string {
-    return `This action returns a #${id} game`;
+  async findAllForUser() {
+    return this.prisma.game.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        iconUrl: true,
+        bannerUrl: true,
+        zones: {
+          where: { status: 'OPEN' },
+          select: { id: true },
+        },
+        _count: {
+          select: { zones: true },
+        },
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
   }
 
-  update(id: number, _updateGameDto: UpdateGameDto): string {
-    return `This action updates a #${id} game`;
+  async findOne(id: string) {
+    const game = await this.prisma.game.findUnique({
+      where: { id },
+    });
+    if (!game) {
+      throw new NotFoundException(`Game with ID ${id} not found`);
+    }
+    return game;
   }
 
-  remove(id: number): string {
-    return `This action removes a #${id} game`;
+  async update(id: string, dto: UpdateGameDto) {
+    await this.findOne(id);
+    return this.prisma.game.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
+  async remove(id: string) {
+    await this.findOne(id);
+    return this.prisma.game.delete({
+      where: { id },
+    });
   }
 }
