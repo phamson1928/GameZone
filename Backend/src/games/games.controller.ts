@@ -39,7 +39,7 @@ export class GamesController {
     return this.gamesService.findAllForAdmin();
   }
 
-  @Get('user')
+  @Get('mobile')
   @Public()
   @ApiOperation({ summary: 'Get list of active games for users' })
   findAllForUser() {

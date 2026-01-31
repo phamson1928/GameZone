@@ -32,9 +32,10 @@ export class UserGameProfilesController {
     return this.userGameProfilesService.create(userId, dto);
   }
 
+  // IMPORTANT: Static routes must come BEFORE dynamic routes (:id)
   @Get('me')
   @ApiOperation({ summary: 'Get all game profiles of the current user' })
-  findAllByMe(@CurrentUser('sub') userId: string) {
+  findMyProfiles(@CurrentUser('sub') userId: string) {
     return this.userGameProfilesService.findAllByMe(userId);
   }
 

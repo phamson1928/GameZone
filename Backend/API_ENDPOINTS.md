@@ -1,0 +1,986 @@
+# GameZone API Endpoints Documentation
+
+## Base URL
+
+```
+http://localhost:3000
+```
+
+## Authentication
+
+Hầu hết các endpoints yêu cầu JWT token trong header:
+
+```
+Authorization: Bearer <access_token>
+```
+
+---
+
+## 1. Health Check
+
+### GET `/`
+
+Kiểm tra API hoạt động.
+
+**Auth Required:** No
+
+```bash
+curl -s http://localhost:3000/
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "ok",
+    "message": "PlayZone API is running",
+    "timestamp": "2026-01-31T17:13:29.347Z"
+  },
+  "timestamp": "2026-01-31T17:13:29.347Z"
+}
+```
+
+### GET `/health`
+
+Health check endpoint.
+
+**Auth Required:** No
+
+```bash
+curl -s http://localhost:3000/health
+```
+
+**Response:** Same as above
+
+---
+
+## 2. Authentication
+
+### POST `/auth/register`
+
+Đăng ký tài khoản mới.
+
+**Auth Required:** No
+
+```bash
+curl -s -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "Test123456",
+    "username": "testuser"
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| email | string | Yes | Email hợp lệ |
+| password | string | Yes | Mật khẩu (min 8 ký tự) |
+| username | string | Yes | Tên người dùng |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "userId": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+    "email": "test@example.com",
+    "username": "testuser",
+    "tokens": {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+  },
+  "timestamp": "2026-01-31T17:13:34.725Z"
+}
+```
+
+---
+
+### POST `/auth/login`
+
+Đăng nhập.
+
+**Auth Required:** No
+
+```bash
+curl -s -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "Test123456"
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| email | string | Yes | Email đã đăng ký |
+| password | string | Yes | Mật khẩu |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "userId": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+    "email": "test@example.com",
+    "username": "testuser",
+    "tokens": {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+  },
+  "timestamp": "2026-01-31T17:13:35.407Z"
+}
+```
+
+---
+
+### POST `/auth/refresh`
+
+Làm mới access token.
+
+**Auth Required:** No
+
+```bash
+curl -s -X POST http://localhost:3000/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| refreshToken | string | Yes | Refresh token từ login/register |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  },
+  "timestamp": "2026-01-31T17:15:24.495Z"
+}
+```
+
+---
+
+### POST `/auth/logout`
+
+Đăng xuất (revoke refresh token).
+
+**Auth Required:** Yes
+
+```bash
+curl -s -X POST http://localhost:3000/auth/logout \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| refreshToken | string | Yes | Refresh token cần revoke |
+
+**Response:** Empty (200 OK)
+
+---
+
+## 3. Users
+
+### GET `/users/me`
+
+Lấy thông tin user hiện tại.
+
+**Auth Required:** Yes
+
+```bash
+curl -s http://localhost:3000/users/me \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+    "email": "test@example.com",
+    "username": "testuser",
+    "avatarUrl": null,
+    "role": "USER",
+    "status": "ACTIVE",
+    "createdAt": "2026-01-31T17:13:34.708Z",
+    "profile": {
+      "bio": null,
+      "playStyle": null,
+      "timezone": null,
+      "lastActiveAt": null
+    }
+  },
+  "timestamp": "2026-01-31T17:13:41.921Z"
+}
+```
+
+---
+
+### PATCH `/users/me`
+
+Cập nhật profile user hiện tại.
+
+**Auth Required:** Yes
+
+```bash
+curl -s -X PATCH http://localhost:3000/users/me \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bio": "Pro gamer since 2020",
+    "playStyle": "Aggressive",
+    "timezone": "Asia/Ho_Chi_Minh"
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| bio | string | No | Giới thiệu bản thân |
+| playStyle | string | No | Phong cách chơi |
+| timezone | string | No | Múi giờ |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+    "email": "test@example.com",
+    "username": "testuser",
+    "avatarUrl": null,
+    "role": "ADMIN",
+    "status": "ACTIVE",
+    "createdAt": "2026-01-31T17:13:34.708Z",
+    "profile": {
+      "bio": "Pro gamer since 2020",
+      "playStyle": "Aggressive",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "lastActiveAt": "2026-01-31T17:13:41.919Z"
+    }
+  },
+  "timestamp": "2026-01-31T17:15:18.693Z"
+}
+```
+
+---
+
+## 4. Games
+
+### POST `/games`
+
+Tạo game mới (Admin only).
+
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -s -X POST http://localhost:3000/games \
+  -H "Authorization: Bearer <admin_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "League of Legends",
+    "iconUrl": "https://example.com/lol.png",
+    "bannerUrl": "https://example.com/lol-banner.png"
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| name | string | Yes | Tên game |
+| iconUrl | string | Yes | URL icon game |
+| bannerUrl | string | Yes | URL banner game |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+    "name": "League of Legends",
+    "iconUrl": "https://example.com/lol.png",
+    "bannerUrl": "https://example.com/lol-banner.png",
+    "isActive": true,
+    "createdAt": "2026-01-31T17:14:07.742Z"
+  },
+  "timestamp": "2026-01-31T17:14:07.746Z"
+}
+```
+
+**Error Response (User không phải Admin):**
+
+```json
+{
+  "success": false,
+  "message": "Access denied: Required role(s): ADMIN",
+  "errorCode": "FORBIDDEN",
+  "statusCode": 403,
+  "timestamp": "2026-01-31T17:13:44.918Z",
+  "path": "/games"
+}
+```
+
+---
+
+### GET `/games/mobile`
+
+Lấy danh sách games cho user (public).
+
+**Auth Required:** No
+
+```bash
+curl -s http://localhost:3000/games/mobile
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+      "name": "League of Legends",
+      "iconUrl": "https://example.com/lol.png",
+      "bannerUrl": "https://example.com/lol-banner.png",
+      "_count": {
+        "zones": 0
+      }
+    }
+  ],
+  "timestamp": "2026-01-31T17:26:04.427Z"
+}
+```
+
+---
+
+### GET `/games/admin`
+
+Lấy danh sách games cho admin.
+
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -s http://localhost:3000/games/admin \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+      "name": "League of Legends",
+      "isActive": true,
+      "createdAt": "2026-01-31T17:14:07.742Z",
+      "_count": {
+        "groups": 0
+      }
+    }
+  ],
+  "timestamp": "2026-01-31T17:26:06.496Z"
+}
+```
+
+---
+
+### GET `/games/:id`
+
+Lấy chi tiết game theo ID.
+
+**Auth Required:** No
+
+```bash
+curl -s http://localhost:3000/games/472515e6-f4be-4c35-88bb-a8fb3a52680a
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+    "name": "League of Legends",
+    "iconUrl": "https://example.com/lol.png",
+    "bannerUrl": "https://example.com/lol-banner.png",
+    "isActive": true,
+    "createdAt": "2026-01-31T17:14:07.742Z",
+    "zones": []
+  },
+  "timestamp": "2026-01-31T17:15:15.579Z"
+}
+```
+
+---
+
+## 5. User Game Profiles
+
+### POST `/user-game-profiles`
+
+Thêm game profile cho user hiện tại.
+
+**Auth Required:** Yes
+
+```bash
+curl -s -X POST http://localhost:3000/user-game-profiles \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "gameId": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+    "rankLevel": "ADVANCED"
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| gameId | string (UUID) | Yes | ID của game |
+| rankLevel | enum | Yes | BEGINNER, INTERMEDIATE, ADVANCED, PRO |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "355b65d7-3f82-47e2-82f1-63c7a225486b",
+    "userId": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+    "gameId": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+    "rankLevel": "ADVANCED",
+    "game": {
+      "name": "League of Legends",
+      "iconUrl": "https://example.com/lol.png"
+    }
+  },
+  "timestamp": "2026-01-31T17:14:17.972Z"
+}
+```
+
+---
+
+### GET `/user-game-profiles/me`
+
+Lấy tất cả game profiles của user hiện tại.
+
+**Auth Required:** Yes
+
+```bash
+curl -s http://localhost:3000/user-game-profiles/me \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "355b65d7-3f82-47e2-82f1-63c7a225486b",
+      "userId": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+      "gameId": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+      "rankLevel": "ADVANCED",
+      "game": {
+        "name": "League of Legends",
+        "iconUrl": "https://example.com/lol.png",
+        "bannerUrl": "https://example.com/lol-banner.png"
+      }
+    }
+  ],
+  "timestamp": "2026-01-31T17:26:01.856Z"
+}
+```
+
+---
+
+### GET `/user-game-profiles/:id`
+
+Lấy chi tiết game profile theo ID.
+
+**Auth Required:** Yes
+
+```bash
+curl -s http://localhost:3000/user-game-profiles/355b65d7-3f82-47e2-82f1-63c7a225486b \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "355b65d7-3f82-47e2-82f1-63c7a225486b",
+    "userId": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+    "gameId": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+    "rankLevel": "ADVANCED",
+    "game": {
+      "name": "League of Legends",
+      "iconUrl": "https://example.com/lol.png"
+    }
+  },
+  "timestamp": "2026-01-31T17:26:01.856Z"
+}
+```
+
+---
+
+### PATCH `/user-game-profiles/:id`
+
+Cập nhật rank level của game profile.
+
+**Auth Required:** Yes
+
+```bash
+curl -s -X PATCH http://localhost:3000/user-game-profiles/355b65d7-3f82-47e2-82f1-63c7a225486b \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rankLevel": "PRO"
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| rankLevel | enum | Yes | BEGINNER, INTERMEDIATE, ADVANCED, PRO |
+
+---
+
+### DELETE `/user-game-profiles/:id`
+
+Xóa game profile.
+
+**Auth Required:** Yes
+
+```bash
+curl -s -X DELETE http://localhost:3000/user-game-profiles/355b65d7-3f82-47e2-82f1-63c7a225486b \
+  -H "Authorization: Bearer <access_token>"
+```
+
+---
+
+## 6. Zones
+
+### POST `/zones`
+
+Tạo zone mới (tối đa 4 zone/user).
+
+**Auth Required:** Yes
+
+```bash
+curl -s -X POST http://localhost:3000/zones \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "gameId": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+    "title": "Tim dong doi rank Vang",
+    "description": "Can 2 nguoi choi mid va jungle",
+    "minRankLevel": "BEGINNER",
+    "maxRankLevel": "INTERMEDIATE",
+    "requiredPlayers": 3,
+    "tagIds": [],
+    "contactValue": ["discord_id_123"]
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| gameId | string (UUID) | Yes | ID của game |
+| title | string | Yes | Tiêu đề zone |
+| description | string | Yes | Mô tả chi tiết |
+| minRankLevel | enum | Yes | BEGINNER, INTERMEDIATE, ADVANCED, PRO |
+| maxRankLevel | enum | Yes | BEGINNER, INTERMEDIATE, ADVANCED, PRO |
+| requiredPlayers | number | Yes | Số người cần tìm |
+| tagIds | string[] | No | Mảng ID của tags |
+| contactValue | string[] | No | Mảng thông tin liên hệ |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "e9593755-8bb5-4747-a4a2-e669e457c019",
+    "gameId": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+    "ownerId": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+    "title": "Tim dong doi rank Vang",
+    "description": "Can 2 nguoi choi",
+    "minRankLevel": "BEGINNER",
+    "maxRankLevel": "INTERMEDIATE",
+    "requiredPlayers": 3,
+    "status": "OPEN",
+    "createdAt": "2026-01-31T17:26:15.686Z",
+    "tags": [],
+    "contacts": [],
+    "owner": {
+      "id": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+      "username": "testuser",
+      "avatarUrl": null
+    },
+    "joinRequests": []
+  },
+  "timestamp": "2026-01-31T17:26:15.689Z"
+}
+```
+
+**Error Response (Đã đạt giới hạn 4 zone):**
+
+```json
+{
+  "success": false,
+  "message": "Bạn đã đạt giới hạn tạo zone (tối đa 4 zone)",
+  "errorCode": "BAD_REQUEST",
+  "statusCode": 400
+}
+```
+
+---
+
+### GET `/zones`
+
+Lấy danh sách tất cả zones (public, có pagination).
+
+**Auth Required:** No
+
+```bash
+curl -s "http://localhost:3000/zones?page=1&limit=10"
+```
+
+**Query Parameters:**
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| page | number | 1 | Trang hiện tại |
+| limit | number | 10 | Số items/trang |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "data": [
+      {
+        "id": "e9593755-8bb5-4747-a4a2-e669e457c019",
+        "gameId": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+        "ownerId": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+        "title": "Tim dong doi rank Vang",
+        "description": "Can 2 nguoi choi",
+        "minRankLevel": "BEGINNER",
+        "maxRankLevel": "INTERMEDIATE",
+        "requiredPlayers": 3,
+        "status": "OPEN",
+        "createdAt": "2026-01-31T17:26:15.686Z",
+        "tags": [],
+        "owner": {
+          "id": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+          "username": "testuser",
+          "avatarUrl": null
+        }
+      }
+    ],
+    "totalOpen": 1,
+    "totalFull": 0,
+    "totalClosed": 0,
+    "meta": {
+      "page": 1,
+      "limit": 10,
+      "total": 1,
+      "totalPages": 1
+    }
+  },
+  "timestamp": "2026-01-31T17:14:29.877Z"
+}
+```
+
+---
+
+### GET `/zones/my`
+
+Lấy danh sách zones của user hiện tại.
+
+**Auth Required:** Yes
+
+```bash
+curl -s http://localhost:3000/zones/my \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "e9593755-8bb5-4747-a4a2-e669e457c019",
+      "gameId": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+      "ownerId": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+      "title": "Tim dong doi rank Vang",
+      "description": "Can 2 nguoi choi",
+      "minRankLevel": "BEGINNER",
+      "maxRankLevel": "INTERMEDIATE",
+      "requiredPlayers": 3,
+      "status": "OPEN",
+      "createdAt": "2026-01-31T17:26:15.686Z",
+      "tags": [],
+      "contacts": [],
+      "_count": {
+        "joinRequests": 0
+      }
+    }
+  ],
+  "timestamp": "2026-01-31T17:26:22.477Z"
+}
+```
+
+---
+
+### GET `/zones/:id`
+
+Lấy chi tiết zone theo ID.
+
+**Auth Required:** No
+
+```bash
+curl -s http://localhost:3000/zones/e9593755-8bb5-4747-a4a2-e669e457c019
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "e9593755-8bb5-4747-a4a2-e669e457c019",
+    "gameId": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+    "ownerId": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+    "title": "Tim dong doi rank Vang",
+    "description": "Can 2 nguoi choi",
+    "minRankLevel": "BEGINNER",
+    "maxRankLevel": "INTERMEDIATE",
+    "requiredPlayers": 3,
+    "status": "OPEN",
+    "createdAt": "2026-01-31T17:26:15.686Z",
+    "tags": [],
+    "contacts": [],
+    "owner": {
+      "id": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+      "username": "testuser",
+      "avatarUrl": null
+    },
+    "joinRequests": []
+  },
+  "timestamp": "2026-01-31T17:14:32.278Z"
+}
+```
+
+---
+
+### PATCH `/zones/:id`
+
+Cập nhật zone (chỉ owner).
+
+**Auth Required:** Yes
+
+```bash
+curl -s -X PATCH http://localhost:3000/zones/e9593755-8bb5-4747-a4a2-e669e457c019 \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Tim dong doi Diamond+",
+    "status": "FULL"
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| title | string | No | Tiêu đề mới |
+| description | string | No | Mô tả mới |
+| minRankLevel | enum | No | Rank tối thiểu |
+| maxRankLevel | enum | No | Rank tối đa |
+| requiredPlayers | number | No | Số người cần tìm |
+| status | enum | No | OPEN, FULL, CLOSED |
+| tagIds | string[] | No | Cập nhật tags |
+| contactValue | string[] | No | Cập nhật contacts |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "e9593755-8bb5-4747-a4a2-e669e457c019",
+    "title": "Tim dong doi Diamond+",
+    "status": "FULL",
+    ...
+  },
+  "timestamp": "2026-01-31T17:15:11.838Z"
+}
+```
+
+---
+
+### DELETE `/zones/:id`
+
+Xóa zone (chỉ owner).
+
+**Auth Required:** Yes
+
+```bash
+curl -s -X DELETE http://localhost:3000/zones/e9593755-8bb5-4747-a4a2-e669e457c019 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Zone đã được xóa thành công"
+  },
+  "timestamp": "2026-01-31T17:15:35.222Z"
+}
+```
+
+---
+
+## 7. Error Responses
+
+### 401 Unauthorized
+
+Khi không có token hoặc token không hợp lệ.
+
+```json
+{
+  "success": false,
+  "message": "Authentication required",
+  "errorCode": "UNAUTHORIZED",
+  "statusCode": 401,
+  "timestamp": "2026-01-31T17:15:48.390Z",
+  "path": "/users/me"
+}
+```
+
+### 403 Forbidden
+
+Khi không có quyền truy cập resource.
+
+```json
+{
+  "success": false,
+  "message": "Access denied: Required role(s): ADMIN",
+  "errorCode": "FORBIDDEN",
+  "statusCode": 403,
+  "timestamp": "2026-01-31T17:13:44.918Z",
+  "path": "/games"
+}
+```
+
+### 400 Bad Request
+
+Khi dữ liệu gửi lên không hợp lệ.
+
+```json
+{
+  "success": false,
+  "message": ["bannerUrl should not be empty", "bannerUrl must be a string"],
+  "errorCode": "BAD_REQUEST",
+  "statusCode": 400,
+  "timestamp": "2026-01-31T17:14:02.143Z",
+  "path": "/games"
+}
+```
+
+### 404 Not Found
+
+Khi resource không tồn tại.
+
+```json
+{
+  "success": false,
+  "message": "Zone không tồn tại",
+  "errorCode": "NOT_FOUND",
+  "statusCode": 404,
+  "timestamp": "2026-01-31T17:14:34.648Z",
+  "path": "/zones/invalid-id"
+}
+```
+
+---
+
+## 8. Enums Reference
+
+### RankLevel
+
+```
+BEGINNER
+INTERMEDIATE
+ADVANCED
+PRO
+```
+
+### ZoneStatus
+
+```
+OPEN
+FULL
+CLOSED
+```
+
+### UserRole
+
+```
+USER
+ADMIN
+```
+
+### UserStatus
+
+```
+ACTIVE
+BANNED
+```
+
+---
+
+## 9. Modules chưa implement đầy đủ
+
+Các modules sau chỉ có boilerplate, cần implement thêm:
+
+- `/join-requests` - Quản lý yêu cầu tham gia zone
+- `/groups` - Quản lý nhóm chơi
+- `/notifications` - Thông báo
+- `/reports` - Báo cáo vi phạm

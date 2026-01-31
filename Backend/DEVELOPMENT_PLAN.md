@@ -70,6 +70,15 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 - [x] `GET /users/:id` - Xem profile user khác (public info)
 - [x] `PATCH /users/me/avatar` - Upload avatar URL
 
+### 2.4 User Management (Admin)
+
+- [ ] `GET /admin/users` - Danh sách tất cả users (Admin, pagination)
+- [ ] `GET /admin/users/search` - Tìm kiếm users theo email/username (Admin)
+- [ ] `PATCH /admin/users/:id/ban` - Ban user (Admin)
+- [ ] `PATCH /admin/users/:id/unban` - Unban user (Admin)
+- [ ] `GET /admin/users/:id/activities` - Xem lịch sử hoạt động user (Admin)
+- [ ] `DELETE /admin/users/:id` - Xóa user (Admin, soft delete)
+
 ---
 
 ## Phase 3: Game & User Game Profile (Week 3-4)
@@ -114,7 +123,15 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 
 - [ ] `GET /zone-tags` - Danh sách tags
 - [ ] `POST /zone-tags` - Tạo tag (Admin)
+- [ ] `PATCH /zone-tags/:id` - Cập nhật tag (Admin)
+- [ ] `DELETE /zone-tags/:id` - Xóa tag (Admin)
 - [ ] Attach/detach tags khi tạo/sửa zone
+
+### 4.5 Zone Management (Admin)
+
+- [ ] `GET /admin/zones` - Danh sách tất cả zones (Admin, bypass ownership)
+- [ ] `DELETE /admin/zones/:id` - Force delete zone (Admin)
+- [ ] `PATCH /admin/zones/:id/close` - Đóng zone (Admin)
 
 ### 4.4 Zone Contact Methods
 
@@ -147,6 +164,12 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 - [ ] `DELETE /groups/:id/members/:userId` - Kick member (leader)
 - [ ] `PATCH /groups/:id/members/:userId` - Đổi role
 
+### 5.4 Group Management (Admin)
+
+- [ ] `GET /admin/groups` - Danh sách tất cả groups (Admin)
+- [ ] `DELETE /admin/groups/:id` - Force delete/dissolve group (Admin)
+- [ ] `GET /admin/groups/:id/messages` - Xem messages của group (Admin)
+
 ---
 
 ## Phase 6: Real-time Chat (Week 8-10)
@@ -169,6 +192,12 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 
 - [ ] `GET /groups/:id/messages` - Lịch sử chat (pagination)
 - [ ] `DELETE /messages/:id` - Xóa tin nhắn (sender only)
+
+### 6.4 Message Moderation (Admin)
+
+- [ ] `GET /admin/messages` - Danh sách messages được report (Admin)
+- [ ] `DELETE /admin/messages/:id` - Force delete message (Admin)
+- [ ] `GET /admin/messages/flagged` - Messages vi phạm (Auto-flagged, Admin)
 
 ---
 
@@ -207,10 +236,30 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 
 ### 8.2 Moderation Actions
 
-- [ ] Ban user
-- [ ] Close zone
-- [ ] Delete group
+- [ ] Ban user (linked to 2.4)
+- [ ] Close zone (linked to 4.5)
+- [ ] Delete group (linked to 5.4)
 - [ ] View report history
+- [ ] `GET /admin/reports/stats` - Thống kê reports (Admin)
+
+### 8.3 Admin Dashboard Statistics
+
+- [ ] `GET /admin/dashboard/stats` - Tổng quan dashboard (Admin)
+  - Total users (active/banned)
+  - Total zones (open/closed)
+  - Total groups (active/dissolved)
+  - Total reports (open/resolved)
+  - New users today/this week
+  - Active users today/this week
+- [ ] `GET /admin/dashboard/charts/users` - Biểu đồ tăng trưởng users (Admin)
+- [ ] `GET /admin/dashboard/charts/zones` - Biểu đồ zones theo game (Admin)
+- [ ] `GET /admin/dashboard/charts/activity` - Biểu đồ hoạt động theo giờ (Admin)
+
+### 8.4 Audit Logs (Admin)
+
+- [ ] `GET /admin/audit-logs` - Lịch sử admin actions (Admin)
+- [ ] `POST /admin/audit-logs` - Tự động log mỗi admin action
+- [ ] Log actions: BAN_USER, UNBAN_USER, DELETE_ZONE, DELETE_GROUP, RESOLVE_REPORT
 
 ---
 
@@ -258,21 +307,28 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 
 ## API Endpoints Summary
 
-| Module            | Endpoints         |
-| ----------------- | ----------------- |
-| Auth              | 5                 |
-| Users             | 4                 |
-| Games             | 5                 |
-| User Game Profile | 4                 |
-| Zones             | 5                 |
-| Zone Tags         | 2                 |
-| Join Requests     | 5                 |
-| Groups            | 5                 |
-| Group Members     | 3                 |
-| Messages          | 2                 |
-| Notifications     | 4                 |
-| Reports           | 3                 |
-| **Total**         | **~47 endpoints** |
+| Module                 | Endpoints         |
+| ---------------------- | ----------------- |
+| Auth                   | 5                 |
+| Users                  | 4                 |
+| **Admin - Users**      | **6**             |
+| Games                  | 5                 |
+| User Game Profile      | 4                 |
+| Zones                  | 5                 |
+| Zone Tags              | 4                 |
+| **Admin - Zones**      | **3**             |
+| Join Requests          | 5                 |
+| Groups                 | 5                 |
+| **Admin - Groups**     | **3**             |
+| Group Members          | 3                 |
+| Messages               | 2                 |
+| **Admin - Messages**   | **3**             |
+| Notifications          | 4                 |
+| Reports                | 3                 |
+| **Admin - Reports**    | **1**             |
+| **Admin - Dashboard**  | **4**             |
+| **Admin - Audit Logs** | **2**             |
+| **Total**              | **~71 endpoints** |
 
 ---
 
@@ -309,11 +365,52 @@ src/
 
 ## Priority Matrix
 
-| Priority          | Features                                         |
-| ----------------- | ------------------------------------------------ |
-| P0 (Must have)    | Auth, Users, Games, Zones, Join Requests, Groups |
-| P1 (Should have)  | Chat, Notifications                              |
-| P2 (Nice to have) | Reports, Advanced filters, Caching               |
+| Priority          | Features                                                        |
+| ----------------- | --------------------------------------------------------------- |
+| P0 (Must have)    | Auth, Users, Games, Zones, Join Requests, Groups                |
+| P1 (Should have)  | Chat, Notifications, **Admin User Management, Admin Dashboard** |
+| P2 (Nice to have) | Reports, Advanced filters, Caching, **Admin Audit Logs**        |
+
+---
+
+## Admin Endpoints Summary
+
+### User Management (Phase 2.4)
+
+- List/Search all users
+- Ban/Unban users
+- View user activities
+- Soft delete users
+
+### Zone Management (Phase 4.5)
+
+- View all zones (bypass ownership)
+- Force close/delete zones
+
+### Group Management (Phase 5.4)
+
+- View all groups
+- Force dissolve groups
+- View group messages
+
+### Message Moderation (Phase 6.4)
+
+- View reported messages
+- Force delete messages
+- View auto-flagged content
+
+### Dashboard & Analytics (Phase 8.3)
+
+- Real-time statistics
+- User growth charts
+- Zone distribution by game
+- Activity heatmaps
+
+### Audit Logs (Phase 8.4)
+
+- Track all admin actions
+- Filter by admin/action type
+- Export audit trail
 
 ---
 

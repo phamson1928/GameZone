@@ -38,10 +38,6 @@ export class GamesService {
         name: true,
         iconUrl: true,
         bannerUrl: true,
-        zones: {
-          where: { status: 'OPEN' },
-          select: { id: true },
-        },
         _count: {
           select: { zones: true },
         },
@@ -55,6 +51,18 @@ export class GamesService {
   async findOne(id: string) {
     const game = await this.prisma.game.findUnique({
       where: { id },
+      include: {
+        zones: {
+          where: { status: 'OPEN' },
+          select: {
+            title: true,
+            description: true,
+            minRankLevel: true,
+            maxRankLevel: true,
+            requiredPlayers: true,
+          },
+        },
+      },
     });
     if (!game) {
       throw new NotFoundException(`Game with ID ${id} not found`);
