@@ -72,12 +72,12 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 
 ### 2.4 User Management (Admin)
 
-- [ ] `GET /admin/users` - Danh sách tất cả users (Admin, pagination)
-- [ ] `GET /admin/users/search` - Tìm kiếm users theo email/username (Admin)
-- [ ] `PATCH /admin/users/:id/ban` - Ban user (Admin)
-- [ ] `PATCH /admin/users/:id/unban` - Unban user (Admin)
-- [ ] `GET /admin/users/:id/activities` - Xem lịch sử hoạt động user (Admin)
-- [ ] `DELETE /admin/users/:id` - Xóa user (Admin, soft delete)
+- [ ] `GET /users` - Danh sách tất cả users (Admin, pagination)
+- [ ] `GET /users/search` - Tìm kiếm users theo email/username (Admin)
+- [ ] `PATCH /users/:id/ban` - Ban user (Admin)
+- [ ] `PATCH /users/:id/unban` - Unban user (Admin)
+- [ ] `GET /users/:id/activities` - Xem lịch sử hoạt động user (Admin)
+- [ ] `DELETE /users/:id` - Xóa user (Admin, soft delete)
 
 ---
 

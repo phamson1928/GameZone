@@ -289,7 +289,306 @@ curl -s -X PATCH http://localhost:3000/users/me \
 
 ---
 
-## 4. Games
+## 4. User Management (Admin)
+
+### GET `/users`
+
+Lấy danh sách tất cả users (Admin only).
+
+**Auth Required:** Yes (Admin)
+
+**Query Parameters:**
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| page | number | 1 | Trang hiện tại |
+| limit | number | 20 | Số users/trang (max 100) |
+
+```bash
+curl -s "http://localhost:3000/users?page=1&limit=20" \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+      "email": "test@example.com",
+      "username": "testuser",
+      "avatarUrl": null,
+      "role": "USER",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-31T17:13:34.708Z",
+      "profile": {
+        "bio": "Pro gamer since 2020",
+        "playStyle": "Aggressive",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "lastActiveAt": "2026-02-03T08:30:00.000Z"
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 150,
+    "totalPages": 8
+  }
+}
+```
+
+---
+
+### GET `/users/search`
+
+Tìm kiếm users theo email/username với filters (Admin only).
+
+**Auth Required:** Yes (Admin)
+
+**Query Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| query | string | No | Tìm kiếm trong email và username (case-insensitive) |
+| role | enum | No | Filter theo role: ADMIN, USER |
+| status | enum | No | Filter theo status: ACTIVE, BANNED |
+| page | number | No | Trang hiện tại (default: 1) |
+| limit | number | No | Số users/trang (default: 20, max: 100) |
+
+```bash
+curl -s "http://localhost:3000/users/search?query=john&role=USER&status=ACTIVE&page=1&limit=20" \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "user-uuid",
+      "email": "john@example.com",
+      "username": "john_doe",
+      "avatarUrl": "https://example.com/avatar.jpg",
+      "role": "USER",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-15T10:00:00.000Z",
+      "profile": {
+        "bio": "Casual gamer",
+        "playStyle": "Defensive",
+        "timezone": "America/New_York",
+        "lastActiveAt": "2026-02-03T07:00:00.000Z"
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 5,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+### GET `/users/:id/activities`
+
+Xem lịch sử hoạt động của user (Admin only).
+
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -s http://localhost:3000/users/9e0a44d5-65a0-4ee4-810f-ed6a77db6e53/activities \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**Response:**
+
+```json
+[
+  {
+    "type": "ZONE_CREATED",
+    "description": "Created zone: Looking for Valorant teammates",
+    "createdAt": "2026-02-03T08:30:00.000Z",
+    "relatedId": "zone-uuid",
+    "relatedType": "zone"
+  },
+  {
+    "type": "JOIN_REQUEST_APPROVED",
+    "description": "Join request for \"CS:GO 5v5\" - APPROVED",
+    "createdAt": "2026-02-02T15:20:00.000Z",
+    "relatedId": "request-uuid",
+    "relatedType": "join_request"
+  },
+  {
+    "type": "GROUP_JOINED",
+    "description": "Joined group for zone: Diamond rank squad",
+    "createdAt": "2026-02-01T12:00:00.000Z",
+    "relatedId": "group-uuid",
+    "relatedType": "group"
+  }
+]
+```
+
+**Activity Types:**
+
+- `ZONE_CREATED` - User tạo zone mới
+- `JOIN_REQUEST_PENDING` - Gửi yêu cầu join zone
+- `JOIN_REQUEST_APPROVED` - Request được chấp nhận
+- `JOIN_REQUEST_REJECTED` - Request bị từ chối
+- `GROUP_JOINED` - Join vào group
+
+---
+
+### PATCH `/users/:id/ban`
+
+Ban một user (Admin only).
+
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -s -X PATCH http://localhost:3000/users/user-uuid/ban \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "User has been banned successfully",
+  "data": {
+    "id": "user-uuid",
+    "username": "banned_user",
+    "avatarUrl": "https://example.com/avatar.jpg",
+    "profile": {
+      "bio": "Former user",
+      "playStyle": "Aggressive",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "lastActiveAt": "2026-02-03T08:00:00.000Z"
+    }
+  }
+}
+```
+
+**Error Responses:**
+
+**400 - Self Ban:**
+
+```json
+{
+  "success": false,
+  "message": "You cannot ban yourself",
+  "errorCode": "BAD_REQUEST",
+  "statusCode": 400
+}
+```
+
+**400 - Already Banned:**
+
+```json
+{
+  "success": false,
+  "message": "User is already banned",
+  "errorCode": "BAD_REQUEST",
+  "statusCode": 400
+}
+```
+
+---
+
+### PATCH `/users/:id/unban`
+
+Unban một user (Admin only).
+
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -s -X PATCH http://localhost:3000/users/user-uuid/unban \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "User has been unbanned successfully",
+  "data": {
+    "id": "user-uuid",
+    "username": "unbanned_user",
+    "avatarUrl": "https://example.com/avatar.jpg",
+    "profile": {
+      "bio": "Back in action",
+      "playStyle": "Balanced",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "lastActiveAt": "2026-02-03T09:00:00.000Z"
+    }
+  }
+}
+```
+
+**Error Response (400 - Not Banned):**
+
+```json
+{
+  "success": false,
+  "message": "User is not banned",
+  "errorCode": "BAD_REQUEST",
+  "statusCode": 400
+}
+```
+
+---
+
+### PATCH `/users/:id/delete`
+
+Xóa user (Admin only - Soft delete).
+
+**Auth Required:** Yes (Admin)
+
+**Note:** Đây là soft delete - user sẽ được đánh dấu BANNED và email/username được scramble để prevent reuse.
+
+```bash
+curl -s -X PATCH http://localhost:3000/users/user-uuid/delete \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "User has been deleted successfully",
+  "data": {
+    "id": "user-uuid"
+  }
+}
+```
+
+**Error Response (400 - Self Delete):**
+
+```json
+{
+  "success": false,
+  "message": "You cannot delete yourself",
+  "errorCode": "BAD_REQUEST",
+  "statusCode": 400
+}
+```
+
+**What happens on delete:**
+
+- User status → `BANNED`
+- Email → `deleted_<userId>@deleted.com`
+- Username → `deleted_<userId>`
+- Data preserved for audit trail
+- Email/username cannot be reused
+
+---
+
+## 5. Games
 
 ### POST `/games`
 
@@ -442,7 +741,7 @@ curl -s http://localhost:3000/games/472515e6-f4be-4c35-88bb-a8fb3a52680a
 
 ---
 
-## 5. User Game Profiles
+## 6. User Game Profiles
 
 ### POST `/user-game-profiles`
 
@@ -589,7 +888,7 @@ curl -s -X DELETE http://localhost:3000/user-game-profiles/355b65d7-3f82-47e2-82
 
 ---
 
-## 6. Zones
+## 7. Zones
 
 ### POST `/zones`
 
@@ -877,7 +1176,7 @@ curl -s -X DELETE http://localhost:3000/zones/e9593755-8bb5-4747-a4a2-e669e457c0
 
 ---
 
-## 7. Error Responses
+## 8. Error Responses
 
 ### 401 Unauthorized
 
@@ -941,7 +1240,7 @@ Khi resource không tồn tại.
 
 ---
 
-## 8. Enums Reference
+## 9. Enums Reference
 
 ### RankLevel
 
@@ -976,7 +1275,7 @@ BANNED
 
 ---
 
-## 9. Modules chưa implement đầy đủ
+## 10. Modules chưa implement đầy đủ
 
 Các modules sau chỉ có boilerplate, cần implement thêm:
 

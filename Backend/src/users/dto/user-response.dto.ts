@@ -33,11 +33,11 @@ export class UserResponseDto {
   @ApiProperty({ example: 'ACTIVE', enum: ['ACTIVE', 'BANNED'] })
   status: string;
 
-  @ApiPropertyOptional({ type: UserProfileResponseDto })
-  profile?: UserProfileResponseDto | null;
-
   @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
   createdAt: Date;
+
+  @ApiPropertyOptional({ type: UserProfileResponseDto })
+  profile?: UserProfileResponseDto | null;
 }
 
 export class PublicUserResponseDto {

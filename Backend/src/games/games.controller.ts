@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { GamesService } from './games.service';
 import { CreateGameDto } from './dto/create-game.dto';
@@ -35,8 +36,11 @@ export class GamesController {
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Get all games for administration (Admin only)' })
-  findAllForAdmin() {
-    return this.gamesService.findAllForAdmin();
+  findAllForAdmin(@Query() query: { page?: string; limit?: string }) {
+    return this.gamesService.findAllForAdmin(
+      Number(query.page),
+      Number(query.limit),
+    );
   }
 
   @Get('mobile')

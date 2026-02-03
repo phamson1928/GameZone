@@ -13,7 +13,9 @@ export class GamesService {
     });
   }
 
-  async findAllForAdmin() {
+  async findAllForAdmin(page?: number, limit?: number) {
+    const pageLimit = limit || 10;
+    const skip: number = ((page || 1) - 1) * pageLimit;
     return this.prisma.game.findMany({
       select: {
         id: true,
@@ -27,6 +29,8 @@ export class GamesService {
       orderBy: {
         createdAt: 'desc',
       },
+      skip,
+      take: pageLimit,
     });
   }
 
