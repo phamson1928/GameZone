@@ -13,7 +13,7 @@ export class RegisterDto {
     description: 'User email address',
   })
   @IsEmail({}, { message: 'Invalid email format' })
-  email: string;
+  email!: string;
 
   @ApiProperty({
     example: 'gamer123',
@@ -25,7 +25,7 @@ export class RegisterDto {
   @Matches(/^[a-zA-Z0-9_]+$/, {
     message: 'Username can only contain letters, numbers and underscores',
   })
-  username: string;
+  username!: string;
 
   @ApiProperty({
     example: 'password123',
@@ -34,5 +34,5 @@ export class RegisterDto {
   @IsString()
   @MinLength(6, { message: 'Password must be at least 6 characters' })
   @MaxLength(100, { message: 'Password must not exceed 100 characters' })
-  password: string;
+  password!: string;
 }
