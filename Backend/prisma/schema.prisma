@@ -74,6 +74,12 @@ enum ReportStatus {
   RESOLVED
 }
 
+enum Platform {
+  PC
+  CONSOLE
+  MOBILE
+}
+
 ////////////////////
 /// USER & AUTH
 ////////////////////
@@ -128,13 +134,15 @@ model RefreshToken {
 ////////////////////
 
 model Game {
-  id        String  @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
   iconUrl   String?
   bannerUrl String?
-  isActive  Boolean @default(true)
+  isActive  Boolean  @default(true)
+  platforms Platform[]
 
   zones        Zone[]
+
   groups       Group[]
   userProfiles UserGameProfile[]
 

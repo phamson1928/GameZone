@@ -69,7 +69,7 @@ export class GamesService {
       },
     });
     if (!game) {
-      throw new NotFoundException(`Game with ID ${id} not found`);
+      throw new NotFoundException(`Game with ID ${id} không tồn tại`);
     }
     return game;
   }

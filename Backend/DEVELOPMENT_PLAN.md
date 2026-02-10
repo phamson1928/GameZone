@@ -83,41 +83,46 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 
 ## Phase 3: Game & User Game Profile (Week 3-4)
 
-### 3.1 Game Module (Admin)
+### 3.1 Game Module (Admin) ✅ COMPLETED
 
-- [x] `GET /games` - Danh sách game
+- [x] `GET /games/mobile` - Danh sách game cho user
+- [x] `GET /games/admin` - Danh sách game cho admin
 - [x] `GET /games/:id` - Chi tiết game
 - [x] `POST /games` - Thêm game (Admin)
 - [x] `PATCH /games/:id` - Cập nhật game (Admin)
 - [x] `DELETE /games/:id` - Xóa game (Admin)
 
-### 3.2 User Game Profile
+### 3.2 User Game Profile ✅ COMPLETED
 
-- [x] `GET /users/me/games` - Danh sách game của user
-- [x] `POST /users/me/games` - Thêm game profile
-- [x] `PATCH /users/me/games/:gameId` - Cập nhật rank
-- [x] `DELETE /users/me/games/:gameId` - Xóa game profile
+- [x] `GET /user-game-profiles/me` - Danh sách game của user hiện tại
+- [x] `GET /user-game-profiles/:id` - Chi tiết game profile
+- [x] `POST /user-game-profiles` - Thêm game profile mới
+- [x] `PATCH /user-game-profiles/:id` - Cập nhật rank level
+- [x] `DELETE /user-game-profiles/:id` - Xóa game profile
 
 ---
 
-## Phase 4: Zone - Tìm Bạn (Week 4-6)
+## Phase 4: Zone - Tìm Bạn (Week 4-6) ✅ IN PROGRESS
 
-### 4.1 Zone CRUD
+### 4.1 Zone CRUD ✅ COMPLETED
 
-- [ ] `POST /zones` - Tạo zone mới
-- [ ] `GET /zones` - Danh sách zone (với filter, pagination)
-- [ ] `GET /zones/:id` - Chi tiết zone
-- [ ] `PATCH /zones/:id` - Cập nhật zone (owner only)
-- [ ] `DELETE /zones/:id` - Xóa zone (owner only)
+- [x] `POST /zones` - Tạo zone mới (tối đa 4 zone)
+- [x] `GET /zones` - Danh sách zone công khai (pagination)
+- [x] `GET /zones/search` - Tìm kiếm zone với filters và sorting
+- [x] `GET /zones/my` - Danh sách zone của chính mình
+- [x] `GET /zones/:id/public` - Chi tiết zone (công khai)
+- [x] `GET /zones/:id/owner` - Chi tiết zone (cho chủ sở hữu, xem requests)
+- [x] `PATCH /zones/:id` - Cập nhật zone (owner only)
+- [x] `DELETE /zones/:id` - Xóa zone (owner only)
 
-### 4.2 Zone Filters
+### 4.2 Zone Filters ✅ COMPLETED
 
-- [ ] Filter theo game
-- [ ] Filter theo rank level (min-max)
-- [ ] Filter theo tags
-- [ ] Filter theo status (OPEN/FULL/CLOSED)
-- [ ] Search theo title/description
-- [ ] Sort theo createdAt, requiredPlayers
+- [x] Filter theo game (tên, ID)
+- [x] Filter theo rank level (min-max logic validation)
+- [x] Filter theo tags
+- [x] Filter theo status (OPEN/FULL/CLOSED)
+- [x] Search theo title/description/username (Search API)
+- [x] Sort theo newest, oldest, players count
 
 ### 4.3 Zone Tags
 

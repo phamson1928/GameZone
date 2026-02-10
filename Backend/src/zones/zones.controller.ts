@@ -36,7 +36,7 @@ export class ZonesController {
   @Public()
   @ApiOperation({ summary: 'Lấy danh sách tất cả zones (public)' })
   findAll(@Query('page') page = 1, @Query('limit') limit = 10) {
-    return this.zonesService.findAll(Number(page), Number(limit));
+    return this.zonesService.findAllByUser(Number(page), Number(limit));
   }
 
   // IMPORTANT: Static routes must come BEFORE dynamic routes (:id)
@@ -51,14 +51,21 @@ export class ZonesController {
   @ApiOperation({ summary: 'Lấy danh sách zones của user hiện tại' })
   @ApiBearerAuth()
   findMyZones(@CurrentUser('sub') ownerId: string) {
-    return this.zonesService.findByOwner(ownerId);
+    return this.zonesService.findAllByOwner(ownerId);
   }
 
-  @Get(':id')
+  @Get(':id/public')
   @Public()
   @ApiOperation({ summary: 'Lấy chi tiết zone (public)' })
-  findOne(@Param('id') id: string) {
-    return this.zonesService.findOne(id);
+  findOneByPublic(@Param('id') id: string) {
+    return this.zonesService.findOneByPublic(id);
+  }
+
+  @Get(':id/owner')
+  @ApiOperation({ summary: 'Lấy chi tiết zone (owner only)' })
+  @ApiBearerAuth()
+  findOneByOwner(@Param('id') id: string, @CurrentUser('sub') ownerId: string) {
+    return this.zonesService.findOneByOwner(id, ownerId);
   }
 
   @Patch(':id')

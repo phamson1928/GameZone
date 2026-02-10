@@ -2,19 +2,20 @@ import {
   Injectable,
   ForbiddenException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateZoneDto } from './dto/create-zone.dto.js';
 import { UpdateZoneDto } from './dto/update-zone.dto.js';
 import { SearchZonesDto, ZoneSortBy } from './dto/search-zones.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { Prisma } from '@prisma/client';
+import { Prisma, ContactMethodType } from '@prisma/client';
 
 @Injectable()
 export class ZonesService {
   constructor(private prisma: PrismaService) {}
 
   async create(ownerId: string, createZoneDto: CreateZoneDto) {
-    const { tagIds, contactValue, ...zoneData } = createZoneDto;
+    const { tagIds, contacts, ...zoneData } = createZoneDto;
 
     // Kiểm tra giới hạn tạo zone
     const zoneCount = await this.prisma.zone.count({
@@ -23,6 +24,25 @@ export class ZonesService {
     if (zoneCount >= 4) {
       throw new BadRequestException(
         'Bạn đã đạt giới hạn tạo zone (tối đa 4 zone)',
+      );
+    }
+
+    // Kiểm tra game có tồn tại không
+    const game = await this.prisma.game.findUnique({
+      where: { id: zoneData.gameId },
+    });
+    if (!game) {
+      throw new BadRequestException('Game không tồn tại');
+    }
+
+    // Kiểm tra rank level logic
+    const rankOrder = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'PRO'];
+    if (
+      rankOrder.indexOf(zoneData.minRankLevel) >
+      rankOrder.indexOf(zoneData.maxRankLevel)
+    ) {
+      throw new BadRequestException(
+        'Rank tối thiểu không thể lớn hơn rank tối đa',
       );
     }
 
@@ -45,50 +65,72 @@ export class ZonesService {
     }
 
     // Bước 3: Thêm contacts nếu có
-    if (contactValue && contactValue.length > 0) {
+    if (contacts && contacts.length > 0) {
       await this.prisma.zoneContactMethod.createMany({
-        data: contactValue.map((contactValue) => ({
+        data: contacts.map((c) => ({
           zoneId: zone.id,
-          type: 'INGAME',
-          value: contactValue,
+          type: c.type,
+          value: c.value,
         })),
       });
     }
 
     // Trả về zone đầy đủ
-    return this.findOne(zone.id);
+    return this.findOneByOwner(zone.id, ownerId);
   }
 
-  async findAll(page: number, limit: number) {
+  async findAllByUser(page: number, limit: number) {
     const skip = (page - 1) * limit;
-    const [data, totalOpen, totalFull, totalClosed] = await Promise.all([
+    const data = await this.prisma.zone.findMany({
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        tags: { include: { tag: true } },
+        owner: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+      },
+    });
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+      },
+    };
+  }
+
+  async findAllByAdmin(page: number, limit: number) {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
       this.prisma.zone.findMany({
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          tags: { include: { tag: true } },
           owner: {
             select: {
               id: true,
               username: true,
-              avatarUrl: true,
+              email: true,
+            },
+          },
+          _count: {
+            select: {
+              joinRequests: true,
             },
           },
         },
       }),
-      this.prisma.zone.count({ where: { status: 'OPEN' } }),
-      this.prisma.zone.count({ where: { status: 'FULL' } }),
-      this.prisma.zone.count({ where: { status: 'CLOSED' } }),
+      this.prisma.zone.count(),
     ]);
-
-    const total = totalOpen + totalFull + totalClosed;
-
     return {
       data,
-      totalOpen,
-      totalFull,
-      totalClosed,
       meta: {
         page,
         limit,
@@ -96,6 +138,31 @@ export class ZonesService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async findAllByOwner(ownerId: string) {
+    return this.prisma.zone.findMany({
+      where: { ownerId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        createdAt: true,
+        _count: {
+          select: {
+            joinRequests: true,
+          },
+        },
+        game: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
   }
 
   async search(dto: SearchZonesDto) {
@@ -151,7 +218,6 @@ export class ZonesService {
             select: {
               id: true,
               name: true,
-              iconUrl: true,
             },
           },
         },
@@ -172,7 +238,7 @@ export class ZonesService {
     };
   }
 
-  async findOne(id: string) {
+  async findOneByPublic(id: string) {
     const zone = await this.prisma.zone.findUnique({
       where: { id },
       include: {
@@ -190,8 +256,15 @@ export class ZonesService {
             avatarUrl: true,
           },
         },
+        game: {
+          select: {
+            id: true,
+            name: true,
+            iconUrl: true,
+          },
+        },
         joinRequests: {
-          where: { status: 'PENDING' },
+          where: { status: 'APPROVED' },
           include: {
             user: {
               select: {
@@ -206,22 +279,32 @@ export class ZonesService {
     });
 
     if (!zone) {
-      throw new BadRequestException('Zone không tồn tại');
+      throw new NotFoundException('Zone không tồn tại');
     }
 
     return zone;
   }
 
-  async findByOwner(ownerId: string) {
-    return this.prisma.zone.findMany({
-      where: { ownerId },
-      orderBy: { createdAt: 'desc' },
+  async findOneByOwner(id: string, ownerId: string) {
+    const zone = await this.prisma.zone.findFirst({
+      where: { id, ownerId },
       include: {
         tags: { include: { tag: true } },
         contacts: {
           select: {
             type: true,
             value: true,
+          },
+        },
+        joinRequests: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                avatarUrl: true,
+              },
+            },
           },
         },
         _count: {
@@ -238,18 +321,24 @@ export class ZonesService {
         },
       },
     });
+
+    if (!zone) {
+      throw new NotFoundException(
+        'Zone không tồn tại hoặc bạn không có quyền xem',
+      );
+    }
+
+    return zone;
   }
 
-  async update(
-    id: string,
-    ownerId: string,
-    updateZoneDto: UpdateZoneDto & {
-      tagIds?: string[];
-      contactValue?: string[];
-    },
-  ) {
+  async update(id: string, ownerId: string, updateZoneDto: UpdateZoneDto) {
     // Tách dữ liệu zone và relations
-    const { tagIds, contactValue, ...zoneData } = updateZoneDto;
+    const { tagIds, contacts, ...zoneData } = updateZoneDto;
+
+    // Type guard for contacts
+    const typedContacts = contacts as
+      | Array<{ type: string; value: string }>
+      | undefined;
 
     // Kiểm tra quyền sở hữu
     const zone = await this.prisma.zone.findFirst({
@@ -261,6 +350,17 @@ export class ZonesService {
 
     // Bước 1: Cập nhật zone info nếu có
     if (Object.keys(zoneData).length > 0) {
+      // Kiểm tra rank level logic nếu cả 2 được update
+      const minRank = zoneData.minRankLevel || zone.minRankLevel;
+      const maxRank = zoneData.maxRankLevel || zone.maxRankLevel;
+      const rankOrder = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'PRO'];
+
+      if (rankOrder.indexOf(minRank) > rankOrder.indexOf(maxRank)) {
+        throw new BadRequestException(
+          'Rank tối thiểu không thể lớn hơn rank tối đa',
+        );
+      }
+
       await this.prisma.zone.update({
         where: { id },
         data: zoneData,
@@ -285,27 +385,27 @@ export class ZonesService {
       }
     }
 
-    // Bước 3: Nếu có contactValue thì cập nhật contacts
-    if (contactValue !== undefined) {
+    // Bước 3: Nếu có contacts thì cập nhật
+    if (typedContacts !== undefined) {
       // Xóa contacts cũ
       await this.prisma.zoneContactMethod.deleteMany({
         where: { zoneId: id },
       });
 
       // Thêm contacts mới nếu có
-      if (contactValue.length > 0) {
+      if (typedContacts.length > 0) {
         await this.prisma.zoneContactMethod.createMany({
-          data: contactValue.map((contactValue) => ({
+          data: typedContacts.map((c) => ({
             zoneId: id,
-            type: 'INGAME',
-            value: contactValue,
+            type: c.type as ContactMethodType,
+            value: c.value,
           })),
         });
       }
     }
 
     // Trả về zone đã cập nhật với đầy đủ relations
-    return this.findOne(id);
+    return this.findOneByOwner(id, ownerId);
   }
 
   async remove(id: string, ownerId: string) {

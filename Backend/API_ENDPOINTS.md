@@ -972,55 +972,33 @@ Lấy danh sách tất cả zones (public, có pagination).
 
 **Auth Required:** No
 
-```bash
-curl -s "http://localhost:3000/zones?page=1&limit=10"
-```
-
 **Query Parameters:**
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | page | number | 1 | Trang hiện tại |
 | limit | number | 10 | Số items/trang |
 
-**Response:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "data": [
-      {
-        "id": "e9593755-8bb5-4747-a4a2-e669e457c019",
-        "gameId": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
-        "ownerId": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
-        "title": "Tim dong doi rank Vang",
-        "description": "Can 2 nguoi choi",
-        "minRankLevel": "BEGINNER",
-        "maxRankLevel": "INTERMEDIATE",
-        "requiredPlayers": 3,
-        "status": "OPEN",
-        "createdAt": "2026-01-31T17:26:15.686Z",
-        "tags": [],
-        "owner": {
-          "id": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
-          "username": "testuser",
-          "avatarUrl": null
-        }
-      }
-    ],
-    "totalOpen": 1,
-    "totalFull": 0,
-    "totalClosed": 0,
-    "meta": {
-      "page": 1,
-      "limit": 10,
-      "total": 1,
-      "totalPages": 1
-    }
-  },
-  "timestamp": "2026-01-31T17:14:29.877Z"
-}
+```bash
+curl -s "http://localhost:3000/zones?page=1&limit=10"
 ```
+
+**Response:** Same as below
+
+---
+
+### GET `/zones/search`
+
+Tìm kiếm zones với filters và sorting.
+
+**Auth Required:** No
+
+**Query Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| q | string | No | Search query cho title, description, username |
+| sortBy | enum | No | newest, oldest, players_asc, players_desc |
+| page | number | No | Default: 1 |
+| limit | number | No | Default: 20 |
 
 ---
 
@@ -1035,73 +1013,29 @@ curl -s http://localhost:3000/zones/my \
   -H "Authorization: Bearer <access_token>"
 ```
 
-**Response:**
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "e9593755-8bb5-4747-a4a2-e669e457c019",
-      "gameId": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
-      "ownerId": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
-      "title": "Tim dong doi rank Vang",
-      "description": "Can 2 nguoi choi",
-      "minRankLevel": "BEGINNER",
-      "maxRankLevel": "INTERMEDIATE",
-      "requiredPlayers": 3,
-      "status": "OPEN",
-      "createdAt": "2026-01-31T17:26:15.686Z",
-      "tags": [],
-      "contacts": [],
-      "_count": {
-        "joinRequests": 0
-      }
-    }
-  ],
-  "timestamp": "2026-01-31T17:26:22.477Z"
-}
-```
-
 ---
 
-### GET `/zones/:id`
+### GET `/zones/:id/public`
 
-Lấy chi tiết zone theo ID.
+Lấy chi tiết zone (public view).
 
 **Auth Required:** No
 
 ```bash
-curl -s http://localhost:3000/zones/e9593755-8bb5-4747-a4a2-e669e457c019
+curl -s http://localhost:3000/zones/e9593755-8bb5-4747-a4a2-e669e457c019/public
 ```
 
-**Response:**
+---
 
-```json
-{
-  "success": true,
-  "data": {
-    "id": "e9593755-8bb5-4747-a4a2-e669e457c019",
-    "gameId": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
-    "ownerId": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
-    "title": "Tim dong doi rank Vang",
-    "description": "Can 2 nguoi choi",
-    "minRankLevel": "BEGINNER",
-    "maxRankLevel": "INTERMEDIATE",
-    "requiredPlayers": 3,
-    "status": "OPEN",
-    "createdAt": "2026-01-31T17:26:15.686Z",
-    "tags": [],
-    "contacts": [],
-    "owner": {
-      "id": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
-      "username": "testuser",
-      "avatarUrl": null
-    },
-    "joinRequests": []
-  },
-  "timestamp": "2026-01-31T17:14:32.278Z"
-}
+### GET `/zones/:id/owner`
+
+Lấy chi tiết zone dành cho chủ sở hữu (bao gồm join requests đang chờ).
+
+**Auth Required:** Yes (Owner)
+
+```bash
+curl -s http://localhost:3000/zones/e9593755-8bb5-4747-a4a2-e669e457c019/owner \
+  -H "Authorization: Bearer <access_token>"
 ```
 
 ---

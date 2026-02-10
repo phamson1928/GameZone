@@ -1,4 +1,4 @@
-import { RankLevel } from '@prisma/client';
+import { RankLevel, ContactMethodType } from '@prisma/client';
 import {
   IsEnum,
   IsInt,
@@ -6,34 +6,46 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class ZoneContactDto {
+  @IsEnum(ContactMethodType)
+  type: ContactMethodType = ContactMethodType.INGAME;
+
+  @IsString()
+  @IsNotEmpty()
+  value: string = '';
+}
 
 export class CreateZoneDto {
   @IsNotEmpty()
   @IsString()
-  gameId: string;
+  gameId: string = '';
 
   @IsString()
-  description: string;
+  description: string = '';
 
   @IsString()
-  title: string;
+  title: string = '';
 
   @IsOptional()
   @IsUUID(4, { each: true })
   tagIds?: string[];
 
   @IsOptional()
-  @IsString({ each: true })
-  contactValue?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => ZoneContactDto)
+  contacts?: ZoneContactDto[];
 
   @IsEnum(RankLevel)
-  minRankLevel: RankLevel;
+  minRankLevel: RankLevel = 'BEGINNER';
 
   @IsEnum(RankLevel)
-  maxRankLevel: RankLevel;
+  maxRankLevel: RankLevel = 'PRO';
 
   @IsNotEmpty()
   @IsInt()
-  requiredPlayers: number;
+  requiredPlayers: number = 1;
 }
