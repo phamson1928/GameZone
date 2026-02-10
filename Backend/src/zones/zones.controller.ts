@@ -12,6 +12,7 @@ import {
 import { ZonesService } from './zones.service.js';
 import { CreateZoneDto } from './dto/create-zone.dto.js';
 import { UpdateZoneDto } from './dto/update-zone.dto.js';
+import { SearchZonesDto } from './dto/search-zones.dto.js';
 import { CurrentUser, Public, JwtAuthGuard } from '../common/index.js';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
@@ -39,6 +40,13 @@ export class ZonesController {
   }
 
   // IMPORTANT: Static routes must come BEFORE dynamic routes (:id)
+  @Get('search')
+  @Public()
+  @ApiOperation({ summary: 'Tìm kiếm zones với filter và sort' })
+  search(@Query() searchDto: SearchZonesDto) {
+    return this.zonesService.search(searchDto);
+  }
+
   @Get('my')
   @ApiOperation({ summary: 'Lấy danh sách zones của user hiện tại' })
   @ApiBearerAuth()
