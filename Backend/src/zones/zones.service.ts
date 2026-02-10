@@ -5,7 +5,9 @@ import {
 } from '@nestjs/common';
 import { CreateZoneDto } from './dto/create-zone.dto.js';
 import { UpdateZoneDto } from './dto/update-zone.dto.js';
+import { SearchZonesDto, ZoneSortBy } from './dto/search-zones.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ZonesService {
@@ -96,6 +98,80 @@ export class ZonesService {
     };
   }
 
+  async search(dto: SearchZonesDto) {
+    const { q, sortBy = ZoneSortBy.NEWEST, page = 1, limit = 20 } = dto;
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: Prisma.ZoneWhereInput = {};
+
+    if (q && q.trim()) {
+      const searchTerm = q.trim();
+      where.OR = [
+        { title: { contains: searchTerm, mode: 'insensitive' } },
+        { description: { contains: searchTerm, mode: 'insensitive' } },
+        { owner: { username: { contains: searchTerm, mode: 'insensitive' } } },
+      ];
+    }
+
+    // Build orderBy clause
+    let orderBy: Prisma.ZoneOrderByWithRelationInput;
+    switch (sortBy) {
+      case ZoneSortBy.OLDEST:
+        orderBy = { createdAt: 'asc' };
+        break;
+      case ZoneSortBy.PLAYERS_ASC:
+        orderBy = { requiredPlayers: 'asc' };
+        break;
+      case ZoneSortBy.PLAYERS_DESC:
+        orderBy = { requiredPlayers: 'desc' };
+        break;
+      case ZoneSortBy.NEWEST:
+      default:
+        orderBy = { createdAt: 'desc' };
+        break;
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.zone.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        include: {
+          tags: { include: { tag: true } },
+          owner: {
+            select: {
+              id: true,
+              username: true,
+              avatarUrl: true,
+            },
+          },
+          game: {
+            select: {
+              id: true,
+              name: true,
+              iconUrl: true,
+            },
+          },
+        },
+      }),
+      this.prisma.zone.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        query: q || null,
+        sortBy,
+      },
+    };
+  }
+
   async findOne(id: string) {
     const zone = await this.prisma.zone.findUnique({
       where: { id },
@@ -151,6 +227,13 @@ export class ZonesService {
         _count: {
           select: {
             joinRequests: true,
+          },
+        },
+        game: {
+          select: {
+            id: true,
+            name: true,
+            iconUrl: true,
           },
         },
       },
