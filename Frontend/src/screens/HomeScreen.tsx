@@ -10,6 +10,7 @@ import {
   Image,
   Modal,
   Pressable,
+  TextInput,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -50,13 +51,13 @@ const formatTimeAgo = (dateString: string) => {
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 60) return 'Vừa tạo';
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return `${minutes} phút trước`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours} giờ trước`;
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return `Đã tạo ${days} ngày trước`;
 };
 
 type HomeNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -101,45 +102,8 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 ];
 
 // Memoized Search Section to prevent re-renders while typing
-const SearchSection = React.memo(
-  React.forwardRef<InputRef, {
-    onSubmit: (text: string) => void;
-    onFilterPress: () => void;
-    sortBy: SortOption;
-  }>(({ onSubmit, onFilterPress, sortBy }, ref) => {
-    const [text, setText] = useState('');
-
-    // Memoize icon
-    const searchIcon = useMemo(
-      () => <Search size={20} color={theme.colors.textSecondary} />,
-      [],
-    );
-
-    const handleSubmit = useCallback(() => {
-      onSubmit(text);
-    }, [onSubmit, text]);
-
-    return (
-      <View style={styles.searchSection}>
-        <Input
-          ref={ref}
-          placeholder="Tìm kiếm zone, game..."
-          value={text}
-          onChangeText={setText}
-          variant="search"
-          containerStyle={styles.searchInputContainer}
-          leftIcon={searchIcon}
-          onSubmitEditing={handleSubmit}
-          returnKeyType="search"
-        />
-        <TouchableOpacity style={styles.filterButton} onPress={onFilterPress}>
-          <Filter size={20} color={theme.colors.text} />
-          {sortBy !== 'newest' && <View style={styles.filterActiveDot} />}
-        </TouchableOpacity>
-      </View>
-    );
-  }),
-);
+// DEPRECATED: Removed to fix mobile focus issues
+// const SearchSection = ...
 
 export const HomeScreen = () => {
   const navigation = useNavigation<HomeNavigationProp>();
@@ -152,14 +116,16 @@ export const HomeScreen = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [submittedSearch, setSubmittedSearch] = useState('');
-  
+  // Local state for search text to control Input
+  const [searchText, setSearchText] = useState('');
+
   // Ref for search input focus management
   const searchInputRef = useRef<InputRef>(null);
 
   // Handle search submission
-  const handleSearchSubmit = useCallback((text: string) => {
-    setSubmittedSearch(text);
-  }, []);
+  const handleSearchSubmit = useCallback(() => {
+    setSubmittedSearch(searchText);
+  }, [searchText]);
 
   // Handle filter button press (stable reference for SearchSection memo)
   const handleFilterPress = useCallback(() => {
@@ -351,19 +317,21 @@ export const HomeScreen = () => {
             </View>
 
             <View style={styles.zoneTitleContainer}>
+              {/* Game Name Tag */}
+              <Text style={styles.zoneGameTag}>
+                {item.game?.name || 'GAME'}
+              </Text>
+              
               <Text style={styles.zoneTitle} numberOfLines={1}>
                 {item.title}
               </Text>
+              
               <View style={styles.zoneMetaRow}>
                 <View style={styles.zoneMetaItem}>
                   <Clock size={12} color={theme.colors.textSecondary} />
                   <Text style={styles.zoneMetaText}>
                     {formatTimeAgo(item.createdAt)}
                   </Text>
-                </View>
-                <View style={styles.zoneMetaItem}>
-                  <Globe size={12} color={theme.colors.textSecondary} />
-                  <Text style={styles.zoneMetaText}>Đông Nam Á</Text>
                 </View>
               </View>
             </View>
@@ -405,7 +373,7 @@ export const HomeScreen = () => {
                 ]}
               >
                 <Text style={styles.badgeText}>
-                  {getRankDisplay(item.minRankLevel)}
+                  {getRankDisplay(item.minRankLevel)} - {getRankDisplay(item.maxRankLevel)}
                 </Text>
               </View>
             </View>
@@ -499,7 +467,7 @@ export const HomeScreen = () => {
   );
 
   return (
-    <Container>
+    <Container disableKeyboardAvoidingView>
       {renderFilterModal()}
 
       {/* Fixed Header - Outside FlatList to prevent focus loss */}
@@ -538,12 +506,24 @@ export const HomeScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <SearchSection
-          ref={searchInputRef}
-          onSubmit={handleSearchSubmit}
-          onFilterPress={handleFilterPress}
-          sortBy={sortBy}
-        />
+        <View style={styles.searchSection}>
+          <View style={[styles.searchInputContainer, styles.simpleSearchContainer]}>
+            <Search size={20} color={theme.colors.textSecondary} />
+            <TextInput
+              style={styles.simpleSearchInput}
+              placeholder="Tìm kiếm zone, game..."
+              value={searchText}
+              onChangeText={setSearchText}
+              onSubmitEditing={handleSearchSubmit}
+              returnKeyType="search"
+              placeholderTextColor="#94a3b8"
+            />
+          </View>
+          <TouchableOpacity style={styles.filterButton} onPress={handleFilterPress}>
+            <Filter size={20} color={theme.colors.text} />
+            {sortBy !== 'newest' && <View style={styles.filterActiveDot} />}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <FlatList
@@ -552,9 +532,9 @@ export const HomeScreen = () => {
         keyExtractor={item => item.id}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.listContent}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         removeClippedSubviews={false}
-        keyboardDismissMode="none"
+        keyboardDismissMode="on-drag"
         refreshControl={
           <RefreshControl
             refreshing={zonesLoading}
@@ -674,6 +654,24 @@ const styles = StyleSheet.create({
   searchInputContainer: {
     flex: 1,
     marginVertical: 0,
+  },
+  simpleSearchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    paddingHorizontal: 12,
+    height: 48,
+  },
+  simpleSearchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: theme.colors.text,
+    height: '100%',
   },
   filterButton: {
     width: 48,
@@ -927,6 +925,14 @@ const styles = StyleSheet.create({
   zoneTitleContainer: {
     flex: 1,
     gap: 4,
+  },
+  zoneGameTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: theme.colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
   },
   zoneTitle: {
     fontSize: 15,
