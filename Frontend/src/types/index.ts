@@ -2,6 +2,8 @@ export type UserRole = 'USER' | 'ADMIN';
 export type UserStatus = 'ACTIVE' | 'BANNED';
 export type RankLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'PRO';
 export type ZoneStatus = 'OPEN' | 'FULL' | 'CLOSED';
+export type Platform = 'PC' | 'CONSOLE' | 'MOBILE';
+export type ContactMethodType = 'DISCORD' | 'INGAME' | 'OTHER';
 
 export interface User {
   id: string;
@@ -27,6 +29,7 @@ export interface Game {
   iconUrl: string;
   bannerUrl: string;
   isActive: boolean;
+  platforms: Platform[];
   createdAt: string;
   _count?: {
     zones: number;
@@ -57,7 +60,7 @@ export interface Zone {
   requiredPlayers: number;
   status: ZoneStatus;
   createdAt: string;
-  tags: Tag[];
+  tags: ZoneTagRelation[];
   contacts: Contact[];
   owner: {
     id: string;
@@ -75,9 +78,15 @@ export interface Tag {
   name: string;
 }
 
+export interface ZoneTagRelation {
+  zoneId: string;
+  tagId: string;
+  tag: Tag;
+}
+
 export interface Contact {
   id: string;
-  type: string;
+  type: ContactMethodType;
   value: string;
 }
 

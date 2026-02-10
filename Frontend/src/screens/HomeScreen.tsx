@@ -26,13 +26,16 @@ import {
   Clock,
   X,
   Check,
+  Monitor,
+  Smartphone,
+  Gamepad,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { Container } from '../components/Container';
 import { apiClient } from '../api/client';
 import { theme, getBorderColorById } from '../theme';
-import { Zone, Game } from '../types';
+import { Zone, Game, Platform } from '../types';
 import { Button } from '../components/Button';
 import { Input, InputRef } from '../components/Input';
 import { RootStackParamList } from '../navigation';
@@ -90,7 +93,12 @@ const MOCK_NOTIFICATIONS: NotificationItem[] = [
   },
 ];
 
-const CATEGORIES = ['Tất cả nền tảng', 'Máy tính (PC)', 'PlayStation', 'Xbox'];
+const CATEGORIES = [
+  { label: 'Tất cả', value: 'ALL' },
+  { label: 'PC', value: 'PC' },
+  { label: 'Console', value: 'CONSOLE' },
+  { label: 'Mobile', value: 'MOBILE' },
+];
 
 type SortOption = 'newest' | 'oldest' | 'players_asc' | 'players_desc';
 
@@ -112,7 +120,7 @@ export const HomeScreen = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] =
     useState<NotificationItem[]>(MOCK_NOTIFICATIONS);
-  const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0]);
+  const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0].value);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [submittedSearch, setSubmittedSearch] = useState('');
@@ -140,6 +148,16 @@ export const HomeScreen = () => {
       return response.data.data as Game[];
     },
   });
+
+  // Filter games by selected platform category (frontend filtering)
+  const filteredGames = useMemo(() => {
+    if (!games) return [];
+    if (selectedCategory === 'ALL') return games;
+    
+    return games.filter(game => 
+      game.platforms?.includes(selectedCategory as Platform)
+    );
+  }, [games, selectedCategory]);
 
   // Fetch zones with search and sort
   const {
@@ -226,6 +244,21 @@ export const HomeScreen = () => {
 
   const renderGameCard = useCallback((game: Game) => {
     const accentColor = getBorderColorById(game.id);
+    
+    // Get platform icon
+    const getPlatformIcon = (platform: string) => {
+      switch (platform) {
+        case 'PC':
+          return <Monitor size={10} color="#FFFFFF" />;
+        case 'CONSOLE':
+          return <Gamepad size={10} color="#FFFFFF" />;
+        case 'MOBILE':
+          return <Smartphone size={10} color="#FFFFFF" />;
+        default:
+          return null;
+      }
+    };
+    
     return (
       <TouchableOpacity
         key={game.id}
@@ -245,8 +278,20 @@ export const HomeScreen = () => {
             style={styles.gameCardOverlay}
           />
           <View style={styles.gameCardBadge}>
-            {/* Fallback badge if no specific genre data */}
-            <Text style={styles.gameCardBadgeText}>GAME</Text>
+            {game.platforms && game.platforms.length > 0 ? (
+              <View style={styles.platformBadges}>
+                {game.platforms.slice(0, 2).map((platform, idx) => (
+                  <View key={idx} style={styles.platformIcon}>
+                    {getPlatformIcon(platform)}
+                  </View>
+                ))}
+                {game.platforms.length > 2 && (
+                  <Text style={styles.gameCardBadgeText}>+{game.platforms.length - 2}</Text>
+                )}
+              </View>
+            ) : (
+              <Text style={styles.gameCardBadgeText}>GAME</Text>
+            )}
           </View>
         </View>
 
@@ -265,7 +310,7 @@ export const HomeScreen = () => {
   const renderZoneItem = ({ item }: { item: Zone }) => {
     // Check for "Mic" in tags
     const hasMic =
-      item.tags?.some(t => t.name.toLowerCase().includes('mic')) ?? false;
+      item.tags?.some(t => t.tag?.name?.toLowerCase().includes('mic')) ?? false;
 
     return (
       <TouchableOpacity
@@ -408,11 +453,11 @@ export const HomeScreen = () => {
           >
             {CATEGORIES.map(cat => (
               <Button
-                key={cat}
-                title={cat}
+                key={cat.value}
+                title={cat.label}
                 variant="pill"
-                active={selectedCategory === cat}
-                onPress={() => setSelectedCategory(cat)}
+                active={selectedCategory === cat.value}
+                onPress={() => setSelectedCategory(cat.value)}
                 style={styles.categoryPill}
                 size="sm"
               />
@@ -440,8 +485,8 @@ export const HomeScreen = () => {
               <View style={styles.gamesLoadingPlaceholder}>
                 <Text style={styles.loadingText}>Đang tải...</Text>
               </View>
-            ) : games && games.length > 0 ? (
-              games.map(game => renderGameCard(game))
+            ) : filteredGames && filteredGames.length > 0 ? (
+              filteredGames.map(game => renderGameCard(game))
             ) : (
               <View style={styles.gamesLoadingPlaceholder}>
                 <Text style={styles.loadingText}>Không có game nào</Text>
@@ -463,7 +508,7 @@ export const HomeScreen = () => {
         </View>
       </View>
     ),
-    [selectedCategory, games, gamesLoading, renderGameCard, tabNavigation],
+    [selectedCategory, filteredGames, gamesLoading, renderGameCard, tabNavigation],
   );
 
   return (
@@ -843,6 +888,17 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.4)',
+  },
+  platformBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  platformIcon: {
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   gameCardBadgeText: {
     color: '#FFFFFF',

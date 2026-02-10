@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,17 +7,19 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  Platform,
+  Platform as RNPlatform,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Monitor, Smartphone, Gamepad, Sparkles } from 'lucide-react-native';
 import { Container } from '../components/Container';
 import { apiClient } from '../api/client';
 import { theme } from '../theme';
-import { Game } from '../types';
+import { Game, Platform } from '../types';
 import { RootStackParamList } from '../navigation';
 import { STRINGS } from '../constants/strings';
 
@@ -25,9 +27,18 @@ const { width } = Dimensions.get('window');
 const CARD_MARGIN = theme.spacing.md;
 const CARD_WIDTH = (width - theme.spacing.lg * 2 - CARD_MARGIN) / 2;
 
+const FILTER_OPTIONS = [
+  { label: 'Tất cả', value: 'ALL', icon: Sparkles },
+  { label: 'PC', value: 'PC', icon: Monitor },
+  { label: 'Console', value: 'CONSOLE', icon: Gamepad },
+  { label: 'Mobile', value: 'MOBILE', icon: Smartphone },
+];
+
 export const DiscoverScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { data, isLoading, refetch } = useQuery({
+  const [selectedPlatform, setSelectedPlatform] = useState('ALL');
+  
+  const { data: games, isLoading, refetch } = useQuery({
     queryKey: ['games'],
     queryFn: async () => {
       const response = await apiClient.get('/games/mobile');
@@ -35,17 +46,29 @@ export const DiscoverScreen = () => {
     },
   });
 
-  const getGenre = (name: string) => {
-    const lower = name.toLowerCase();
-    if (lower.includes('fps') || lower.includes('duty') || lower.includes('shoot')) return 'FPS';
-    if (lower.includes('rpg') || lower.includes('impact')) return 'RPG';
-    if (lower.includes('moba') || lower.includes('legend')) return 'MOBA';
-    if (lower.includes('racing') || lower.includes('speed')) return 'RACING';
-    return 'ACTION';
-  };
+  // Filter games by platform (frontend filtering)
+  const filteredGames = useMemo(() => {
+    if (!games) return [];
+    if (selectedPlatform === 'ALL') return games;
+    
+    return games.filter(game => 
+      game.platforms?.includes(selectedPlatform as Platform)
+    );
+  }, [games, selectedPlatform]);
 
   const renderGameItem = ({ item }: { item: Game }) => {
-    const genre = getGenre(item.name);
+    const getPlatformIcon = (platform: string) => {
+      switch (platform) {
+        case 'PC':
+          return <Monitor size={10} color="#FFFFFF" />;
+        case 'CONSOLE':
+          return <Gamepad size={10} color="#FFFFFF" />;
+        case 'MOBILE':
+          return <Smartphone size={10} color="#FFFFFF" />;
+        default:
+          return null;
+      }
+    };
     
     return (
       <TouchableOpacity
@@ -65,9 +88,19 @@ export const DiscoverScreen = () => {
             style={styles.gradientOverlay}
           />
           <View style={styles.badgeContainer}>
-            <View style={styles.genreBadge}>
-              <Text style={styles.genreText}>{genre}</Text>
-            </View>
+            {item.platforms && item.platforms.length > 0 ? (
+              <View style={styles.platformBadges}>
+                {item.platforms.slice(0, 3).map((platform, idx) => (
+                  <View key={idx} style={styles.platformBadge}>
+                    {getPlatformIcon(platform)}
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.genreBadge}>
+                <Text style={styles.genreText}>GAME</Text>
+              </View>
+            )}
           </View>
         </View>
         
@@ -95,12 +128,59 @@ export const DiscoverScreen = () => {
     <Container>
       <FlatList
         ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.title}>{STRINGS.DISCOVER_TITLE}</Text>
-            <Text style={styles.subtitle}>{STRINGS.DISCOVER_SUBTITLE}</Text>
+          <View>
+            {/* Title Section */}
+            <View style={styles.header}>
+              <Text style={styles.title}>{STRINGS.DISCOVER_TITLE}</Text>
+              <Text style={styles.subtitle}>{STRINGS.DISCOVER_SUBTITLE}</Text>
+            </View>
+
+            {/* Platform Filter */}
+            <View style={styles.filterSection}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterScroll}
+              >
+                {FILTER_OPTIONS.map((option) => {
+                  const Icon = option.icon;
+                  const isActive = selectedPlatform === option.value;
+                  
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.filterChip,
+                        isActive && styles.filterChipActive,
+                      ]}
+                      onPress={() => setSelectedPlatform(option.value)}
+                      activeOpacity={0.7}
+                    >
+                      <Icon 
+                        size={16} 
+                        color={isActive ? '#FFFFFF' : theme.colors.textSecondary} 
+                      />
+                      <Text style={[
+                        styles.filterChipText,
+                        isActive && styles.filterChipTextActive,
+                      ]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Results count */}
+              <View style={styles.resultsInfo}>
+                <Text style={styles.resultsText}>
+                  {filteredGames.length} {filteredGames.length === 1 ? 'game' : 'games'}
+                </Text>
+              </View>
+            </View>
           </View>
         }
-        data={data}
+        data={filteredGames}
         renderItem={renderGameItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
@@ -123,7 +203,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.lg,
-    paddingBottom: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
   },
   title: {
     fontSize: 28,
@@ -131,13 +211,56 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontFamily: RNPlatform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   subtitle: {
     fontSize: 12,
     color: theme.colors.textSecondary,
     letterSpacing: 0.5,
     marginTop: 4,
+  },
+  // Filter Section
+  filterSection: {
+    paddingBottom: theme.spacing.md,
+  },
+  filterScroll: {
+    paddingHorizontal: theme.spacing.lg,
+    gap: 8,
+    paddingVertical: 4,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1.5,
+    borderColor: theme.colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  filterChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  resultsInfo: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.xs,
+  },
+  resultsText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
   },
   listContent: {
     paddingHorizontal: theme.spacing.lg,
@@ -184,6 +307,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
+  },
+  platformBadges: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  platformBadge: {
+    width: 20,
+    height: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   genreText: {
     color: '#FFFFFF',

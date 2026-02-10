@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { ArrowLeft, Users, Trophy, Clock, User, Shield, Gamepad2 } from 'lucide-react-native';
+import { ArrowLeft, Users, Trophy, Clock, User, Shield, Gamepad2, Monitor, Smartphone, MessageCircle, Hash } from 'lucide-react-native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { apiClient } from '../api/client';
@@ -163,6 +163,18 @@ export const ZoneDetailsScreen = () => {
             <View style={styles.gameInfo}>
               <Text style={styles.gameLabel}>Game</Text>
               <Text style={styles.gameName}>{zone.game.name}</Text>
+              {zone.game.platforms && zone.game.platforms.length > 0 && (
+                <View style={styles.platformBadges}>
+                  {zone.game.platforms.map((platform, idx) => (
+                    <View key={idx} style={styles.platformBadge}>
+                      {platform === 'PC' && <Monitor size={12} color={theme.colors.primary} />}
+                      {platform === 'CONSOLE' && <Gamepad2 size={12} color={theme.colors.primary} />}
+                      {platform === 'MOBILE' && <Smartphone size={12} color={theme.colors.primary} />}
+                      <Text style={styles.platformText}>{platform}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
             <Gamepad2 color={theme.colors.primary} size={24} style={{ opacity: 0.5 }} />
           </View>
@@ -234,11 +246,35 @@ export const ZoneDetailsScreen = () => {
         {/* Tags */}
         {zone.tags && zone.tags.length > 0 && (
           <View style={styles.tagsContainer}>
-            {zone.tags.map(tag => (
-              <View key={tag.id} style={styles.tag}>
-                <Text style={styles.tagText}>#{tag.name}</Text>
+            {zone.tags.map(tagRelation => (
+              <View key={tagRelation.tag.id} style={styles.tag}>
+                <Text style={styles.tagText}>#{tagRelation.tag.name}</Text>
               </View>
             ))}
+          </View>
+        )}
+
+        {/* Contact Methods */}
+        {zone.contacts && zone.contacts.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Liên hệ</Text>
+            <View style={styles.contactsContainer}>
+              {zone.contacts.map(contact => (
+                <View key={contact.id} style={styles.contactCard}>
+                  <View style={styles.contactIcon}>
+                    {contact.type === 'DISCORD' && <MessageCircle size={16} color={theme.colors.primary} />}
+                    {contact.type === 'INGAME' && <Gamepad2 size={16} color={theme.colors.primary} />}
+                    {contact.type === 'OTHER' && <Hash size={16} color={theme.colors.primary} />}
+                  </View>
+                  <View style={styles.contactInfo}>
+                    <Text style={styles.contactType}>
+                      {contact.type === 'DISCORD' ? 'Discord' : contact.type === 'INGAME' ? 'In-Game' : 'Other'}
+                    </Text>
+                    <Text style={styles.contactValue}>{contact.value}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
         )}
 
@@ -417,6 +453,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: theme.colors.text,
   },
+  platformBadges: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 6,
+    flexWrap: 'wrap',
+  },
+  platformBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primary + '15',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '30',
+  },
+  platformText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: theme.colors.primary,
+  },
   statsGrid: {
     flexDirection: 'row',
     gap: theme.spacing.md,
@@ -593,6 +651,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textSecondary,
     marginLeft: 6,
+  },
+  contactsContainer: {
+    gap: theme.spacing.sm,
+  },
+  contactCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+  },
+  contactIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.sm,
+  },
+  contactInfo: {
+    flex: 1,
+  },
+  contactType: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
+  contactValue: {
+    fontSize: 16,
+    color: theme.colors.text,
+    fontWeight: '500',
   },
   footer: {
     position: 'absolute',

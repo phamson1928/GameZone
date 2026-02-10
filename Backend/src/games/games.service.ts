@@ -21,6 +21,7 @@ export class GamesService {
         id: true,
         name: true,
         isActive: true,
+        platforms: true,
         createdAt: true,
         _count: {
           select: { groups: true },
@@ -42,6 +43,7 @@ export class GamesService {
         name: true,
         iconUrl: true,
         bannerUrl: true,
+        platforms: true,
         _count: {
           select: { zones: true },
         },
