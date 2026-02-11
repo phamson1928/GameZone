@@ -46,34 +46,39 @@ export class ZonesService {
       );
     }
 
-    // Bước 1: Tạo zone trước (không có tags/contacts)
-    const zone = await this.prisma.zone.create({
-      data: {
-        ...zoneData,
-        ownerId,
-      },
+    // Tạo zone + tags + contacts trong transaction để tránh partial data
+    const zone = await this.prisma.$transaction(async (tx) => {
+      // Bước 1: Tạo zone
+      const newZone = await tx.zone.create({
+        data: {
+          ...zoneData,
+          ownerId,
+        },
+      });
+
+      // Bước 2: Thêm tags nếu có
+      if (tagIds && tagIds.length > 0) {
+        await tx.zoneTagRelation.createMany({
+          data: tagIds.map((tagId) => ({
+            zoneId: newZone.id,
+            tagId,
+          })),
+        });
+      }
+
+      // Bước 3: Thêm contacts nếu có
+      if (contacts && contacts.length > 0) {
+        await tx.zoneContactMethod.createMany({
+          data: contacts.map((c) => ({
+            zoneId: newZone.id,
+            type: c.type,
+            value: c.value,
+          })),
+        });
+      }
+
+      return newZone;
     });
-
-    // Bước 2: Thêm tags nếu có
-    if (tagIds && tagIds.length > 0) {
-      await this.prisma.zoneTagRelation.createMany({
-        data: tagIds.map((tagId) => ({
-          zoneId: zone.id,
-          tagId,
-        })),
-      });
-    }
-
-    // Bước 3: Thêm contacts nếu có
-    if (contacts && contacts.length > 0) {
-      await this.prisma.zoneContactMethod.createMany({
-        data: contacts.map((c) => ({
-          zoneId: zone.id,
-          type: c.type,
-          value: c.value,
-        })),
-      });
-    }
 
     // Trả về zone đầy đủ
     return this.findOneByOwner(zone.id, ownerId);
@@ -81,26 +86,37 @@ export class ZonesService {
 
   async findAllByUser(page: number, limit: number) {
     const skip = (page - 1) * limit;
-    const data = await this.prisma.zone.findMany({
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        tags: { include: { tag: true } },
-        owner: {
-          select: {
-            id: true,
-            username: true,
+    const [data, total] = await Promise.all([
+      this.prisma.zone.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          tags: { include: { tag: true } },
+          owner: {
+            select: {
+              id: true,
+              username: true,
+              avatarUrl: true,
+            },
+          },
+          _count: {
+            select: {
+              joinRequests: { where: { status: 'APPROVED' } },
+            },
           },
         },
-      },
-    });
+      }),
+      this.prisma.zone.count(),
+    ]);
 
     return {
       data,
       meta: {
         page,
         limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -144,21 +160,24 @@ export class ZonesService {
     return this.prisma.zone.findMany({
       where: { ownerId },
       orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        status: true,
-        createdAt: true,
-        _count: {
-          select: {
-            joinRequests: true,
-          },
-        },
+      include: {
+        tags: { include: { tag: true } },
         game: {
           select: {
             id: true,
             name: true,
+            iconUrl: true,
+            bannerUrl: true,
+          },
+        },
+        joinRequests: {
+          select: {
+            status: true,
+          },
+        },
+        _count: {
+          select: {
+            joinRequests: true,
           },
         },
       },
@@ -166,11 +185,21 @@ export class ZonesService {
   }
 
   async search(dto: SearchZonesDto) {
-    const { q, sortBy = ZoneSortBy.NEWEST, page = 1, limit = 20 } = dto;
+    const {
+      q,
+      gameId,
+      sortBy = ZoneSortBy.NEWEST,
+      page = 1,
+      limit = 20,
+    } = dto;
     const skip = (page - 1) * limit;
 
     // Build where clause
     const where: Prisma.ZoneWhereInput = {};
+
+    if (gameId) {
+      where.gameId = gameId;
+    }
 
     if (q && q.trim()) {
       const searchTerm = q.trim();
@@ -218,6 +247,11 @@ export class ZonesService {
             select: {
               id: true,
               name: true,
+            },
+          },
+          _count: {
+            select: {
+              joinRequests: { where: { status: 'APPROVED' } },
             },
           },
         },
@@ -348,9 +382,8 @@ export class ZonesService {
       throw new ForbiddenException('Bạn không có quyền sửa zone này');
     }
 
-    // Bước 1: Cập nhật zone info nếu có
+    // Kiểm tra rank level logic trước transaction
     if (Object.keys(zoneData).length > 0) {
-      // Kiểm tra rank level logic nếu cả 2 được update
       const minRank = zoneData.minRankLevel || zone.minRankLevel;
       const maxRank = zoneData.maxRankLevel || zone.maxRankLevel;
       const rankOrder = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'PRO'];
@@ -360,49 +393,55 @@ export class ZonesService {
           'Rank tối thiểu không thể lớn hơn rank tối đa',
         );
       }
-
-      await this.prisma.zone.update({
-        where: { id },
-        data: zoneData,
-      });
     }
 
-    // Bước 2: Nếu có tagIds thì cập nhật tags
-    if (tagIds !== undefined) {
-      // Xóa tags cũ
-      await this.prisma.zoneTagRelation.deleteMany({
-        where: { zoneId: id },
-      });
-
-      // Thêm tags mới nếu có
-      if (tagIds.length > 0) {
-        await this.prisma.zoneTagRelation.createMany({
-          data: tagIds.map((tagId) => ({
-            zoneId: id,
-            tagId,
-          })),
+    // Cập nhật zone + tags + contacts trong transaction để tránh partial data
+    await this.prisma.$transaction(async (tx) => {
+      // Bước 1: Cập nhật zone info nếu có
+      if (Object.keys(zoneData).length > 0) {
+        await tx.zone.update({
+          where: { id },
+          data: zoneData,
         });
       }
-    }
 
-    // Bước 3: Nếu có contacts thì cập nhật
-    if (typedContacts !== undefined) {
-      // Xóa contacts cũ
-      await this.prisma.zoneContactMethod.deleteMany({
-        where: { zoneId: id },
-      });
-
-      // Thêm contacts mới nếu có
-      if (typedContacts.length > 0) {
-        await this.prisma.zoneContactMethod.createMany({
-          data: typedContacts.map((c) => ({
-            zoneId: id,
-            type: c.type as ContactMethodType,
-            value: c.value,
-          })),
+      // Bước 2: Nếu có tagIds thì cập nhật tags
+      if (tagIds !== undefined) {
+        // Xóa tags cũ
+        await tx.zoneTagRelation.deleteMany({
+          where: { zoneId: id },
         });
+
+        // Thêm tags mới nếu có
+        if (tagIds.length > 0) {
+          await tx.zoneTagRelation.createMany({
+            data: tagIds.map((tagId) => ({
+              zoneId: id,
+              tagId,
+            })),
+          });
+        }
       }
-    }
+
+      // Bước 3: Nếu có contacts thì cập nhật
+      if (typedContacts !== undefined) {
+        // Xóa contacts cũ
+        await tx.zoneContactMethod.deleteMany({
+          where: { zoneId: id },
+        });
+
+        // Thêm contacts mới nếu có
+        if (typedContacts.length > 0) {
+          await tx.zoneContactMethod.createMany({
+            data: typedContacts.map((c) => ({
+              zoneId: id,
+              type: c.type as ContactMethodType,
+              value: c.value,
+            })),
+          });
+        }
+      }
+    });
 
     // Trả về zone đã cập nhật với đầy đủ relations
     return this.findOneByOwner(id, ownerId);
@@ -426,42 +465,6 @@ export class ZonesService {
   }
 
   // Admin methods
-  async findAllForAdmin(page: number, limit: number) {
-    const skip = (page - 1) * limit;
-    const [data, total] = await Promise.all([
-      this.prisma.zone.findMany({
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          owner: {
-            select: {
-              id: true,
-              username: true,
-              email: true,
-            },
-          },
-          _count: {
-            select: {
-              joinRequests: true,
-            },
-          },
-        },
-      }),
-      this.prisma.zone.count(),
-    ]);
-
-    return {
-      data,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
   async adminDeleteZone(id: string) {
     const zone = await this.prisma.zone.findUnique({ where: { id } });
     if (!zone) {

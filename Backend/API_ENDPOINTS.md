@@ -1078,7 +1078,37 @@ Lấy danh sách tất cả zones (public, có pagination).
 curl -s "http://localhost:3000/zones?page=1&limit=10"
 ```
 
-**Response:** Same as below
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "zone-uuid",
+      "gameId": "game-uuid",
+      "ownerId": "user-uuid",
+      "title": "Tim dong doi rank Vang",
+      "description": "Can 2 nguoi choi mid va jungle",
+      "minRankLevel": "BEGINNER",
+      "maxRankLevel": "INTERMEDIATE",
+      "requiredPlayers": 3,
+      "status": "OPEN",
+      "createdAt": "2026-01-31T17:26:15.686Z",
+      "tags": [],
+      "owner": {
+        "id": "user-uuid",
+        "username": "testuser"
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 25,
+    "totalPages": 3
+  }
+}
+```
 
 ---
 

@@ -434,6 +434,27 @@ export const HomeScreen = () => {
               textStyle={styles.joinButtonText}
             />
           </View>
+
+          {/* Tags */}
+          {item.tags && item.tags.filter(t => !t.tag?.name?.toLowerCase().includes('mic')).length > 0 && (
+            <View style={styles.tagsRow}>
+              {item.tags
+                .filter(t => !t.tag?.name?.toLowerCase().includes('mic'))
+                .slice(0, 3)
+                .map(t => (
+                  <View key={t.tag.id} style={styles.tagChip}>
+                    <Text style={styles.tagChipText}>#{t.tag.name}</Text>
+                  </View>
+                ))}
+              {item.tags.filter(t => !t.tag?.name?.toLowerCase().includes('mic')).length > 3 && (
+                <View style={[styles.tagChip, styles.tagChipMore]}>
+                  <Text style={styles.tagChipMoreText}>
+                    +{item.tags.filter(t => !t.tag?.name?.toLowerCase().includes('mic')).length - 3}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -1064,6 +1085,33 @@ const styles = StyleSheet.create({
   joinButtonText: {
     fontSize: 11,
     letterSpacing: 0.5,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  tagChip: {
+    backgroundColor: theme.colors.surfaceLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+  },
+  tagChipText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  tagChipMore: {
+    backgroundColor: theme.colors.primary + '10',
+    borderColor: theme.colors.primary + '30',
+  },
+  tagChipMoreText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
 
   // Empty State

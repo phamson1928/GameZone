@@ -68,6 +68,7 @@ export interface Zone {
     avatarUrl?: string | null;
   };
   game?: Game;
+  joinRequests?: { status: string }[];
   _count?: {
     joinRequests: number;
   };

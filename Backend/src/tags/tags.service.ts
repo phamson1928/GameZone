@@ -12,9 +12,6 @@ export class TagsService {
       orderBy: { name: 'asc' },
       select: { id: true, name: true },
     });
-    if (!tags) {
-      throw new Error('No tags found');
-    }
     return tags;
   }
 

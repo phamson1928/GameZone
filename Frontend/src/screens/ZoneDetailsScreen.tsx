@@ -13,7 +13,19 @@ import {
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { ArrowLeft, Users, Trophy, Clock, User, Shield, Gamepad2, Monitor, Smartphone, MessageCircle, Hash } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Users,
+  Trophy,
+  Clock,
+  User,
+  Shield,
+  Gamepad2,
+  Monitor,
+  Smartphone,
+  MessageCircle,
+  Hash,
+} from 'lucide-react-native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
 import { apiClient } from '../api/client';
@@ -53,7 +65,7 @@ const PulseDot = ({ color }: { color: string }) => {
           duration: 1000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
   }, [anim]);
 
@@ -82,26 +94,26 @@ export const ZoneDetailsScreen = () => {
   const route = useRoute<ZoneDetailsRouteProp>();
   const { zoneId } = route.params;
 
-  const { data: zone, isLoading, error } = useQuery({
+  const {
+    data: zone,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['zone', zoneId],
     queryFn: async () => {
-      const response = await apiClient.get(`/zones/${zoneId}`);
+      const response = await apiClient.get(`/zones/${zoneId}/public`);
       return response.data.data as Zone;
     },
   });
 
   const handleRequestJoin = () => {
-    Alert.alert(
-      'Gửi yêu cầu',
-      'Bạn muốn tham gia phòng này?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        { 
-          text: 'Gửi yêu cầu', 
-          onPress: () => Alert.alert('Thành công', 'Đã gửi yêu cầu tham gia!') 
-        },
-      ]
-    );
+    Alert.alert('Gửi yêu cầu', 'Bạn muốn tham gia phòng này?', [
+      { text: 'Hủy', style: 'cancel' },
+      {
+        text: 'Gửi yêu cầu',
+        onPress: () => Alert.alert('Thành công', 'Đã gửi yêu cầu tham gia!'),
+      },
+    ]);
   };
 
   if (isLoading) {
@@ -128,24 +140,54 @@ export const ZoneDetailsScreen = () => {
   return (
     <Container>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <ArrowLeft color={theme.colors.text} size={24} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>Sảnh chờ</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          Sảnh chờ
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Status Badge */}
         <View style={styles.statusContainer}>
-          <View style={[styles.statusBadge, { borderColor: getStatusColor(zone.status) + '40', backgroundColor: getStatusColor(zone.status) + '10' }]}>
+          <View
+            style={[
+              styles.statusBadge,
+              {
+                borderColor: getStatusColor(zone.status) + '40',
+                backgroundColor: getStatusColor(zone.status) + '10',
+              },
+            ]}
+          >
             {zone.status === 'OPEN' ? (
               <PulseDot color={getStatusColor(zone.status)} />
             ) : (
-              <View style={[styles.staticDot, { backgroundColor: getStatusColor(zone.status) }]} />
+              <View
+                style={[
+                  styles.staticDot,
+                  { backgroundColor: getStatusColor(zone.status) },
+                ]}
+              />
             )}
-            <Text style={[styles.statusText, { color: getStatusColor(zone.status) }]}>
-              {zone.status === 'OPEN' ? 'ĐANG TÌM NGƯỜI' : zone.status === 'FULL' ? 'ĐÃ ĐẦY' : 'ĐÃ ĐÓNG'}
+            <Text
+              style={[
+                styles.statusText,
+                { color: getStatusColor(zone.status) },
+              ]}
+            >
+              {zone.status === 'OPEN'
+                ? 'ĐANG TÌM NGƯỜI'
+                : zone.status === 'FULL'
+                ? 'ĐÃ ĐẦY'
+                : 'ĐÃ ĐÓNG'}
             </Text>
           </View>
         </View>
@@ -158,7 +200,10 @@ export const ZoneDetailsScreen = () => {
         {zone.game && (
           <View style={styles.gameCard}>
             <View style={styles.gameIconContainer}>
-              <Image source={{ uri: zone.game.iconUrl }} style={styles.gameIcon} />
+              <Image
+                source={{ uri: zone.game.iconUrl }}
+                style={styles.gameIcon}
+              />
             </View>
             <View style={styles.gameInfo}>
               <Text style={styles.gameLabel}>Game</Text>
@@ -167,22 +212,34 @@ export const ZoneDetailsScreen = () => {
                 <View style={styles.platformBadges}>
                   {zone.game.platforms.map((platform, idx) => (
                     <View key={idx} style={styles.platformBadge}>
-                      {platform === 'PC' && <Monitor size={12} color={theme.colors.primary} />}
-                      {platform === 'CONSOLE' && <Gamepad2 size={12} color={theme.colors.primary} />}
-                      {platform === 'MOBILE' && <Smartphone size={12} color={theme.colors.primary} />}
+                      {platform === 'PC' && (
+                        <Monitor size={12} color={theme.colors.primary} />
+                      )}
+                      {platform === 'CONSOLE' && (
+                        <Gamepad2 size={12} color={theme.colors.primary} />
+                      )}
+                      {platform === 'MOBILE' && (
+                        <Smartphone size={12} color={theme.colors.primary} />
+                      )}
                       <Text style={styles.platformText}>{platform}</Text>
                     </View>
                   ))}
                 </View>
               )}
             </View>
-            <Gamepad2 color={theme.colors.primary} size={24} style={{ opacity: 0.5 }} />
+            <Gamepad2
+              color={theme.colors.primary}
+              size={24}
+              style={{ opacity: 0.5 }}
+            />
           </View>
         )}
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { borderLeftColor: theme.colors.accent }]}>
+          <View
+            style={[styles.statCard, { borderLeftColor: theme.colors.accent }]}
+          >
             <View style={styles.statIconBg}>
               <Users color={theme.colors.accent} size={20} />
             </View>
@@ -192,8 +249,15 @@ export const ZoneDetailsScreen = () => {
             </View>
           </View>
 
-          <View style={[styles.statCard, { borderLeftColor: theme.colors.primary }]}>
-            <View style={[styles.statIconBg, { backgroundColor: theme.colors.primary + '15' }]}>
+          <View
+            style={[styles.statCard, { borderLeftColor: theme.colors.primary }]}
+          >
+            <View
+              style={[
+                styles.statIconBg,
+                { backgroundColor: theme.colors.primary + '15' },
+              ]}
+            >
               <Trophy color={theme.colors.primary} size={20} />
             </View>
             <View>
@@ -212,33 +276,55 @@ export const ZoneDetailsScreen = () => {
             <View style={styles.avatarStack}>
               {/* Owner Avatar */}
               <View style={styles.participantAvatarWrapper}>
-                {zone.owner.avatarUrl ? (
-                  <Image source={{ uri: zone.owner.avatarUrl }} style={styles.participantAvatar} />
+                {zone.owner?.avatarUrl ? (
+                  <Image
+                    source={{ uri: zone.owner.avatarUrl }}
+                    style={styles.participantAvatar}
+                  />
                 ) : (
-                  <View style={[styles.participantAvatar, styles.placeholderAvatar]}>
-                    <Text style={styles.avatarLetter}>{zone.owner.username[0].toUpperCase()}</Text>
+                  <View
+                    style={[styles.participantAvatar, styles.placeholderAvatar]}
+                  >
+                    <Text style={styles.avatarLetter}>
+                      {zone.owner?.username?.[0]?.toUpperCase() ?? '?'}
+                    </Text>
                   </View>
                 )}
                 <View style={styles.ownerBadgeIcon}>
                   <Shield size={10} color="#FFF" fill={theme.colors.primary} />
                 </View>
               </View>
-              
+
               {/* Empty Slots */}
-              {Array.from({ length: Math.min(zone.requiredPlayers, 3) }).map((_, i) => (
-                <View key={i} style={[styles.participantAvatar, styles.emptySlot]}>
-                   <User color={theme.colors.textSecondary} size={20} style={{ opacity: 0.5 }} />
-                </View>
-              ))}
-              
+              {Array.from({ length: Math.min(zone.requiredPlayers, 3) }).map(
+                (_, i) => (
+                  <View
+                    key={i}
+                    style={[styles.participantAvatar, styles.emptySlot]}
+                  >
+                    <User
+                      color={theme.colors.textSecondary}
+                      size={20}
+                      style={{ opacity: 0.5 }}
+                    />
+                  </View>
+                ),
+              )}
+
               {zone.requiredPlayers > 3 && (
                 <View style={[styles.participantAvatar, styles.moreSlots]}>
-                  <Text style={styles.moreSlotsText}>+{zone.requiredPlayers - 3}</Text>
+                  <Text style={styles.moreSlotsText}>
+                    +{zone.requiredPlayers - 3}
+                  </Text>
                 </View>
               )}
             </View>
             <Text style={styles.slotCountText}>
-              Còn trống <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>{zone.requiredPlayers}</Text> slot
+              Còn trống{' '}
+              <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
+                {zone.requiredPlayers}
+              </Text>{' '}
+              slot
             </Text>
           </View>
         </View>
@@ -262,13 +348,23 @@ export const ZoneDetailsScreen = () => {
               {zone.contacts.map(contact => (
                 <View key={contact.id} style={styles.contactCard}>
                   <View style={styles.contactIcon}>
-                    {contact.type === 'DISCORD' && <MessageCircle size={16} color={theme.colors.primary} />}
-                    {contact.type === 'INGAME' && <Gamepad2 size={16} color={theme.colors.primary} />}
-                    {contact.type === 'OTHER' && <Hash size={16} color={theme.colors.primary} />}
+                    {contact.type === 'DISCORD' && (
+                      <MessageCircle size={16} color={theme.colors.primary} />
+                    )}
+                    {contact.type === 'INGAME' && (
+                      <Gamepad2 size={16} color={theme.colors.primary} />
+                    )}
+                    {contact.type === 'OTHER' && (
+                      <Hash size={16} color={theme.colors.primary} />
+                    )}
                   </View>
                   <View style={styles.contactInfo}>
                     <Text style={styles.contactType}>
-                      {contact.type === 'DISCORD' ? 'Discord' : contact.type === 'INGAME' ? 'In-Game' : 'Other'}
+                      {contact.type === 'DISCORD'
+                        ? 'Discord'
+                        : contact.type === 'INGAME'
+                        ? 'In-Game'
+                        : 'Other'}
                     </Text>
                     <Text style={styles.contactValue}>{contact.value}</Text>
                   </View>
@@ -282,25 +378,31 @@ export const ZoneDetailsScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Chủ phòng</Text>
           <View style={styles.ownerCard}>
-            {zone.owner.avatarUrl ? (
-              <Image source={{ uri: zone.owner.avatarUrl }} style={styles.ownerAvatar} />
+            {zone.owner?.avatarUrl ? (
+              <Image
+                source={{ uri: zone.owner.avatarUrl }}
+                style={styles.ownerAvatar}
+              />
             ) : (
               <View style={styles.ownerAvatarPlaceholder}>
                 <User color={theme.colors.text} size={24} />
               </View>
             )}
             <View style={styles.ownerInfo}>
-              <Text style={styles.ownerName}>{zone.owner.username}</Text>
+              <Text style={styles.ownerName}>
+                {zone.owner?.username ?? 'Unknown'}
+              </Text>
               <View style={styles.ownerMeta}>
                 <Clock color={theme.colors.textSecondary} size={12} />
                 <Text style={styles.ownerDate}>
-                  Tham gia {new Date(zone.createdAt).toLocaleDateString('vi-VN')}
+                  Tham gia{' '}
+                  {new Date(zone.createdAt).toLocaleDateString('vi-VN')}
                 </Text>
               </View>
             </View>
           </View>
         </View>
-        
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
@@ -308,7 +410,7 @@ export const ZoneDetailsScreen = () => {
       {zone.status === 'OPEN' && (
         <View style={styles.footer}>
           <View style={styles.glassBackground} />
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={handleRequestJoin}
             activeOpacity={0.9}
@@ -535,7 +637,8 @@ const styles = StyleSheet.create({
   participantAvatarWrapper: {
     position: 'relative',
     marginRight: -10,
-    zIndex: 10,  },
+    zIndex: 10,
+  },
   participantAvatar: {
     width: 40,
     height: 40,

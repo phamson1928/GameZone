@@ -281,8 +281,8 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 
 ### 9.2 Performance
 
-- [ ] Database indexing
-- [ ] Query optimization
+- [x] Database indexing (Zone: title, ownerId, gameId, status, createdAt)
+- [x] Query optimization ($transaction cho create/update, total count cho pagination)
 - [ ] Caching với Redis (optional)
 - [x] Rate limiting (Global: 100 req/min, Auth: 5-10 req/min)
 
@@ -435,12 +435,12 @@ src/
 
 ## Known Issues & Performance TODOs
 
-| #   | Vấn đề                                                                                                     | File                | Mức độ      |
-| --- | ---------------------------------------------------------------------------------------------------------- | ------------------- | ----------- |
-| 1   | `create` và `update` zone không dùng `$transaction` — partial data nếu tag/contact creation fail           | `zones.service.ts`  | 🔴 Critical |
-| 2   | `findAllByUser` thiếu `total` count — frontend pagination không có `totalPages`                            | `zones.service.ts`  | 🟡 Medium   |
-| 3   | Không có DB indexes trên `title`, `description` — search `contains` + `insensitive` gây full table scan    | `schema.prisma`     | 🟡 Medium   |
-| 4   | Không có `onDelete: Cascade` trên relations — zone delete sẽ fail nếu có tag/contact/joinRequest liên quan | `schema.prisma`     | 🔴 Critical |
-| 5   | `CreateTagDto` thiếu validation (`@IsString`, `@IsNotEmpty`)                                               | `create-tag.dto.ts` | 🟡 Medium   |
-| 6   | `TagsService.getAllTags` throw Error khi không có tags — nên return `[]`                                   | `tags.service.ts`   | 🟠 Low      |
-| 7   | Duplicate methods: `findAllByAdmin` (line 108) và `findAllForAdmin` (line 429) gần giống nhau              | `zones.service.ts`  | 🟠 Low      |
+| #   | Vấn đề                                                                                                     | File                | Mức độ      | Trạng thái      |
+| --- | ---------------------------------------------------------------------------------------------------------- | ------------------- | ----------- | --------------- |
+| 1   | `create` và `update` zone không dùng `$transaction` — partial data nếu tag/contact creation fail           | `zones.service.ts`  | 🔴 Critical | ✅ Đã sửa       |
+| 2   | `findAllByUser` thiếu `total` count — frontend pagination không có `totalPages`                            | `zones.service.ts`  | 🟡 Medium   | ✅ Đã sửa       |
+| 3   | Không có DB indexes trên `title`, `ownerId`, `gameId`, `status`, `createdAt`                               | `schema.prisma`     | 🟡 Medium   | ✅ Đã sửa       |
+| 4   | Không có `onDelete: Cascade` trên relations — zone delete sẽ fail nếu có tag/contact/joinRequest liên quan | `schema.prisma`     | 🔴 Critical | ✅ Đã sửa       |
+| 5   | `CreateTagDto` thiếu validation (`@IsString`, `@IsNotEmpty`)                                               | `create-tag.dto.ts` | 🟡 Medium   | ✅ Đã sửa       |
+| 6   | `TagsService.getAllTags` throw Error khi không có tags — nên return `[]`                                   | `tags.service.ts`   | 🟠 Low      | ✅ Đã sửa       |
+| 7   | Duplicate methods: `findAllByAdmin` và `findAllForAdmin` gần giống nhau                                    | `zones.service.ts`  | 🟠 Low      | ✅ Đã xóa trùng |

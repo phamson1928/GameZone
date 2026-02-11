@@ -185,6 +185,12 @@ model Zone {
   group        Group?
 
   createdAt DateTime @default(now())
+
+  @@index([title])
+  @@index([ownerId])
+  @@index([gameId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model ZoneTag {
@@ -198,8 +204,8 @@ model ZoneTagRelation {
   zoneId String
   tagId  String
 
-  zone Zone    @relation(fields: [zoneId], references: [id])
-  tag  ZoneTag @relation(fields: [tagId], references: [id])
+  zone Zone    @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  tag  ZoneTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([zoneId, tagId])
 }
@@ -210,7 +216,7 @@ model ZoneContactMethod {
   type   ContactMethodType
   value  String
 
-  zone Zone @relation(fields: [zoneId], references: [id])
+  zone Zone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
 }
 
 ////////////////////
@@ -223,7 +229,7 @@ model ZoneJoinRequest {
   userId String
   status JoinRequestStatus @default(PENDING)
 
-  zone Zone @relation(fields: [zoneId], references: [id])
+  zone Zone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id])
 
   createdAt DateTime @default(now())
@@ -238,7 +244,7 @@ model Group {
   gameId   String
   isActive Boolean @default(true)
 
-  zone   Zone @relation(fields: [zoneId], references: [id])
+  zone   Zone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
   leader User @relation("GroupLeader", fields: [leaderId], references: [id])
   game   Game @relation(fields: [gameId], references: [id])
 

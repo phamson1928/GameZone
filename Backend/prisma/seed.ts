@@ -6,6 +6,25 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
+  // 0. Clean up existing data
+  console.log('🧹 Cleaning up existing data...');
+  
+  // Delete in correct order to respect foreign keys
+  await prisma.message.deleteMany();
+  await prisma.groupMember.deleteMany();
+  await prisma.group.deleteMany();
+  await prisma.zoneJoinRequest.deleteMany();
+  await prisma.zoneContactMethod.deleteMany();
+  await prisma.zoneTagRelation.deleteMany();
+  await prisma.zone.deleteMany();
+  await prisma.userGameProfile.deleteMany();
+  await prisma.game.deleteMany();
+  
+  // Optional: delete users if you want a full reset, but upsert handles existing ones fine
+  // await prisma.user.deleteMany();
+  
+  console.log('✅ Cleaned up existing data');
+
   // 1. Create Admin User
   const adminPassword = await bcrypt.hash('Admin123456', 12);
   const admin = await prisma.user.upsert({

@@ -1,4 +1,11 @@
-import { IsOptional, IsString, IsEnum, IsInt, Min } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsInt,
+  Min,
+  IsUUID,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum ZoneSortBy {
@@ -12,6 +19,10 @@ export class SearchZonesDto {
   @IsOptional()
   @IsString()
   q?: string; // Search query for title, description
+
+  @IsOptional()
+  @IsUUID()
+  gameId?: string; // Filter by game
 
   @IsOptional()
   @IsEnum(ZoneSortBy)
