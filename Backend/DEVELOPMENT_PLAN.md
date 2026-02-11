@@ -70,14 +70,14 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 - [x] `GET /users/:id` - Xem profile user khác (public info)
 - [x] `PATCH /users/me/avatar` - Upload avatar URL
 
-### 2.4 User Management (Admin)
+### 2.4 User Management (Admin) ✅ COMPLETED
 
-- [ ] `GET /users` - Danh sách tất cả users (Admin, pagination)
-- [ ] `GET /users/search` - Tìm kiếm users theo email/username (Admin)
-- [ ] `PATCH /users/:id/ban` - Ban user (Admin)
-- [ ] `PATCH /users/:id/unban` - Unban user (Admin)
-- [ ] `GET /users/:id/activities` - Xem lịch sử hoạt động user (Admin)
-- [ ] `DELETE /users/:id` - Xóa user (Admin, soft delete)
+- [x] `GET /users` - Danh sách tất cả users (Admin, pagination)
+- [x] `GET /users/search` - Tìm kiếm users theo email/username (Admin)
+- [x] `PATCH /users/:id/ban` - Ban user (Admin)
+- [x] `PATCH /users/:id/unban` - Unban user (Admin)
+- [x] `GET /users/:id/activities` - Xem lịch sử hoạt động user (Admin)
+- [x] `DELETE /users/:id` - Xóa user (Admin, soft delete)
 
 ---
 
@@ -102,7 +102,7 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 
 ---
 
-## Phase 4: Zone - Tìm Bạn (Week 4-6) ✅ IN PROGRESS
+## Phase 4: Zone - Tìm Bạn (Week 4-6) ⚠️ IN PROGRESS (4.1-4.4 Done, 4.5 Partial)
 
 ### 4.1 Zone CRUD ✅ COMPLETED
 
@@ -124,24 +124,27 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 - [x] Search theo title/description/username (Search API)
 - [x] Sort theo newest, oldest, players count
 
-### 4.3 Zone Tags
+### 4.3 Zone Tags ✅ COMPLETED
 
-- [ ] `GET /zone-tags` - Danh sách tags
-- [ ] `POST /zone-tags` - Tạo tag (Admin)
-- [ ] `PATCH /zone-tags/:id` - Cập nhật tag (Admin)
-- [ ] `DELETE /zone-tags/:id` - Xóa tag (Admin)
-- [ ] Attach/detach tags khi tạo/sửa zone
+> **Note:** Route sử dụng `/tags` thay vì `/zone-tags` như plan ban đầu.
 
-### 4.5 Zone Management (Admin)
+- [x] `GET /tags` - Danh sách tags (Public)
+- [x] `POST /tags` - Tạo tag (Admin)
+- [x] `PATCH /tags/:id` - Cập nhật tag (Admin)
+- [x] `DELETE /tags/:id` - Xóa tag (Admin)
 
-- [ ] `GET /admin/zones` - Danh sách tất cả zones (Admin, bypass ownership)
-- [ ] `DELETE /admin/zones/:id` - Force delete zone (Admin)
-- [ ] `PATCH /admin/zones/:id/close` - Đóng zone (Admin)
+### 4.4 Zone Contact Methods ✅ COMPLETED
 
-### 4.4 Zone Contact Methods
+- [x] Thêm contact methods khi tạo zone (POST /zones - field `contacts`)
+- [x] Cập nhật contact methods (PATCH /zones/:id - field `contacts`, delete-recreate strategy)
 
-- [ ] Thêm contact methods khi tạo zone
-- [ ] Cập nhật contact methods
+### 4.5 Zone Management (Admin) ⚠️ PARTIAL
+
+> **Note:** List endpoint sử dụng `GET /zones/admin` thay vì `GET /admin/zones`.
+
+- [x] `GET /zones/admin` - Danh sách tất cả zones (Admin, bypass ownership, pagination)
+- [ ] `DELETE /admin/zones/:id` - Force delete zone (Admin) — _Service logic exists (`adminDeleteZone`), cần thêm route handler_
+- [ ] `PATCH /admin/zones/:id/close` - Đóng zone (Admin) — _Chưa implement cả service lẫn controller_
 
 ---
 
@@ -312,28 +315,28 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 
 ## API Endpoints Summary
 
-| Module                 | Endpoints         |
-| ---------------------- | ----------------- |
-| Auth                   | 5                 |
-| Users                  | 4                 |
-| **Admin - Users**      | **6**             |
-| Games                  | 5                 |
-| User Game Profile      | 4                 |
-| Zones                  | 5                 |
-| Zone Tags              | 4                 |
-| **Admin - Zones**      | **3**             |
-| Join Requests          | 5                 |
-| Groups                 | 5                 |
-| **Admin - Groups**     | **3**             |
-| Group Members          | 3                 |
-| Messages               | 2                 |
-| **Admin - Messages**   | **3**             |
-| Notifications          | 4                 |
-| Reports                | 3                 |
-| **Admin - Reports**    | **1**             |
-| **Admin - Dashboard**  | **4**             |
-| **Admin - Audit Logs** | **2**             |
-| **Total**              | **~71 endpoints** |
+| Module                 | Endpoints           |
+| ---------------------- | ------------------- |
+| Auth                   | 5                   |
+| Users                  | 4                   |
+| **Admin - Users**      | **6**               |
+| Games                  | 5                   |
+| User Game Profile      | 4                   |
+| Zones                  | 5                   |
+| Zone Tags (`/tags`)    | 4                   |
+| **Admin - Zones**      | **1 of 3** (2 TODO) |
+| Join Requests          | 5                   |
+| Groups                 | 5                   |
+| **Admin - Groups**     | **3**               |
+| Group Members          | 3                   |
+| Messages               | 2                   |
+| **Admin - Messages**   | **3**               |
+| Notifications          | 4                   |
+| Reports                | 3                   |
+| **Admin - Reports**    | **1**               |
+| **Admin - Dashboard**  | **4**               |
+| **Admin - Audit Logs** | **2**               |
+| **Total**              | **~71 endpoints**   |
 
 ---
 
@@ -387,10 +390,11 @@ src/
 - View user activities
 - Soft delete users
 
-### Zone Management (Phase 4.5)
+### Zone Management (Phase 4.5) — ⚠️ Partial
 
-- View all zones (bypass ownership)
-- Force close/delete zones
+- ✅ View all zones (bypass ownership) — `GET /zones/admin`
+- ❌ Force delete zones — service logic exists, needs route handler
+- ❌ Force close zones — not implemented
 
 ### Group Management (Phase 5.4)
 
@@ -425,3 +429,17 @@ src/
 - Viết tests song song với code
 - Document API với Swagger
 - Commit thường xuyên, message rõ ràng
+
+---
+
+## Known Issues & Performance TODOs
+
+| #   | Vấn đề                                                                                                     | File                | Mức độ      |
+| --- | ---------------------------------------------------------------------------------------------------------- | ------------------- | ----------- |
+| 1   | `create` và `update` zone không dùng `$transaction` — partial data nếu tag/contact creation fail           | `zones.service.ts`  | 🔴 Critical |
+| 2   | `findAllByUser` thiếu `total` count — frontend pagination không có `totalPages`                            | `zones.service.ts`  | 🟡 Medium   |
+| 3   | Không có DB indexes trên `title`, `description` — search `contains` + `insensitive` gây full table scan    | `schema.prisma`     | 🟡 Medium   |
+| 4   | Không có `onDelete: Cascade` trên relations — zone delete sẽ fail nếu có tag/contact/joinRequest liên quan | `schema.prisma`     | 🔴 Critical |
+| 5   | `CreateTagDto` thiếu validation (`@IsString`, `@IsNotEmpty`)                                               | `create-tag.dto.ts` | 🟡 Medium   |
+| 6   | `TagsService.getAllTags` throw Error khi không có tags — nên return `[]`                                   | `tags.service.ts`   | 🟠 Low      |
+| 7   | Duplicate methods: `findAllByAdmin` (line 108) và `findAllForAdmin` (line 429) gần giống nhau              | `zones.service.ts`  | 🟠 Low      |

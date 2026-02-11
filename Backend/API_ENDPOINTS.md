@@ -289,6 +289,93 @@ curl -s -X PATCH http://localhost:3000/users/me \
 
 ---
 
+### PATCH `/users/me/avatar`
+
+Cập nhật avatar của user hiện tại.
+
+**Auth Required:** Yes
+
+```bash
+curl -s -X PATCH http://localhost:3000/users/me/avatar \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "avatarUrl": "https://example.com/avatar.jpg"
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| avatarUrl | string | Yes | URL của avatar mới |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+    "email": "test@example.com",
+    "username": "testuser",
+    "avatarUrl": "https://example.com/avatar.jpg",
+    "role": "USER",
+    "status": "ACTIVE",
+    "createdAt": "2026-01-31T17:13:34.708Z",
+    "profile": {
+      "bio": "Pro gamer since 2020",
+      "playStyle": "Aggressive",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "lastActiveAt": "2026-01-31T17:13:41.919Z"
+    }
+  },
+  "timestamp": "2026-01-31T17:15:18.693Z"
+}
+```
+
+---
+
+### GET `/users/:id`
+
+Lấy thông tin public profile của user khác.
+
+**Auth Required:** Yes
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | User ID cần xem |
+
+```bash
+curl -s http://localhost:3000/users/9e0a44d5-65a0-4ee4-810f-ed6a77db6e53 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+    "username": "testuser",
+    "avatarUrl": "https://example.com/avatar.jpg",
+    "role": "USER",
+    "status": "ACTIVE",
+    "createdAt": "2026-01-31T17:13:34.708Z",
+    "profile": {
+      "bio": "Pro gamer since 2020",
+      "playStyle": "Aggressive",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "lastActiveAt": "2026-01-31T17:13:41.919Z"
+    }
+  },
+  "timestamp": "2026-01-31T17:13:41.921Z"
+}
+```
+
+---
+
 ## 4. User Management (Admin)
 
 ### GET `/users`
@@ -908,7 +995,10 @@ curl -s -X POST http://localhost:3000/zones \
     "maxRankLevel": "INTERMEDIATE",
     "requiredPlayers": 3,
     "tagIds": [],
-    "contactValue": ["discord_id_123"]
+    "contacts": [
+      { "type": "DISCORD", "value": "discord_id_123" },
+      { "type": "INGAME", "value": "player_name" }
+    ]
   }'
 ```
 
@@ -922,7 +1012,13 @@ curl -s -X POST http://localhost:3000/zones \
 | maxRankLevel | enum | Yes | BEGINNER, INTERMEDIATE, ADVANCED, PRO |
 | requiredPlayers | number | Yes | Số người cần tìm |
 | tagIds | string[] | No | Mảng ID của tags |
-| contactValue | string[] | No | Mảng thông tin liên hệ |
+| contacts | object[] | No | Mảng contact methods (xem bên dưới) |
+
+**Contact Method Object:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| type | enum | Yes | DISCORD, INGAME, OTHER |
+| value | string | Yes | Giá trị liên hệ (vd: discord ID, in-game name) |
 
 **Response:**
 
@@ -1065,8 +1161,8 @@ curl -s -X PATCH http://localhost:3000/zones/e9593755-8bb5-4747-a4a2-e669e457c01
 | maxRankLevel | enum | No | Rank tối đa |
 | requiredPlayers | number | No | Số người cần tìm |
 | status | enum | No | OPEN, FULL, CLOSED |
-| tagIds | string[] | No | Cập nhật tags |
-| contactValue | string[] | No | Cập nhật contacts |
+| tagIds | string[] | No | Cập nhật tags (replace all) |
+| contacts | object[] | No | Cập nhật contacts (replace all, cùng format như create) |
 
 **Response:**
 
@@ -1110,7 +1206,204 @@ curl -s -X DELETE http://localhost:3000/zones/e9593755-8bb5-4747-a4a2-e669e457c0
 
 ---
 
-## 8. Error Responses
+## 8. Zone Tags
+
+### GET `/tags`
+
+Lấy danh sách tất cả tags.
+
+**Auth Required:** No
+
+```bash
+curl -s http://localhost:3000/tags
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "tag-uuid",
+      "name": "Rank Push"
+    },
+    {
+      "id": "tag-uuid-2",
+      "name": "Casual"
+    }
+  ],
+  "timestamp": "2026-02-01T10:00:00.000Z"
+}
+```
+
+---
+
+### POST `/tags`
+
+Tạo tag mới (Admin only).
+
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -s -X POST http://localhost:3000/tags \
+  -H "Authorization: Bearer <admin_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Rank Push"
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| name | string | Yes | Tên tag (unique) |
+
+**Response:**
+
+```json
+{
+  "id": "tag-uuid",
+  "name": "Rank Push"
+}
+```
+
+**Error Response (409 - Duplicate):**
+
+```json
+{
+  "success": false,
+  "message": "Unique constraint failed on the fields: (`name`)",
+  "statusCode": 409
+}
+```
+
+---
+
+### PATCH `/tags/:id`
+
+Cập nhật tag (Admin only).
+
+**Auth Required:** Yes (Admin)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Tag ID |
+
+```bash
+curl -s -X PATCH http://localhost:3000/tags/tag-uuid \
+  -H "Authorization: Bearer <admin_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Competitive"
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| name | string | No | Tên tag mới |
+
+**Response:**
+
+```json
+{
+  "id": "tag-uuid",
+  "name": "Competitive"
+}
+```
+
+---
+
+### DELETE `/tags/:id`
+
+Xóa tag (Admin only).
+
+**Auth Required:** Yes (Admin)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Tag ID |
+
+```bash
+curl -s -X DELETE http://localhost:3000/tags/tag-uuid \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**Response:**
+
+```json
+{
+  "message": "Tag deleted successfully"
+}
+```
+
+---
+
+## 9. Admin Zone Management
+
+### GET `/zones/admin`
+
+Lấy danh sách tất cả zones (Admin only, bypass ownership).
+
+**Auth Required:** Yes (Admin)
+
+**Query Parameters:**
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| page | number | 1 | Trang hiện tại |
+| limit | number | 20 | Số items/trang (max 100) |
+
+```bash
+curl -s "http://localhost:3000/zones/admin?page=1&limit=20" \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "zone-uuid",
+      "gameId": "game-uuid",
+      "ownerId": "user-uuid",
+      "title": "Tim dong doi rank Vang",
+      "description": "Can 2 nguoi choi mid va jungle",
+      "minRankLevel": "BEGINNER",
+      "maxRankLevel": "INTERMEDIATE",
+      "requiredPlayers": 3,
+      "status": "OPEN",
+      "createdAt": "2026-02-01T10:00:00.000Z",
+      "owner": {
+        "id": "user-uuid",
+        "username": "testuser",
+        "email": "test@example.com"
+      },
+      "_count": {
+        "joinRequests": 2
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 45,
+    "totalPages": 3
+  }
+}
+```
+
+### ⚠️ Chưa implement
+
+- `DELETE /admin/zones/:id` - Force delete zone (Admin) — Service logic `adminDeleteZone()` đã có, cần thêm route handler
+- `PATCH /admin/zones/:id/close` - Đóng zone (Admin) — Chưa implement
+
+---
+
+## 10. Error Responses
 
 ### 401 Unauthorized
 
@@ -1174,7 +1467,7 @@ Khi resource không tồn tại.
 
 ---
 
-## 9. Enums Reference
+## 11. Enums Reference
 
 ### RankLevel
 
@@ -1207,9 +1500,17 @@ ACTIVE
 BANNED
 ```
 
+### ContactMethodType
+
+```
+DISCORD
+INGAME
+OTHER
+```
+
 ---
 
-## 10. Modules chưa implement đầy đủ
+## 12. Modules chưa implement đầy đủ
 
 Các modules sau chỉ có boilerplate, cần implement thêm:
 
