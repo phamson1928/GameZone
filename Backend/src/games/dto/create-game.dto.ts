@@ -18,4 +18,3 @@ export class CreateGameDto {
   @IsNotEmpty()
   platforms: Platform[] = [Platform.PC];
 }
-

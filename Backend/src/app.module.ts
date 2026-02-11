@@ -15,6 +15,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ReportsModule } from './reports/reports.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { UserGameProfilesModule } from './user-game-profiles/user-game-profiles.module';
+import { TagsModule } from './tags/tags.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { UserGameProfilesModule } from './user-game-profiles/user-game-profiles.
     NotificationsModule,
     ReportsModule,
     UserGameProfilesModule,
+    TagsModule,
   ],
   controllers: [AppController],
   providers: [

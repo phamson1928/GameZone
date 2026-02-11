@@ -13,7 +13,14 @@ import { ZonesService } from './zones.service.js';
 import { CreateZoneDto } from './dto/create-zone.dto.js';
 import { UpdateZoneDto } from './dto/update-zone.dto.js';
 import { SearchZonesDto } from './dto/search-zones.dto.js';
-import { CurrentUser, Public, JwtAuthGuard } from '../common/index.js';
+import {
+  CurrentUser,
+  Public,
+  JwtAuthGuard,
+  RolesGuard,
+  Roles,
+  PaginationDto,
+} from '../common/index.js';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Zones')
@@ -52,6 +59,16 @@ export class ZonesController {
   @ApiBearerAuth()
   findMyZones(@CurrentUser('sub') ownerId: string) {
     return this.zonesService.findAllByOwner(ownerId);
+  }
+
+  @Get('admin')
+  @ApiOperation({ summary: 'Lấy danh sách tất cả zones (admin only)' })
+  @ApiBearerAuth()
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  findAllByAdmin(@Query() pagination: PaginationDto) {
+    const { page, limit } = pagination;
+    return this.zonesService.findAllByAdmin(Number(page), Number(limit));
   }
 
   @Get(':id/public')
