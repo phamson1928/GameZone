@@ -65,10 +65,28 @@ export class ZonesController {
   @ApiOperation({ summary: 'Lấy danh sách tất cả zones (admin only)' })
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
-  @Roles('admin')
+  @Roles('ADMIN')
   findAllByAdmin(@Query() pagination: PaginationDto) {
     const { page, limit } = pagination;
     return this.zonesService.findAllByAdmin(Number(page), Number(limit));
+  }
+
+  @Delete('admin/:id')
+  @ApiOperation({ summary: 'Force delete zone (Admin only)' })
+  @ApiBearerAuth()
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  removeByAdmin(@Param('id') id: string) {
+    return this.zonesService.adminDeleteZone(id);
+  }
+
+  @Patch('admin/:id/close')
+  @ApiOperation({ summary: 'Force close zone (Admin only)' })
+  @ApiBearerAuth()
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  closeByAdmin(@Param('id') id: string) {
+    return this.zonesService.adminCloseZone(id);
   }
 
   @Get(':id/public')

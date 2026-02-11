@@ -463,10 +463,41 @@ export class ZonesService {
   }
 
   async adminDeleteZone(id: string) {
+    const zone = await this.prisma.zone.findUnique({ where: { id } });
+    if (!zone) {
+      throw new NotFoundException('Zone không tồn tại');
+    }
+
     await this.prisma.zone.delete({
       where: { id },
     });
 
     return { message: 'Zone đã được xóa bởi admin' };
+  }
+
+  async adminCloseZone(id: string) {
+    const zone = await this.prisma.zone.findUnique({ where: { id } });
+    if (!zone) {
+      throw new NotFoundException('Zone không tồn tại');
+    }
+
+    const updatedZone = await this.prisma.zone.update({
+      where: { id },
+      data: { status: 'CLOSED' },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return {
+      message: 'Zone đã được đóng bởi admin',
+      data: updatedZone,
+    };
   }
 }

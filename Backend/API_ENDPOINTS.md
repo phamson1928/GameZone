@@ -1396,10 +1396,62 @@ curl -s "http://localhost:3000/zones/admin?page=1&limit=20" \
 }
 ```
 
-### ⚠️ Chưa implement
+### DELETE `/zones/admin/:id`
 
-- `DELETE /admin/zones/:id` - Force delete zone (Admin) — Service logic `adminDeleteZone()` đã có, cần thêm route handler
-- `PATCH /admin/zones/:id/close` - Đóng zone (Admin) — Chưa implement
+Force delete zone (Admin only).
+
+**Auth Required:** Yes (Admin)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Zone ID |
+
+```bash
+curl -s -X DELETE http://localhost:3000/zones/admin/zone-uuid \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**Response:**
+
+```json
+{
+  "message": "Zone đã được xóa bởi admin"
+}
+```
+
+### PATCH `/zones/admin/:id/close`
+
+Force close zone (Admin only).
+
+**Auth Required:** Yes (Admin)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Zone ID |
+
+```bash
+curl -s -X PATCH http://localhost:3000/zones/admin/zone-uuid/close \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**Response:**
+
+```json
+{
+  "message": "Zone đã được đóng bởi admin",
+  "data": {
+    "id": "zone-uuid",
+    "status": "CLOSED",
+    "owner": {
+      "id": "user-uuid",
+      "username": "owner_user",
+      "email": "owner@example.com"
+    }
+  }
+}
+```
 
 ---
 

@@ -102,7 +102,7 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 
 ---
 
-## Phase 4: Zone - Tìm Bạn (Week 4-6) ⚠️ IN PROGRESS (4.1-4.4 Done, 4.5 Partial)
+## Phase 4: Zone - Tìm Bạn (Week 4-6) ✅ COMPLETED
 
 ### 4.1 Zone CRUD ✅ COMPLETED
 
@@ -138,13 +138,13 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 - [x] Thêm contact methods khi tạo zone (POST /zones - field `contacts`)
 - [x] Cập nhật contact methods (PATCH /zones/:id - field `contacts`, delete-recreate strategy)
 
-### 4.5 Zone Management (Admin) ⚠️ PARTIAL
+### 4.5 Zone Management (Admin) ✅ COMPLETED
 
 > **Note:** List endpoint sử dụng `GET /zones/admin` thay vì `GET /admin/zones`.
 
 - [x] `GET /zones/admin` - Danh sách tất cả zones (Admin, bypass ownership, pagination)
-- [ ] `DELETE /admin/zones/:id` - Force delete zone (Admin) — _Service logic exists (`adminDeleteZone`), cần thêm route handler_
-- [ ] `PATCH /admin/zones/:id/close` - Đóng zone (Admin) — _Chưa implement cả service lẫn controller_
+- [x] `DELETE /zones/admin/:id` - Force delete zone (Admin)
+- [x] `PATCH /zones/admin/:id/close` - Force close zone (Admin)
 
 ---
 
@@ -324,7 +324,7 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 | User Game Profile      | 4                   |
 | Zones                  | 5                   |
 | Zone Tags (`/tags`)    | 4                   |
-| **Admin - Zones**      | **1 of 3** (2 TODO) |
+| **Admin - Zones**      | **3**               |
 | Join Requests          | 5                   |
 | Groups                 | 5                   |
 | **Admin - Groups**     | **3**               |
@@ -390,11 +390,12 @@ src/
 - View user activities
 - Soft delete users
 
-### Zone Management (Phase 4.5) — ⚠️ Partial
+### Zone Management (Phase 4.5)
 
 - ✅ View all zones (bypass ownership) — `GET /zones/admin`
-- ❌ Force delete zones — service logic exists, needs route handler
-- ❌ Force close zones — not implemented
+- ✅ Force delete zones — `DELETE /zones/admin/:id`
+- ✅ Force close zones — `PATCH /zones/admin/:id/close`
+
 
 ### Group Management (Phase 5.4)
 
