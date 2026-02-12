@@ -13,7 +13,7 @@ import { GamesService } from './games.service';
 import { CreateGameDto } from './dto/create-game.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Public, Roles, RolesGuard } from 'src/common';
+import { Public, Roles, RolesGuard } from '../common/index.js';
 
 @ApiTags('Games')
 @Controller('games')

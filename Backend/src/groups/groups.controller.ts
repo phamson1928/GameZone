@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { ChangeMemberRoleDto } from './dto/change-member-role.dto';
-import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import {
   JwtAuthGuard,
   RolesGuard,

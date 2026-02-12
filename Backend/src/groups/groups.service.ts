@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/index.js';
+import { PrismaService } from '../prisma/prisma.service';
 import { GroupMemberRole } from '@prisma/client';
 
 @Injectable()

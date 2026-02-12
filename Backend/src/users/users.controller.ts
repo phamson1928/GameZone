@@ -21,8 +21,8 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/interfaces/request.interface';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { Roles } from 'src/common';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { Roles } from '../common/index.js';
 
 @ApiTags('Users')
 @Controller('users')

@@ -4,8 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/index.js';
-import { GroupsService } from 'src/groups/groups.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { GroupsService } from '../groups/groups.service';
 
 @Injectable()
 export class JoinRequestsService {
@@ -25,7 +25,9 @@ export class JoinRequestsService {
       throw new BadRequestException('Zone không còn mở để nhận yêu cầu');
     }
     if (checkZone.ownerId === userId) {
-      throw new BadRequestException('Bạn không thể gửi yêu cầu tham gia zone của chính mình');
+      throw new BadRequestException(
+        'Bạn không thể gửi yêu cầu tham gia zone của chính mình',
+      );
     }
     const existingRequest = await this.prisma.zoneJoinRequest.findFirst({
       where: {

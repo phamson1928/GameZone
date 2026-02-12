@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { JoinRequestsService } from './join-requests.service';
-import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ApiBearerAuth } from '@nestjs/swagger/dist/decorators/api-bearer.decorator';
 import { ApiOperation } from '@nestjs/swagger/dist/decorators/api-operation.decorator';
 import { ApiTags } from '@nestjs/swagger';
