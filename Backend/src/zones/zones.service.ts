@@ -185,13 +185,7 @@ export class ZonesService {
   }
 
   async search(dto: SearchZonesDto) {
-    const {
-      q,
-      gameId,
-      sortBy = ZoneSortBy.NEWEST,
-      page = 1,
-      limit = 20,
-    } = dto;
+    const { q, gameId, sortBy = ZoneSortBy.NEWEST, page = 1, limit = 20 } = dto;
     const skip = (page - 1) * limit;
 
     // Build where clause
@@ -328,17 +322,6 @@ export class ZonesService {
           select: {
             type: true,
             value: true,
-          },
-        },
-        joinRequests: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                avatarUrl: true,
-              },
-            },
           },
         },
         _count: {
