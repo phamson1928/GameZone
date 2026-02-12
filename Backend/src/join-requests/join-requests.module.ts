@@ -9,4 +9,3 @@ import { UsersJoinRequestsController } from './users-join-requests.controller';
   exports: [JoinRequestsService],
 })
 export class JoinRequestsModule {}
-

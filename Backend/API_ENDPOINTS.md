@@ -1485,7 +1485,137 @@ curl -s -X PATCH http://localhost:3000/zones/admin/zone-uuid/close \
 
 ---
 
-## 10. Error Responses
+## 10. Join Requests
+
+### POST `/zones/:id/join`
+
+Gửi yêu cầu tham gia một zone.
+
+**Auth Required:** Yes
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | ID của zone muốn tham gia |
+
+**Response:**
+
+```json
+{
+  "message": "Yêu cầu tham gia đã được gửi"
+}
+```
+
+---
+
+### GET `/zones/:id/requests`
+
+Lấy danh sách các yêu cầu tham gia của một zone (chỉ dành cho chủ sở hữu zone).
+
+**Auth Required:** Yes (Owner)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | ID của zone |
+
+**Response:**
+
+```json
+[
+  {
+    "id": "request-uuid",
+    "userId": "user-uuid",
+    "zoneId": "zone-uuid",
+    "status": "PENDING",
+    "createdAt": "2026-02-12T10:00:00.000Z",
+    "user": {
+      "id": "user-uuid",
+      "username": "applicant",
+      "avatarUrl": "https://example.com/avatar.jpg"
+    }
+  }
+]
+```
+
+---
+
+### PATCH `/zones/:id/requests/:requestId`
+
+Chấp nhận hoặc từ chối yêu cầu tham gia (chỉ dành cho chủ sở hữu zone).
+
+**Auth Required:** Yes (Owner)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | ID của zone |
+| requestId | string (UUID) | Yes | ID của yêu cầu tham gia |
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| action | enum | Yes | `APPROVED` hoặc `REJECTED` |
+
+**Response:**
+
+```json
+{
+  "message": "Yêu cầu đã được phê duyệt"
+}
+```
+
+---
+
+### DELETE `/zones/:id/join`
+
+Hủy yêu cầu tham gia đã gửi (chỉ dành cho người gửi yêu cầu).
+
+**Auth Required:** Yes
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | ID của zone đã gửi yêu cầu |
+
+**Response:**
+
+```json
+{
+  "message": "Yêu cầu tham gia đã được hủy"
+}
+```
+
+---
+
+### GET `/users/me/join-requests`
+
+Lấy danh sách tất cả các yêu cầu tham gia mà bản thân đã gửi.
+
+**Auth Required:** Yes
+
+**Response:**
+
+```json
+[
+  {
+    "id": "request-uuid",
+    "userId": "my-user-uuid",
+    "zoneId": "zone-uuid",
+    "status": "PENDING",
+    "createdAt": "2026-02-12T09:00:00.000Z",
+    "zone": {
+      "id": "zone-uuid",
+      "title": "Looking for teammates",
+      "status": "OPEN"
+    }
+  }
+]
+```
+
+---
+
+## 11. Error Responses
 
 ### 401 Unauthorized
 
@@ -1596,7 +1726,6 @@ OTHER
 
 Các modules sau chỉ có boilerplate, cần implement thêm:
 
-- `/join-requests` - Quản lý yêu cầu tham gia zone
 - `/groups` - Quản lý nhóm chơi
 - `/notifications` - Thông báo
 - `/reports` - Báo cáo vi phạm

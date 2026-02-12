@@ -148,15 +148,15 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 
 ---
 
-## Phase 5: Matching & Group (Week 6-8)
+## Phase 5: Matching & Group (Week 6-8) ✅ COMPLETED
 
-### 5.1 Join Requests
+### 5.1 Join Requests ✅ COMPLETED
 
-- [ ] `POST /zones/:id/join` - Gửi yêu cầu tham gia
-- [ ] `GET /zones/:id/requests` - Danh sách requests (owner)
-- [ ] `PATCH /zones/:id/requests/:requestId` - Approve/Reject
-- [ ] `DELETE /zones/:id/join` - Hủy request (user)
-- [ ] `GET /users/me/join-requests` - Requests của user
+- [x] `POST /zones/:id/join` - Gửi yêu cầu tham gia
+- [x] `GET /zones/:id/requests` - Danh sách requests (owner)
+- [x] `PATCH /zones/:id/requests/:requestId` - Approve/Reject
+- [x] `DELETE /zones/:id/join` - Hủy request (user)
+- [x] `GET /users/me/join-requests` - Requests của user (Incoming/Outgoing)
 
 ### 5.2 Group Formation
 
