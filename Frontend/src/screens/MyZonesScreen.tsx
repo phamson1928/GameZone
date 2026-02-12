@@ -10,6 +10,7 @@ import {
   Alert,
   Image,
   StatusBar,
+  Animated,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,6 +26,12 @@ import {
   Clock,
   Gamepad2,
   Settings,
+  ChevronRight,
+  MoreVertical,
+  Eye,
+  Calendar,
+  Star,
+  Zap,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -32,35 +39,82 @@ import { apiClient } from '../api/client';
 import { theme, getBorderColorById } from '../theme';
 import { Zone } from '../types';
 import { RootStackParamList } from '../navigation';
-import { getRankDisplay } from '../utils/rank';
+import { getRankDisplay, getRankColor } from '../utils/rank';
 
-const StatusBadge = ({ status }: { status: string }) => {
-  let color = theme.colors.textSecondary;
-  let text = status;
-  let bg = theme.colors.surfaceLight;
-
+const getStatusConfig = (status: string) => {
   switch (status) {
     case 'OPEN':
-      color = theme.colors.success;
-      bg = 'rgba(34, 197, 94, 0.1)';
-      text = 'ĐANG MỞ';
-      break;
+      return {
+        color: '#10B981',
+        bg: '#D1FAE5',
+        label: 'Đang mở',
+        icon: '🟢',
+      };
     case 'FULL':
-      color = theme.colors.warning;
-      bg = 'rgba(234, 179, 8, 0.1)';
-      text = 'ĐÃ ĐẦY';
-      break;
+      return {
+        color: '#F59E0B',
+        bg: '#FEF3C7',
+        label: 'Đã đầy',
+        icon: '🟡',
+      };
     case 'CLOSED':
-      color = theme.colors.error;
-      bg = 'rgba(239, 68, 68, 0.1)';
-      text = 'ĐÃ ĐÓNG';
-      break;
+      return {
+        color: '#EF4444',
+        bg: '#FEE2E2',
+        label: 'Đã đóng',
+        icon: '🔴',
+      };
+    default:
+      return {
+        color: '#64748B',
+        bg: '#F1F5F9',
+        label: 'Unknown',
+        icon: '⚪',
+      };
   }
+};
+
+const AnimatedStatusDot = ({ status }: { status: string }) => {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const config = getStatusConfig(status);
+
+  useEffect(() => {
+    if (status === 'OPEN') {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.3,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ]),
+      ).start();
+    }
+  }, [status]);
 
   return (
-    <View style={[styles.statusBadge, { backgroundColor: bg }]}>
-      <View style={[styles.statusDot, { backgroundColor: color }]} />
-      <Text style={[styles.statusText, { color }]}>{text}</Text>
+    <View style={styles.statusDotContainer}>
+      {status === 'OPEN' && (
+        <Animated.View
+          style={[
+            styles.statusDotPulse,
+            {
+              backgroundColor: config.color,
+              transform: [{ scale: pulseAnim }],
+              opacity: pulseAnim.interpolate({
+                inputRange: [1, 1.3],
+                outputRange: [0.5, 0],
+              }),
+            },
+          ]}
+        />
+      )}
+      <View style={[styles.statusDotCore, { backgroundColor: config.color }]} />
     </View>
   );
 };
@@ -71,7 +125,6 @@ export const MyZonesScreen = () => {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
 
-  // StatusBar handling
   useFocusEffect(
     useCallback(() => {
       StatusBar.setBarStyle('dark-content');
@@ -88,7 +141,6 @@ export const MyZonesScreen = () => {
     queryKey: ['my-zones'],
     queryFn: async () => {
       const response = await apiClient.get('/zones/my');
-      // Backend returns array wrapped in data object
       return response.data.data as Zone[];
     },
   });
@@ -107,7 +159,7 @@ export const MyZonesScreen = () => {
   });
 
   const handleDelete = (zoneId: string) => {
-    Alert.alert('Xác nhận', 'Bạn có chắc chắn muốn xóa phòng này không?', [
+    Alert.alert('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa phòng này?', [
       { text: 'Hủy', style: 'cancel' },
       {
         text: 'Xóa',
@@ -118,14 +170,39 @@ export const MyZonesScreen = () => {
   };
 
   const handleEdit = (zoneId: string) => {
-    Alert.alert('Coming soon', 'Tính năng chỉnh sửa đang phát triển');
+    Alert.alert('Sắp ra mắt', 'Tính năng chỉnh sửa đang được phát triển');
   };
 
-  const renderZoneItem = ({ item }: { item: Zone }) => {
-    const borderColor = getBorderColorById(item.id);
+  const handleOptions = (zone: Zone) => {
+    Alert.alert(
+      zone.title,
+      'Chọn hành động',
+      [
+        {
+          text: 'Xem chi tiết',
+          onPress: () =>
+            navigation.navigate('ZoneDetails', { zoneId: zone.id }),
+        },
+        {
+          text: 'Chỉnh sửa',
+          onPress: () => handleEdit(zone.id),
+        },
+        {
+          text: 'Xóa phòng',
+          onPress: () => handleDelete(zone.id),
+          style: 'destructive',
+        },
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true },
+    );
+  };
 
-    // Calculate stats
-    // Note: item.joinRequests is array of { status } objects from backend include
+  const renderZoneItem = ({ item, index }: { item: Zone; index: number }) => {
+    const statusConfig = getStatusConfig(item.status);
     const requests = item.joinRequests || [];
     const pendingCount = requests.filter(
       (r: any) => r.status === 'PENDING',
@@ -133,146 +210,207 @@ export const MyZonesScreen = () => {
     const approvedCount = requests.filter(
       (r: any) => r.status === 'APPROVED',
     ).length;
-    const currentPlayers = approvedCount + 1; // +1 for owner
+    const currentPlayers = approvedCount + 1;
+    const rankColor = getRankColor(item.minRankLevel);
 
     return (
-      <TouchableOpacity
-        style={[styles.zoneCard, { borderLeftColor: borderColor }]}
-        onPress={() => navigation.navigate('ZoneDetails', { zoneId: item.id })}
-        activeOpacity={0.9}
-      >
-        {/* Header: Game & Status */}
-        <View style={styles.cardHeader}>
-          <View style={styles.gameInfo}>
-            {item.game?.iconUrl ? (
-              <Image
-                source={{ uri: item.game.iconUrl }}
-                style={styles.gameIcon}
-              />
-            ) : (
+      <View style={styles.timelineItem}>
+        {/* Timeline Line */}
+        {index !== zones.length - 1 && <View style={styles.timelineLine} />}
+
+        {/* Timeline Node */}
+        <View style={styles.timelineNode}>
+          <View
+            style={[
+              styles.timelineNodeOuter,
+              { borderColor: statusConfig.color },
+            ]}
+          >
+            <AnimatedStatusDot status={item.status} />
+          </View>
+        </View>
+
+        {/* Content Card */}
+        <TouchableOpacity
+          style={styles.contentCard}
+          onPress={() =>
+            navigation.navigate('ZoneDetails', { zoneId: item.id })
+          }
+          activeOpacity={0.7}
+        >
+          {/* Header */}
+          <View style={styles.cardHeader}>
+            <View style={styles.gameSection}>
+              {item.game?.iconUrl ? (
+                <View style={styles.gameIconWrapper}>
+                  <Image
+                    source={{ uri: item.game.iconUrl }}
+                    style={styles.gameIcon}
+                  />
+                </View>
+              ) : (
+                <View
+                  style={[styles.gameIconWrapper, styles.gameIconPlaceholder]}
+                >
+                  <Gamepad2 size={20} color="#2563EB" />
+                </View>
+              )}
+              <View style={styles.gameInfo}>
+                <Text style={styles.gameLabel}>Game</Text>
+                <Text style={styles.gameName} numberOfLines={1}>
+                  {item.game?.name || 'Unknown'}
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.optionsButton}
+              onPress={() => handleOptions(item)}
+            >
+              <MoreVertical size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Status Badge */}
+          <View
+            style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}
+          >
+            <Text style={styles.statusEmoji}>{statusConfig.icon}</Text>
+            <Text style={[styles.statusLabel, { color: statusConfig.color }]}>
+              {statusConfig.label}
+            </Text>
+          </View>
+
+          {/* Title */}
+          <Text style={styles.zoneTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
+
+          {/* Info Grid */}
+          <View style={styles.infoGrid}>
+            {/* Players */}
+            <View style={styles.infoItem}>
+              <View style={styles.infoIconBg}>
+                <Users size={16} color="#2563EB" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Người chơi</Text>
+                <Text style={styles.infoValue}>
+                  {currentPlayers}/{item.requiredPlayers + 1}
+                </Text>
+              </View>
+            </View>
+
+            {/* Rank */}
+            <View style={styles.infoItem}>
               <View
                 style={[
-                  styles.gameIcon,
-                  { backgroundColor: theme.colors.surfaceLight },
+                  styles.infoIconBg,
+                  { backgroundColor: rankColor + '20' },
                 ]}
               >
-                <Gamepad2 size={16} color={theme.colors.primary} />
+                <Trophy size={16} color={rankColor} />
               </View>
-            )}
-            <Text style={styles.gameName}>
-              {item.game?.name || 'Unknown Game'}
-            </Text>
-          </View>
-          <StatusBadge status={item.status} />
-        </View>
-
-        {/* Content */}
-        <Text style={styles.zoneTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
-
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Users size={14} color={theme.colors.textSecondary} />
-            <Text style={styles.statText}>
-              {currentPlayers}/{item.requiredPlayers}
-            </Text>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Rank</Text>
+                <Text style={styles.infoValue}>
+                  {getRankDisplay(item.minRankLevel)}
+                </Text>
+              </View>
+            </View>
           </View>
 
-          <View style={styles.divider} />
-
-          <View style={styles.statItem}>
-            <Trophy size={14} color={theme.colors.accent} />
-            <Text style={styles.statText}>
-              {getRankDisplay(item.minRankLevel)}
-            </Text>
-          </View>
-
+          {/* Pending Requests Alert */}
           {pendingCount > 0 && (
-            <>
-              <View style={styles.divider} />
-              <View style={[styles.pendingBadge]}>
-                <Clock size={12} color={theme.colors.warning} />
-                <Text style={styles.pendingText}>{pendingCount} chờ duyệt</Text>
+            <View style={styles.pendingAlert}>
+              <View style={styles.pendingAlertLeft}>
+                <View style={styles.pendingIcon}>
+                  <Clock size={16} color="#F59E0B" />
+                </View>
+                <Text style={styles.pendingText}>
+                  <Text style={styles.pendingCount}>{pendingCount}</Text> yêu
+                  cầu đang chờ duyệt
+                </Text>
               </View>
-            </>
+              <Zap size={16} color="#F59E0B" />
+            </View>
           )}
-        </View>
 
-        {/* Footer Actions */}
-        <View style={styles.cardFooter}>
-          <TouchableOpacity
-            style={styles.manageButton}
-            onPress={() =>
-              navigation.navigate('ZoneDetails', { zoneId: item.id })
-            }
-          >
-            <Settings size={14} color={theme.colors.primary} />
-            <Text style={styles.manageText}>Quản lý</Text>
-          </TouchableOpacity>
+          {/* Footer */}
+          <View style={styles.cardFooter}>
+            <View style={styles.dateInfo}>
+              <Calendar size={14} color="#94A3B8" />
+              <Text style={styles.dateText}>
+                {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+              </Text>
+            </View>
 
-          <View style={styles.actionButtons}>
             <TouchableOpacity
-              style={[
-                styles.iconButton,
-                { backgroundColor: theme.colors.info + '15' },
-              ]}
-              onPress={() => handleEdit(item.id)}
+              style={styles.viewButton}
+              onPress={() =>
+                navigation.navigate('ZoneDetails', { zoneId: item.id })
+              }
             >
-              <Edit2 color={theme.colors.info} size={16} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.iconButton,
-                { backgroundColor: theme.colors.error + '15' },
-              ]}
-              onPress={() => handleDelete(item.id)}
-            >
-              <Trash2 color={theme.colors.error} size={16} />
+              <Eye size={16} color="#2563EB" />
+              <Text style={styles.viewButtonText}>Xem chi tiết</Text>
+              <ChevronRight size={16} color="#2563EB" />
             </TouchableOpacity>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
     );
   };
 
   const renderHeader = () => (
-    <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.backButton}
-      >
-        <ArrowLeft color={theme.colors.text} size={24} />
-      </TouchableOpacity>
-      <Text style={styles.headerTitle}>Quản lý phòng</Text>
-      <View style={{ width: 40 }} />
+    <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      <View style={styles.headerContent}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <ArrowLeft color="#1E293B" size={24} strokeWidth={2.5} />
+        </TouchableOpacity>
+
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerTitle}>Quản lý phòng</Text>
+          <Text style={styles.headerSubtitle}>
+            {zones.length} phòng đang hoạt động
+          </Text>
+        </View>
+      </View>
     </View>
   );
 
   return (
-    <LinearGradient colors={['#f8fafc', '#ffffff']} style={styles.container}>
+    <View style={styles.container}>
       {renderHeader()}
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color="#2563EB" />
+          <Text style={styles.loadingText}>Đang tải...</Text>
         </View>
       ) : zones.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconBg}>
-            <Gamepad2 size={48} color={theme.colors.textSecondary} />
+          <View style={styles.emptyIllustration}>
+            <View style={styles.emptyCircle1} />
+            <View style={styles.emptyCircle2} />
+            <Gamepad2 size={64} color="#2563EB" strokeWidth={1.5} />
           </View>
+
           <Text style={styles.emptyTitle}>Chưa có phòng nào</Text>
           <Text style={styles.emptyText}>
-            Bạn chưa tạo phòng chơi nào. Hãy tạo ngay để tìm đồng đội!
+            Hãy tạo phòng đầu tiên để bắt đầu tìm kiếm đồng đội cùng chơi game
+            nhé!
           </Text>
+
           <TouchableOpacity
-            style={styles.createButton}
+            style={styles.emptyCreateButton}
             onPress={() => navigation.navigate('CreateZone')}
+            activeOpacity={0.8}
           >
-            <Plus color="#FFF" size={20} />
-            <Text style={styles.createButtonText}>Tạo phòng mới</Text>
+            <Plus color="#FFFFFF" size={20} strokeWidth={2.5} />
+            <Text style={styles.emptyCreateButtonText}>Tạo phòng đầu tiên</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -284,82 +422,153 @@ export const MyZonesScreen = () => {
             styles.listContent,
             { paddingBottom: insets.bottom + 100 },
           ]}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={isLoading}
               onRefresh={refetch}
-              tintColor={theme.colors.primary}
-              colors={[theme.colors.primary]}
+              tintColor="#2563EB"
+              colors={['#2563EB']}
             />
           }
         />
       )}
 
-      {/* FAB - Only show if list not empty to avoid duplicate CTA */}
+      {/* Floating Action Button */}
       {!isLoading && zones.length > 0 && (
         <TouchableOpacity
-          style={[styles.fab, { bottom: insets.bottom + 20 }]}
+          style={[styles.fab, { bottom: insets.bottom + 24 }]}
           onPress={() => navigation.navigate('CreateZone')}
-          activeOpacity={0.9}
+          activeOpacity={0.85}
         >
-          <Plus color="#FFF" size={28} />
+          <View style={styles.fabGradient}>
+            <Plus color="#FFFFFF" size={28} strokeWidth={2.5} />
+          </View>
         </TouchableOpacity>
       )}
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8FAFC',
   },
   header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.md,
+    gap: 16,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '800',
-    color: theme.colors.text,
+    color: '#1E293B',
     letterSpacing: -0.5,
   },
-  listContent: {
-    paddingTop: theme.spacing.sm,
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 2,
+    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 15,
+    color: '#64748B',
+    fontWeight: '500',
   },
 
-  // Zone Card
-  zoneCard: {
-    backgroundColor: '#FFF',
-    marginHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
+  // Timeline Layout
+  listContent: {
+    paddingTop: 24,
+    paddingHorizontal: 20,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    marginBottom: 28,
+    position: 'relative',
+  },
+  timelineLine: {
+    position: 'absolute',
+    left: 19,
+    top: 40,
+    bottom: -28,
+    width: 2,
+    backgroundColor: '#E2E8F0',
+  },
+  timelineNode: {
+    marginRight: 16,
+    paddingTop: 8,
+  },
+  timelineNodeOuter: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 3,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statusDotContainer: {
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusDotPulse: {
+    position: 'absolute',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  statusDotCore: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+
+  // Content Card
+  contentCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
-    borderLeftWidth: 4,
-    shadowColor: theme.colors.primary,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 12,
     elevation: 3,
-    borderWidth: 1,
-    borderColor: theme.colors.surfaceLight,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -367,184 +576,269 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  gameInfo: {
+  gameSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+    flex: 1,
+  },
+  gameIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   gameIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
+    width: '100%',
+    height: '100%',
+  },
+  gameIconPlaceholder: {
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  gameName: {
-    fontSize: 13,
+  gameInfo: {
+    flex: 1,
+  },
+  gameLabel: {
+    fontSize: 11,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  gameName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  optionsButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
     gap: 6,
+    marginBottom: 12,
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  statusEmoji: {
+    fontSize: 14,
   },
-  statusText: {
-    fontSize: 10,
+  statusLabel: {
+    fontSize: 12,
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
   zoneTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: 12,
-    lineHeight: 22,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+    lineHeight: 24,
+    marginBottom: 16,
   },
-  statsRow: {
+
+  // Info Grid
+  infoGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  infoItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 16,
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
     padding: 10,
-    borderRadius: 10,
+    gap: 10,
   },
-  statItem: {
+  infoIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+
+  // Pending Alert
+  pendingAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  pendingAlertLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  pendingIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pendingText: {
+    fontSize: 13,
+    color: '#92400E',
+    fontWeight: '500',
+    flex: 1,
+  },
+  pendingCount: {
+    fontWeight: '800',
+    color: '#F59E0B',
+  },
+
+  // Footer
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  dateInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  statText: {
+  dateText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#64748B',
     fontWeight: '500',
   },
-  divider: {
-    width: 1,
-    height: 12,
-    backgroundColor: theme.colors.border,
-  },
-  pendingBadge: {
+  viewButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(234, 179, 8, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  pendingText: {
-    fontSize: 12,
-    color: theme.colors.warning,
-    fontWeight: '700',
-  },
-
-  // Footer Actions
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.surfaceLight,
-  },
-  manageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  manageText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.primary,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  iconButton: {
-    width: 32,
-    height: 32,
     borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+  },
+  viewButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2563EB',
   },
 
   // Empty State
   emptyContainer: {
-    padding: theme.spacing.xxl,
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
-    marginTop: theme.spacing.xl,
+    alignItems: 'center',
+    padding: 32,
   },
-  emptyIconBg: {
+  emptyIllustration: {
+    width: 140,
+    height: 140,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    position: 'relative',
+  },
+  emptyCircle1: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#EFF6FF',
+  },
+  emptyCircle2: {
+    position: 'absolute',
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: theme.colors.surfaceLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
+    backgroundColor: '#DBEAFE',
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.text,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1E293B',
     marginBottom: 8,
   },
   emptyText: {
-    color: theme.colors.textSecondary,
-    fontSize: 14,
+    fontSize: 15,
+    color: '#64748B',
     textAlign: 'center',
-    marginBottom: 24,
-    maxWidth: '80%',
-    lineHeight: 20,
+    lineHeight: 22,
+    marginBottom: 32,
+    maxWidth: 280,
   },
-  createButton: {
+  emptyCreateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    gap: 8,
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 4 },
+    gap: 10,
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 14,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  createButtonText: {
-    color: '#FFF',
+  emptyCreateButtonText: {
+    fontSize: 16,
     fontWeight: '700',
-    fontSize: 14,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
 
   // FAB
   fab: {
     position: 'absolute',
-    right: theme.spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.colors.primary,
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  fabGradient: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#2563EB',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
   },
 });
