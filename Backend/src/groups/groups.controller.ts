@@ -2,41 +2,145 @@ import {
   Controller,
   Get,
   Post,
-  Body,
   Patch,
   Param,
   Delete,
+  Body,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { GroupsService } from './groups.service';
-import { CreateGroupDto } from './dto/create-group.dto';
-import { UpdateGroupDto } from './dto/update-group.dto';
+import { ChangeMemberRoleDto } from './dto/change-member-role.dto';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import {
+  JwtAuthGuard,
+  RolesGuard,
+  Roles,
+  PaginationDto,
+} from '../common/index.js';
+import { ApiBearerAuth } from '@nestjs/swagger/dist/decorators/api-bearer.decorator';
+import { ApiOperation } from '@nestjs/swagger/dist/decorators/api-operation.decorator';
+import { ApiTags } from '@nestjs/swagger';
 
 @Controller('groups')
+@ApiTags('Groups')
+@UseGuards(JwtAuthGuard)
 export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
-  @Post()
-  create(@Body() createGroupDto: CreateGroupDto) {
-    return this.groupsService.create(createGroupDto);
+  @Get()
+  @ApiOperation({ summary: 'Danh sách groups của user' })
+  @ApiBearerAuth()
+  getUserGroups(@CurrentUser('sub') userId: string) {
+    return this.groupsService.getUserGroups(userId);
   }
 
-  @Get()
-  findAll() {
-    return this.groupsService.findAll();
+  // ========================
+  // ADMIN routes (static, must come BEFORE :id)
+  // ========================
+
+  @Get('admin')
+  @ApiOperation({ summary: 'Danh sách tất cả groups (Admin only)' })
+  @ApiBearerAuth()
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  getAllGroupsAdmin(@Query() pagination: PaginationDto) {
+    const { page, limit } = pagination;
+    return this.groupsService.adminGetAllGroups(Number(page), Number(limit));
   }
+
+  @Delete('admin/:id')
+  @ApiOperation({ summary: 'Force dissolve group (Admin only)' })
+  @ApiBearerAuth()
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  forceDissolveAdmin(@Param('id') groupId: string) {
+    return this.groupsService.adminForceDissolve(groupId);
+  }
+
+  @Get('admin/:id/messages')
+  @ApiOperation({ summary: 'Xem messages của group (Admin only)' })
+  @ApiBearerAuth()
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  getGroupMessagesAdmin(
+    @Param('id') groupId: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    const { page, limit } = pagination;
+    return this.groupsService.adminGetGroupMessages(
+      groupId,
+      Number(page),
+      Number(limit),
+    );
+  }
+
+  // ========================
+  // Dynamic :id routes
+  // ========================
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.groupsService.findOne(+id);
+  @ApiOperation({ summary: 'Chi tiết group' })
+  @ApiBearerAuth()
+  getGroupDetail(
+    @CurrentUser('sub') userId: string,
+    @Param('id') groupId: string,
+  ) {
+    return this.groupsService.getGroupDetail(userId, groupId);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateGroupDto: UpdateGroupDto) {
-    return this.groupsService.update(+id, updateGroupDto);
+  @Get(':id/members')
+  @ApiOperation({ summary: 'Danh sách members của group' })
+  @ApiBearerAuth()
+  getGroupMembers(
+    @CurrentUser('sub') userId: string,
+    @Param('id') groupId: string,
+  ) {
+    return this.groupsService.getGroupMembers(userId, groupId);
+  }
+
+  @Post(':id/leave')
+  @ApiOperation({ summary: 'Rời group' })
+  @ApiBearerAuth()
+  leaveGroup(@CurrentUser('sub') userId: string, @Param('id') groupId: string) {
+    return this.groupsService.leaveGroup(userId, groupId);
+  }
+
+  @Delete(':id/members/:userId')
+  @ApiOperation({ summary: 'Kick member (leader only)' })
+  @ApiBearerAuth()
+  kickMember(
+    @CurrentUser('sub') leaderId: string,
+    @Param('id') groupId: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    return this.groupsService.kickMember(leaderId, groupId, targetUserId);
+  }
+
+  @Patch(':id/members/:userId')
+  @ApiOperation({ summary: 'Đổi role member (leader only)' })
+  @ApiBearerAuth()
+  changeMemberRole(
+    @CurrentUser('sub') leaderId: string,
+    @Param('id') groupId: string,
+    @Param('userId') targetUserId: string,
+    @Body() dto: ChangeMemberRoleDto,
+  ) {
+    return this.groupsService.changeMemberRole(
+      leaderId,
+      groupId,
+      targetUserId,
+      dto.role,
+    );
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.groupsService.remove(+id);
+  @ApiOperation({ summary: 'Giải tán group (leader only)' })
+  @ApiBearerAuth()
+  dissolveGroup(
+    @CurrentUser('sub') userId: string,
+    @Param('id') groupId: string,
+  ) {
+    return this.groupsService.dissolveGroup(userId, groupId);
   }
 }

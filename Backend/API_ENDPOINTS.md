@@ -994,6 +994,7 @@ curl -s -X POST http://localhost:3000/zones \
     "minRankLevel": "BEGINNER",
     "maxRankLevel": "INTERMEDIATE",
     "requiredPlayers": 3,
+    "autoApprove": false,
     "tagIds": [],
     "contacts": [
       { "type": "DISCORD", "value": "discord_id_123" },
@@ -1011,6 +1012,7 @@ curl -s -X POST http://localhost:3000/zones \
 | minRankLevel | enum | Yes | BEGINNER, INTERMEDIATE, ADVANCED, PRO |
 | maxRankLevel | enum | Yes | BEGINNER, INTERMEDIATE, ADVANCED, PRO |
 | requiredPlayers | number | Yes | Số người cần tìm |
+| autoApprove | boolean | No | Tự động chấp nhận join request (mặc định: false) |
 | tagIds | string[] | No | Mảng ID của tags |
 | contacts | object[] | No | Mảng contact methods (xem bên dưới) |
 
@@ -1489,7 +1491,7 @@ curl -s -X PATCH http://localhost:3000/zones/admin/zone-uuid/close \
 
 ### POST `/zones/:id/join`
 
-Gửi yêu cầu tham gia một zone.
+Gửi yêu cầu tham gia một zone. Nếu zone có `autoApprove = true`, request sẽ được tự động chấp nhận và group sẽ tự tạo khi đủ người.
 
 **Auth Required:** Yes
 
@@ -1498,11 +1500,19 @@ Gửi yêu cầu tham gia một zone.
 |-------|------|----------|-------------|
 | id | string (UUID) | Yes | ID của zone muốn tham gia |
 
-**Response:**
+**Response (zone thường):**
 
 ```json
 {
   "message": "Yêu cầu tham gia đã được gửi"
+}
+```
+
+**Response (zone autoApprove):**
+
+```json
+{
+  "message": "Bạn đã được tự động chấp nhận vào zone"
 }
 ```
 
@@ -1615,7 +1625,406 @@ Lấy danh sách tất cả các yêu cầu tham gia mà bản thân đã gửi.
 
 ---
 
-## 11. Error Responses
+## 11. Groups
+
+### GET `/groups`
+
+Lấy danh sách groups mà user hiện tại là thành viên.
+
+**Auth Required:** Yes
+
+**Response:**
+
+```json
+[
+  {
+    "id": "group-uuid",
+    "zoneId": "zone-uuid",
+    "leaderId": "leader-uuid",
+    "gameId": "game-uuid",
+    "isActive": true,
+    "createdAt": "2026-02-12T12:00:00.000Z",
+    "zone": {
+      "id": "zone-uuid",
+      "title": "Looking for teammates",
+      "status": "FULL"
+    },
+    "game": {
+      "id": "game-uuid",
+      "name": "Valorant",
+      "iconUrl": "https://example.com/icon.jpg"
+    },
+    "leader": {
+      "id": "leader-uuid",
+      "username": "team_leader",
+      "avatarUrl": "https://example.com/avatar.jpg"
+    },
+    "_count": {
+      "members": 4
+    }
+  }
+]
+```
+
+---
+
+### GET `/groups/:id`
+
+Chi tiết group (chỉ thành viên mới được xem).
+
+**Auth Required:** Yes (Member)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Group ID |
+
+**Response:**
+
+```json
+{
+  "id": "group-uuid",
+  "zoneId": "zone-uuid",
+  "leaderId": "leader-uuid",
+  "gameId": "game-uuid",
+  "isActive": true,
+  "createdAt": "2026-02-12T12:00:00.000Z",
+  "zone": {
+    "id": "zone-uuid",
+    "title": "Looking for teammates",
+    "description": "Need 3 more players for ranked",
+    "status": "FULL",
+    "minRankLevel": "INTERMEDIATE",
+    "maxRankLevel": "PRO"
+  },
+  "game": {
+    "id": "game-uuid",
+    "name": "Valorant",
+    "iconUrl": "https://example.com/icon.jpg"
+  },
+  "leader": {
+    "id": "leader-uuid",
+    "username": "team_leader",
+    "avatarUrl": "https://example.com/avatar.jpg"
+  },
+  "members": [
+    {
+      "groupId": "group-uuid",
+      "userId": "leader-uuid",
+      "role": "LEADER",
+      "joinedAt": "2026-02-12T12:00:00.000Z",
+      "user": {
+        "id": "leader-uuid",
+        "username": "team_leader",
+        "avatarUrl": "https://example.com/avatar.jpg"
+      }
+    },
+    {
+      "groupId": "group-uuid",
+      "userId": "member-uuid",
+      "role": "MEMBER",
+      "joinedAt": "2026-02-12T12:05:00.000Z",
+      "user": {
+        "id": "member-uuid",
+        "username": "player2",
+        "avatarUrl": null
+      }
+    }
+  ]
+}
+```
+
+---
+
+### POST `/groups/:id/leave`
+
+Rời khỏi group (chỉ member, leader phải giải tán thay vì rời).
+
+**Auth Required:** Yes (Member)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Group ID |
+
+**Response:**
+
+```json
+{
+  "message": "Đã rời khỏi group"
+}
+```
+
+**Error (Leader cố rời):**
+
+```json
+{
+  "statusCode": 400,
+  "message": "Leader không thể rời group. Hãy giải tán group thay vì rời."
+}
+```
+
+---
+
+### DELETE `/groups/:id`
+
+Giải tán group (chỉ leader). Soft delete group (isActive = false), zone chuyển sang CLOSED.
+
+**Auth Required:** Yes (Leader)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Group ID |
+
+**Response:**
+
+```json
+{
+  "message": "Group đã được giải tán"
+}
+```
+
+---
+
+## 12. Group Members
+
+### GET `/groups/:id/members`
+
+Danh sách members của group (chỉ thành viên group mới xem được).
+
+**Auth Required:** Yes (Member)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Group ID |
+
+**Response:**
+
+```json
+[
+  {
+    "groupId": "group-uuid",
+    "userId": "leader-uuid",
+    "role": "LEADER",
+    "joinedAt": "2026-02-12T12:00:00.000Z",
+    "user": {
+      "id": "leader-uuid",
+      "username": "team_leader",
+      "avatarUrl": "https://example.com/avatar.jpg"
+    }
+  },
+  {
+    "groupId": "group-uuid",
+    "userId": "member-uuid",
+    "role": "MEMBER",
+    "joinedAt": "2026-02-12T12:05:00.000Z",
+    "user": {
+      "id": "member-uuid",
+      "username": "player2",
+      "avatarUrl": null
+    }
+  }
+]
+```
+
+---
+
+### DELETE `/groups/:id/members/:userId`
+
+Kick member ra khỏi group (chỉ leader).
+
+**Auth Required:** Yes (Leader)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Group ID |
+| userId | string (UUID) | Yes | ID của member cần kick |
+
+**Response:**
+
+```json
+{
+  "message": "Đã kick member khỏi group"
+}
+```
+
+**Error (Kick chính mình):**
+
+```json
+{
+  "statusCode": 400,
+  "message": "Leader không thể kick chính mình"
+}
+```
+
+---
+
+### PATCH `/groups/:id/members/:userId`
+
+Đổi role của member (chỉ leader). Khi chuyển LEADER cho member khác, leader hiện tại tự động thành MEMBER.
+
+**Auth Required:** Yes (Leader)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Group ID |
+| userId | string (UUID) | Yes | ID của member cần đổi role |
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| role | enum | Yes | `LEADER` hoặc `MEMBER` |
+
+**Response (đổi role thường):**
+
+```json
+{
+  "message": "Đã đổi role thành MEMBER"
+}
+```
+
+**Response (chuyển leader):**
+
+```json
+{
+  "message": "Đã chuyển quyền leader cho user"
+}
+```
+
+---
+
+## 13. Group Management (Admin)
+
+> **Note:** Route sử dụng `/groups/admin` thay vì `/admin/groups` như plan ban đầu, giống pattern của Zone Admin.
+
+### GET `/groups/admin`
+
+Danh sách tất cả groups (Admin only, pagination).
+
+**Auth Required:** Yes (Admin)
+
+**Query Parameters:**
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| page | number | No | 1 | Trang hiện tại |
+| limit | number | No | 10 | Số lượng mỗi trang |
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "group-uuid",
+      "zoneId": "zone-uuid",
+      "leaderId": "leader-uuid",
+      "gameId": "game-uuid",
+      "isActive": true,
+      "createdAt": "2026-02-12T12:00:00.000Z",
+      "zone": {
+        "id": "zone-uuid",
+        "title": "Looking for teammates",
+        "status": "FULL"
+      },
+      "game": {
+        "id": "game-uuid",
+        "name": "Valorant",
+        "iconUrl": "https://example.com/icon.jpg"
+      },
+      "leader": {
+        "id": "leader-uuid",
+        "username": "team_leader",
+        "avatarUrl": "https://example.com/avatar.jpg"
+      },
+      "_count": {
+        "members": 4,
+        "messages": 25
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 15,
+    "totalPages": 2
+  }
+}
+```
+
+---
+
+### DELETE `/groups/admin/:id`
+
+Force dissolve group (Admin). Soft delete group + đóng zone liên quan.
+
+**Auth Required:** Yes (Admin)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Group ID |
+
+**Response:**
+
+```json
+{
+  "message": "Group đã được giải tán bởi admin"
+}
+```
+
+---
+
+### GET `/groups/admin/:id/messages`
+
+Xem messages của group (Admin only, pagination).
+
+**Auth Required:** Yes (Admin)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Group ID |
+
+**Query Parameters:**
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| page | number | No | 1 | Trang hiện tại |
+| limit | number | No | 20 | Số lượng mỗi trang |
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "message-uuid",
+      "groupId": "group-uuid",
+      "senderId": "user-uuid",
+      "content": "Hello team!",
+      "createdAt": "2026-02-12T13:00:00.000Z",
+      "sender": {
+        "id": "user-uuid",
+        "username": "player1",
+        "avatarUrl": "https://example.com/avatar.jpg"
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 25,
+    "totalPages": 2
+  }
+}
+```
+
+---
+
+## 14. Error Responses
 
 ### 401 Unauthorized
 
@@ -1679,7 +2088,7 @@ Khi resource không tồn tại.
 
 ---
 
-## 11. Enums Reference
+## 15. Enums Reference
 
 ### RankLevel
 
@@ -1720,12 +2129,26 @@ INGAME
 OTHER
 ```
 
+### JoinRequestStatus
+
+```
+PENDING
+APPROVED
+REJECTED
+```
+
+### GroupMemberRole
+
+```
+LEADER
+MEMBER
+```
+
 ---
 
-## 12. Modules chưa implement đầy đủ
+## 16. Modules chưa implement đầy đủ
 
 Các modules sau chỉ có boilerplate, cần implement thêm:
 
-- `/groups` - Quản lý nhóm chơi
 - `/notifications` - Thông báo
 - `/reports` - Báo cáo vi phạm

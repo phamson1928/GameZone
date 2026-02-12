@@ -158,25 +158,27 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 - [x] `DELETE /zones/:id/join` - Hủy request (user)
 - [x] `GET /users/me/join-requests` - Requests của user (Incoming/Outgoing)
 
-### 5.2 Group Formation
+### 5.2 Group Formation ✅ COMPLETED
 
-- [ ] Tự động tạo Group khi Zone đủ người
-- [ ] `GET /groups` - Danh sách groups của user
-- [ ] `GET /groups/:id` - Chi tiết group
-- [ ] `POST /groups/:id/leave` - Rời group
-- [ ] `DELETE /groups/:id` - Giải tán group (leader)
+- [x] Tự động tạo Group khi Zone đủ người
+- [x] `GET /groups` - Danh sách groups của user
+- [x] `GET /groups/:id` - Chi tiết group
+- [x] `POST /groups/:id/leave` - Rời group
+- [x] `DELETE /groups/:id` - Giải tán group (leader)
 
-### 5.3 Group Members
+### 5.3 Group Members ✅ COMPLETED
 
-- [ ] `GET /groups/:id/members` - Danh sách members
-- [ ] `DELETE /groups/:id/members/:userId` - Kick member (leader)
-- [ ] `PATCH /groups/:id/members/:userId` - Đổi role
+- [x] `GET /groups/:id/members` - Danh sách members
+- [x] `DELETE /groups/:id/members/:userId` - Kick member (leader)
+- [x] `PATCH /groups/:id/members/:userId` - Đổi role
 
-### 5.4 Group Management (Admin)
+### 5.4 Group Management (Admin) ✅ COMPLETED
 
-- [ ] `GET /admin/groups` - Danh sách tất cả groups (Admin)
-- [ ] `DELETE /admin/groups/:id` - Force delete/dissolve group (Admin)
-- [ ] `GET /admin/groups/:id/messages` - Xem messages của group (Admin)
+> **Note:** Route sử dụng `/groups/admin` thay vì `/admin/groups` như plan ban đầu, giống pattern của Zone Admin.
+
+- [x] `GET /groups/admin` - Danh sách tất cả groups (Admin)
+- [x] `DELETE /groups/admin/:id` - Force delete/dissolve group (Admin)
+- [x] `GET /groups/admin/:id/messages` - Xem messages của group (Admin)
 
 ---
 
@@ -399,9 +401,9 @@ src/
 
 ### Group Management (Phase 5.4)
 
-- View all groups
-- Force dissolve groups
-- View group messages
+- ✅ View all groups — `GET /groups/admin`
+- ✅ Force dissolve groups — `DELETE /groups/admin/:id`
+- ✅ View group messages — `GET /groups/admin/:id/messages`
 
 ### Message Moderation (Phase 6.4)
 

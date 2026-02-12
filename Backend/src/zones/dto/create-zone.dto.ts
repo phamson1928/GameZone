@@ -1,5 +1,6 @@
 import { RankLevel, ContactMethodType } from '@prisma/client';
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -48,4 +49,8 @@ export class CreateZoneDto {
   @IsNotEmpty()
   @IsInt()
   requiredPlayers: number = 1;
+
+  @IsOptional()
+  @IsBoolean()
+  autoApprove?: boolean = false;
 }

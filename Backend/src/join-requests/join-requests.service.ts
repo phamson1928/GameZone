@@ -5,10 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/index.js';
+import { GroupsService } from 'src/groups/groups.service';
 
 @Injectable()
 export class JoinRequestsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private groupsService: GroupsService,
+  ) {}
 
   async sendJoinRequest(userId: string, zoneId: string) {
     const checkZone = await this.prisma.zone.findUnique({
@@ -16,6 +20,12 @@ export class JoinRequestsService {
     });
     if (!checkZone) {
       throw new NotFoundException('Zone không tồn tại');
+    }
+    if (checkZone.status !== 'OPEN') {
+      throw new BadRequestException('Zone không còn mở để nhận yêu cầu');
+    }
+    if (checkZone.ownerId === userId) {
+      throw new BadRequestException('Bạn không thể gửi yêu cầu tham gia zone của chính mình');
     }
     const existingRequest = await this.prisma.zoneJoinRequest.findFirst({
       where: {
@@ -26,6 +36,22 @@ export class JoinRequestsService {
     if (existingRequest) {
       throw new BadRequestException('Bạn đã gửi yêu cầu tham gia trước đó');
     }
+
+    // Auto-approve: tự động chấp nhận + trigger tạo group nếu đủ người
+    if (checkZone.autoApprove) {
+      await this.prisma.zoneJoinRequest.create({
+        data: {
+          userId,
+          zoneId,
+          status: 'APPROVED',
+        },
+      });
+
+      await this.groupsService.createGroupFromZone(zoneId);
+
+      return { message: 'Bạn đã được tự động chấp nhận vào zone' };
+    }
+
     await this.prisma.zoneJoinRequest.create({
       data: {
         userId,
@@ -90,6 +116,12 @@ export class JoinRequestsService {
       where: { id: requestId },
       data: { status: action },
     });
+
+    // Auto-create group nếu zone đã đủ người approved
+    if (action === 'APPROVED') {
+      await this.groupsService.createGroupFromZone(request.zoneId);
+    }
+
     return {
       message: `Yêu cầu đã được ${action === 'APPROVED' ? 'phê duyệt' : 'từ chối'}`,
     };
