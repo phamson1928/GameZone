@@ -1,7 +1,10 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
+  Req,
+  Res,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -12,7 +15,9 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
+import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -20,6 +25,7 @@ import {
   RefreshTokenDto,
   AuthResponseDto,
   TokensResponseDto,
+  GoogleAuthDto,
 } from './dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -60,6 +66,83 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
     return this.authService.login(loginDto);
   }
+
+  // ========================
+  // Google Auth — Mobile (idToken)
+  // ========================
+
+  @Post('google')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @ApiOperation({
+    summary: 'Google login (Mobile) — verify idToken from client SDK',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Google login successful',
+    type: AuthResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Invalid Google token' })
+  async googleLogin(
+    @Body() googleAuthDto: GoogleAuthDto,
+  ): Promise<AuthResponseDto> {
+    return this.authService.googleLogin(googleAuthDto);
+  }
+
+  // ========================
+  // Google Auth — Web (OAuth2 redirect)
+  // ========================
+
+  @Get('google/redirect')
+  @Public()
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({
+    summary: 'Google login (Web) — redirect to Google consent screen',
+  })
+  @ApiResponse({ status: 302, description: 'Redirects to Google OAuth' })
+  googleRedirect() {
+    // Guard triggers redirect to Google
+  }
+
+  @Get('google/callback')
+  @Public()
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({
+    summary: 'Google OAuth callback — exchanges code for tokens',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Google login successful, returns JWT tokens',
+  })
+  async googleCallback(
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    const googleProfile = req.user as {
+      googleId: string;
+      email?: string;
+      displayName?: string;
+      avatarUrl?: string;
+    };
+
+    const result = await this.authService.googleCallbackLogin(googleProfile);
+
+    // For web clients: redirect with tokens as query params
+    // Frontend should extract tokens from URL
+    const frontendUrl = process.env['FRONTEND_URL'] || 'http://localhost:3001';
+    const params = new URLSearchParams({
+      accessToken: result.tokens.accessToken,
+      refreshToken: result.tokens.refreshToken,
+      userId: result.userId,
+    });
+
+    res.redirect(`${frontendUrl}/auth/callback?${params.toString()}`);
+  }
+
+  // ========================
+  // Token management
+  // ========================
 
   @Post('refresh')
   @Public()

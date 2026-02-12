@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -9,6 +9,8 @@ import {
   ScrollView,
   Alert
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 import { Container } from '../components/Container';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
@@ -17,11 +19,47 @@ import { apiClient } from '../api/client';
 import { useAuthStore } from '../store/useAuthStore';
 import { STRINGS } from '../constants/strings';
 
+WebBrowser.maybeCompleteAuthSession();
+
 export const LoginScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const setAuth = useAuthStore((state) => state.setAuth);
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId: '888361258375-6t0ri68copismesoaavjper8qqgkadgm.apps.googleusercontent.com',
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      handleGoogleLogin(id_token);
+    }
+  }, [response]);
+
+  const handleGoogleLogin = async (idToken: string) => {
+    setLoading(true);
+    try {
+      const response = await apiClient.post('/auth/google', {
+        idToken,
+      });
+
+      const { data } = response.data;
+      const { tokens } = data;
+      
+      const userResponse = await apiClient.get('/users/me', {
+        headers: { Authorization: `Bearer ${tokens.accessToken}` }
+      });
+
+      setAuth(userResponse.data.data, tokens.accessToken, tokens.refreshToken);
+    } catch (error: any) {
+      const message = error.response?.data?.message || STRINGS.LOGIN_FAILED;
+      Alert.alert(STRINGS.LOGIN_FAILED, Array.isArray(message) ? message[0] : message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -95,6 +133,20 @@ export const LoginScreen = ({ navigation }: any) => {
               style={styles.loginButton}
             />
 
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>HOẶC</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <Button
+              title={STRINGS.GOOGLE_LOGIN_BUTTON}
+              onPress={() => promptAsync()}
+              disabled={!request}
+              variant="outline"
+              style={styles.googleButton}
+            />
+
             <View style={styles.footer}>
               <Text style={styles.footerText}>{STRINGS.NO_ACCOUNT}</Text>
               <TouchableOpacity onPress={() => navigation.navigate('Register')}>
@@ -162,6 +214,25 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     marginTop: theme.spacing.md,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: theme.spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.border,
+  },
+  dividerText: {
+    marginHorizontal: theme.spacing.md,
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  googleButton: {
+    marginTop: 0,
   },
   footer: {
     flexDirection: 'row',

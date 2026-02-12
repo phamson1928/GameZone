@@ -13,6 +13,7 @@ export const STRINGS = {
   CONFIRM_PASSWORD_PLACEHOLDER: 'Nhập lại mật khẩu',
   FORGOT_PASSWORD: 'Quên mật khẩu?',
   LOGIN_BUTTON: 'Đăng nhập',
+  GOOGLE_LOGIN_BUTTON: 'Đăng nhập với Google',
   REGISTER_BUTTON: 'Tham gia ngay',
   HAVE_ACCOUNT: 'Đã có tài khoản? ',
   NO_ACCOUNT: 'Chưa có tài khoản? ',

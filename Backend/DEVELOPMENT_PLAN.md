@@ -1,8 +1,8 @@
-# PlayZone Backend - Development Plan
+# TeamZoneVN Backend - Development Plan
 
 ## Overview
 
-PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo Zone để tìm đồng đội, ghép nhóm và chat với nhau.
+TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạo Zone để tìm đồng đội, ghép nhóm và chat với nhau.
 
 ---
 
@@ -13,7 +13,7 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 | Framework | NestJS                       |
 | Database  | PostgreSQL                   |
 | ORM       | Prisma                       |
-| Auth      | JWT (Access + Refresh Token) |
+| Auth      | JWT (Access + Refresh Token) + Google OAuth2 |
 | Real-time | WebSocket (Socket.io)        |
 | Container | Docker                       |
 
@@ -56,7 +56,16 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 - [x] `POST /auth/logout` - Đăng xuất (revoke refresh token)
 - [x] `POST /auth/logout-all` - Đăng xuất tất cả thiết bị
 
-### 2.2 Password & Security
+### 2.2 Google Auth ✅ COMPLETED
+
+- [x] `POST /auth/google` - Đăng nhập bằng Google (Mobile — verify idToken)
+- [x] `GET /auth/google/redirect` - Redirect đến Google OAuth2 (Web)
+- [x] `GET /auth/google/callback` - Google OAuth2 callback (Web)
+- [x] Schema: AuthProvider enum (LOCAL/GOOGLE), googleId field
+- [x] Auto-link Google account nếu email đã tồn tại
+- [x] Auto-generate username cho Google users mới
+
+### 2.3 Password & Security
 
 - [x] Hash password với bcrypt (12 salt rounds)
 - [x] JWT strategy (Passport.js)
@@ -317,28 +326,28 @@ PlayZone là nền tảng tìm bạn chơi game, cho phép người dùng tạo 
 
 ## API Endpoints Summary
 
-| Module                 | Endpoints           |
-| ---------------------- | ------------------- |
-| Auth                   | 5                   |
-| Users                  | 4                   |
-| **Admin - Users**      | **6**               |
-| Games                  | 5                   |
-| User Game Profile      | 4                   |
-| Zones                  | 5                   |
-| Zone Tags (`/tags`)    | 4                   |
-| **Admin - Zones**      | **3**               |
-| Join Requests          | 5                   |
-| Groups                 | 5                   |
-| **Admin - Groups**     | **3**               |
-| Group Members          | 3                   |
-| Messages               | 2                   |
-| **Admin - Messages**   | **3**               |
-| Notifications          | 4                   |
-| Reports                | 3                   |
-| **Admin - Reports**    | **1**               |
-| **Admin - Dashboard**  | **4**               |
-| **Admin - Audit Logs** | **2**               |
-| **Total**              | **~71 endpoints**   |
+| Module                 | Endpoints         |
+| ---------------------- | ----------------- |
+| Auth                   | 8 (incl. Google)  |
+| Users                  | 4                 |
+| **Admin - Users**      | **6**             |
+| Games                  | 5                 |
+| User Game Profile      | 4                 |
+| Zones                  | 5                 |
+| Zone Tags (`/tags`)    | 4                 |
+| **Admin - Zones**      | **3**             |
+| Join Requests          | 5                 |
+| Groups                 | 5                 |
+| **Admin - Groups**     | **3**             |
+| Group Members          | 3                 |
+| Messages               | 2                 |
+| **Admin - Messages**   | **3**             |
+| Notifications          | 4                 |
+| Reports                | 3                 |
+| **Admin - Reports**    | **1**             |
+| **Admin - Dashboard**  | **4**             |
+| **Admin - Audit Logs** | **2**             |
+| **Total**              | **~71 endpoints** |
 
 ---
 
@@ -397,7 +406,6 @@ src/
 - ✅ View all zones (bypass ownership) — `GET /zones/admin`
 - ✅ Force delete zones — `DELETE /zones/admin/:id`
 - ✅ Force close zones — `PATCH /zones/admin/:id/close`
-
 
 ### Group Management (Phase 5.4)
 

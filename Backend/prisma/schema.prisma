@@ -80,18 +80,25 @@ enum Platform {
   MOBILE
 }
 
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
 ////////////////////
 /// USER & AUTH
 ////////////////////
 
 model User {
-  id           String     @id @default(uuid())
-  email        String     @unique
-  passwordHash String
-  username     String     @unique
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String?
+  username     String       @unique
   avatarUrl    String?
-  role         UserRole   @default(USER)
-  status       UserStatus @default(ACTIVE)
+  role         UserRole     @default(USER)
+  status       UserStatus   @default(ACTIVE)
+  authProvider AuthProvider @default(LOCAL)
+  googleId     String?      @unique
 
   profile       UserProfile?
   refreshTokens RefreshToken[]

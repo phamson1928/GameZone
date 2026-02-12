@@ -142,6 +142,98 @@ curl -s -X POST http://localhost:3000/auth/login \
 
 ---
 
+### POST `/auth/google`
+
+Đăng nhập bằng Google (Mobile) — gửi idToken từ Google Sign-In SDK.
+
+**Auth Required:** No
+
+```bash
+curl -s -X POST http://localhost:3000/auth/google \
+  -H "Content-Type: application/json" \
+  -d '{
+    "idToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| idToken | string | Yes | Google ID Token từ client SDK |
+
+**Response (Success):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "userId": "9e0a44d5-65a0-4ee4-810f-ed6a77db6e53",
+    "email": "user@gmail.com",
+    "username": "user_auto_generated",
+    "tokens": {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+  },
+  "timestamp": "2026-02-12T13:22:58.593Z"
+}
+```
+
+**Error Response (401 - Invalid Token):**
+
+```json
+{
+  "success": false,
+  "message": "Invalid Google token",
+  "errorCode": "UNAUTHORIZED",
+  "statusCode": 401
+}
+```
+
+**Behavior:**
+- Nếu user đã có tài khoản với Google ID → đăng nhập bình thường
+- Nếu user đã có email nhưng chưa liên kết Google → tự động liên kết Google ID
+- Nếu user mới hoàn toàn → tạo tài khoản mới (username tự sinh từ email/display name)
+
+---
+
+### GET `/auth/google/redirect`
+
+Đăng nhập bằng Google (Web) — redirect đến Google OAuth2 consent screen.
+
+**Auth Required:** No
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/auth/google/redirect
+# Returns 302 redirect to https://accounts.google.com/o/oauth2/v2/auth?...
+```
+
+**Response:** `302 Redirect` → Google OAuth2 consent screen
+
+---
+
+### GET `/auth/google/callback`
+
+Google OAuth2 callback — nhận authorization code từ Google, exchange lấy tokens, redirect về frontend với JWT tokens.
+
+**Auth Required:** No (called by Google OAuth2)
+
+**Flow:**
+1. Google gọi endpoint này với `?code=...`
+2. Backend exchange code → lấy Google profile
+3. Tìm/tạo user (logic giống `POST /auth/google`)
+4. Redirect về `FRONTEND_URL/auth/callback?accessToken=...&refreshToken=...&userId=...`
+
+**Environment Variables cần thiết:**
+| Variable | Description |
+|----------|-------------|
+| GOOGLE_CLIENT_ID | Google OAuth Client ID |
+| GOOGLE_CLIENT_SECRET | Google OAuth Client Secret |
+| GOOGLE_CALLBACK_URL | `http://localhost:3000/auth/google/callback` |
+| FRONTEND_URL | Frontend URL (default: `http://localhost:3001`) |
+
+---
+
 ### POST `/auth/refresh`
 
 Làm mới access token.
@@ -2142,6 +2234,13 @@ REJECTED
 ```
 LEADER
 MEMBER
+```
+
+### AuthProvider
+
+```
+LOCAL
+GOOGLE
 ```
 
 ---

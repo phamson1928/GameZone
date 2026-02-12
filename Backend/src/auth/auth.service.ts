@@ -7,6 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { OAuth2Client, type TokenPayload } from 'google-auth-library';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   RegisterDto,
@@ -14,6 +15,7 @@ import {
   RefreshTokenDto,
   AuthResponseDto,
   TokensResponseDto,
+  GoogleAuthDto,
 } from './dto';
 import { JwtPayload } from '../common/interfaces/request.interface';
 
@@ -23,12 +25,17 @@ export class AuthService {
   private readonly ACCESS_TOKEN_EXPIRES = '15m';
   private readonly REFRESH_TOKEN_EXPIRES = '7d';
   private readonly REFRESH_TOKEN_EXPIRES_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+  private readonly googleClient: OAuth2Client;
 
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
-  ) {}
+  ) {
+    this.googleClient = new OAuth2Client(
+      this.configService.get<string>('GOOGLE_CLIENT_ID'),
+    );
+  }
 
   /**
    * Register a new user
@@ -99,6 +106,13 @@ export class AuthService {
     // Check if user is banned
     if (user.status === 'BANNED') {
       throw new UnauthorizedException('Your account has been banned');
+    }
+
+    // Google-only users cannot login with password
+    if (!user.passwordHash) {
+      throw new UnauthorizedException(
+        'This account uses Google login. Please sign in with Google.',
+      );
     }
 
     // Verify password
@@ -205,6 +219,200 @@ export class AuthService {
       },
       data: { revoked: true },
     });
+  }
+
+  /**
+   * Google Login — Mobile flow (client sends idToken)
+   */
+  async googleLogin(dto: GoogleAuthDto): Promise<AuthResponseDto> {
+    const { idToken } = dto;
+
+    // Verify Google idToken
+    let payload: TokenPayload | undefined;
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken,
+        audience: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+      });
+      payload = ticket.getPayload();
+    } catch {
+      throw new UnauthorizedException('Invalid Google token');
+    }
+
+    if (!payload || !payload.email) {
+      throw new UnauthorizedException('Invalid Google token payload');
+    }
+
+    const googleId: string | undefined = payload.sub;
+    const email: string = payload.email;
+    const name: string | undefined = payload.name;
+    const picture: string | undefined = payload.picture;
+
+    if (!googleId) {
+      throw new UnauthorizedException('Invalid Google token: missing sub');
+    }
+
+    const user = await this.findOrCreateGoogleUser(
+      googleId,
+      email,
+      name ?? null,
+      picture ?? null,
+    );
+
+    return this.buildAuthResponse(user);
+  }
+
+  /**
+   * Google Login — Web OAuth2 callback flow
+   * Called after GoogleStrategy validates the user via passport
+   */
+  async googleCallbackLogin(googleProfile: {
+    googleId: string;
+    email?: string;
+    displayName?: string;
+    avatarUrl?: string;
+  }): Promise<AuthResponseDto> {
+    const { googleId, email, displayName, avatarUrl } = googleProfile;
+
+    if (!email) {
+      throw new BadRequestException(
+        'Google account must have an email address',
+      );
+    }
+
+    const user = await this.findOrCreateGoogleUser(
+      googleId,
+      email,
+      displayName,
+      avatarUrl,
+    );
+
+    return this.buildAuthResponse(user);
+  }
+
+  /**
+   * Find existing user by googleId or email, or create a new one.
+   * - If user exists with same googleId → login
+   * - If user exists with same email (local account) → link Google to existing account
+   * - If no user → create new Google user
+   */
+  private async findOrCreateGoogleUser(
+    googleId: string,
+    email: string,
+    displayName?: string | null,
+    avatarUrl?: string | null,
+  ) {
+    // 1. Try find by googleId
+    let user = await this.prisma.user.findUnique({
+      where: { googleId },
+    });
+
+    if (user) {
+      if (user.status === 'BANNED') {
+        throw new UnauthorizedException('Your account has been banned');
+      }
+      return user;
+    }
+
+    // 2. Try find by email (link Google to existing local account)
+    user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (user) {
+      if (user.status === 'BANNED') {
+        throw new UnauthorizedException('Your account has been banned');
+      }
+
+      // Link Google to existing account
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          googleId,
+          authProvider: user.passwordHash ? 'LOCAL' : 'GOOGLE',
+          avatarUrl: user.avatarUrl || avatarUrl || null,
+        },
+      });
+
+      return user;
+    }
+
+    // 3. Create new Google user
+    const username = await this.generateUniqueUsername(email, displayName);
+
+    user = await this.prisma.user.create({
+      data: {
+        email,
+        username,
+        googleId,
+        authProvider: 'GOOGLE',
+        avatarUrl: avatarUrl || null,
+        profile: {
+          create: {},
+        },
+      },
+    });
+
+    return user;
+  }
+
+  /**
+   * Generate a unique username from email or display name
+   */
+  private async generateUniqueUsername(
+    email: string,
+    displayName?: string | null,
+  ): Promise<string> {
+    // Base: use displayName or email prefix, sanitize to alphanumeric + underscore
+    const base = (displayName || email.split('@')[0])
+      .replace(/[^a-zA-Z0-9_]/g, '')
+      .substring(0, 20);
+
+    const candidate = base || 'user';
+
+    // Check if available
+    const existing = await this.prisma.user.findUnique({
+      where: { username: candidate },
+    });
+
+    if (!existing) return candidate;
+
+    // Append random digits until unique
+    for (let i = 0; i < 10; i++) {
+      const suffix = Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, '0');
+      const attempt = `${candidate}${suffix}`;
+
+      const exists = await this.prisma.user.findUnique({
+        where: { username: attempt },
+      });
+
+      if (!exists) return attempt;
+    }
+
+    // Fallback: uuid-based
+    return `user_${Date.now()}`;
+  }
+
+  /**
+   * Build AuthResponse from user (shared by both Google flows)
+   */
+  private async buildAuthResponse(user: {
+    id: string;
+    email: string;
+    username: string;
+    role: string;
+  }): Promise<AuthResponseDto> {
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    await this.storeRefreshToken(user.id, tokens.refreshToken);
+
+    return {
+      userId: user.id,
+      email: user.email,
+      username: user.username,
+      tokens,
+    };
   }
 
   /**
