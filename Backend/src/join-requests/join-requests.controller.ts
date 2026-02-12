@@ -39,12 +39,14 @@ export class JoinRequestsController {
   @ApiOperation({ summary: 'Xử lý yêu cầu tham gia (owner only)' })
   @ApiBearerAuth()
   handleJoinRequest(
+    @Param('id') zoneId: string,
     @CurrentUser('sub') ownerId: string,
     @Param('requestId') requestId: string,
     @Body('action') action: 'APPROVED' | 'REJECTED',
   ) {
     return this.joinRequestsService.handleJoinRequest(
       ownerId,
+      zoneId,
       requestId,
       action,
     );

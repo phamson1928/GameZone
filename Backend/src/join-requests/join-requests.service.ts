@@ -62,6 +62,7 @@ export class JoinRequestsService {
 
   async handleJoinRequest(
     ownerId: string,
+    zoneId: string,
     requestId: string,
     action: 'APPROVED' | 'REJECTED',
   ) {
@@ -74,6 +75,11 @@ export class JoinRequestsService {
     if (!request) {
       throw new NotFoundException('Yêu cầu tham gia không tồn tại');
     }
+
+    if (request.zoneId !== zoneId) {
+      throw new BadRequestException('Yêu cầu không thuộc về zone này');
+    }
+
     if (request.zone.ownerId !== ownerId) {
       throw new ForbiddenException('Bạn không có quyền xử lý yêu cầu này');
     }
