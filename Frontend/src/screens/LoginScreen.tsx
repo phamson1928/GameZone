@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  TouchableOpacity, 
-  KeyboardAvoidingView, 
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert
+  Alert,
 } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import { Container } from '../components/Container';
@@ -18,48 +19,69 @@ import { theme } from '../theme';
 import { apiClient } from '../api/client';
 import { useAuthStore } from '../store/useAuthStore';
 import { STRINGS } from '../constants/strings';
+import { RootStackParamList } from '../navigation';
 
 WebBrowser.maybeCompleteAuthSession();
 
-export const LoginScreen = ({ navigation }: any) => {
+type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
+
+export const LoginScreen = ({ navigation }: Props) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const setAuth = useAuthStore(state => state.setAuth);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: '888361258375-6t0ri68copismesoaavjper8qqgkadgm.apps.googleusercontent.com',
+    webClientId:
+      '888361258375-6t0ri68copismesoaavjper8qqgkadgm.apps.googleusercontent.com',
   });
 
   useEffect(() => {
+    const handleGoogleLogin = async (idToken: string) => {
+      setLoading(true);
+      try {
+        const googleResponse = await apiClient.post('/auth/google', {
+          idToken,
+        });
+
+        const { data } = googleResponse.data;
+        const { tokens } = data;
+
+        const userResponse = await apiClient.get('/users/me', {
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        });
+
+        setAuth(
+          userResponse.data.data,
+          tokens.accessToken,
+          tokens.refreshToken,
+        );
+      } catch (error: any) {
+        console.error(
+          'Google Login Error:',
+          error.response?.data || error.message,
+        );
+        const message = error.response?.data?.message || STRINGS.LOGIN_FAILED;
+        Alert.alert(
+          STRINGS.LOGIN_FAILED,
+          Array.isArray(message) ? message[0] : message,
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (response?.type === 'success') {
-      const { id_token } = response.params;
-      handleGoogleLogin(id_token);
+      const idToken = response.authentication?.idToken;
+      if (idToken) {
+        handleGoogleLogin(idToken);
+      } else {
+        console.warn(
+          'Google Auth Success but no idToken found in authentication object',
+        );
+      }
     }
-  }, [response]);
-
-  const handleGoogleLogin = async (idToken: string) => {
-    setLoading(true);
-    try {
-      const response = await apiClient.post('/auth/google', {
-        idToken,
-      });
-
-      const { data } = response.data;
-      const { tokens } = data;
-      
-      const userResponse = await apiClient.get('/users/me', {
-        headers: { Authorization: `Bearer ${tokens.accessToken}` }
-      });
-
-      setAuth(userResponse.data.data, tokens.accessToken, tokens.refreshToken);
-    } catch (error: any) {
-      const message = error.response?.data?.message || STRINGS.LOGIN_FAILED;
-      Alert.alert(STRINGS.LOGIN_FAILED, Array.isArray(message) ? message[0] : message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [response, setAuth]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -69,22 +91,26 @@ export const LoginScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      const response = await apiClient.post('/auth/login', {
+      const loginResponse = await apiClient.post('/auth/login', {
         email,
         password,
       });
 
-      const { data } = response.data;
-      const { userId, username, tokens } = data;
-      
+      const { data } = loginResponse.data;
+      const { tokens } = data;
+
       const userResponse = await apiClient.get('/users/me', {
-        headers: { Authorization: `Bearer ${tokens.accessToken}` }
+        headers: { Authorization: `Bearer ${tokens.accessToken}` },
       });
 
       setAuth(userResponse.data.data, tokens.accessToken, tokens.refreshToken);
     } catch (error: any) {
+      console.error('Login Error:', error.response?.data || error.message);
       const message = error.response?.data?.message || STRINGS.LOGIN_FAILED;
-      Alert.alert(STRINGS.LOGIN_FAILED, Array.isArray(message) ? message[0] : message);
+      Alert.alert(
+        STRINGS.LOGIN_FAILED,
+        Array.isArray(message) ? message[0] : message,
+      );
     } finally {
       setLoading(false);
     }
@@ -92,7 +118,7 @@ export const LoginScreen = ({ navigation }: any) => {
 
   return (
     <Container>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
@@ -104,7 +130,7 @@ export const LoginScreen = ({ navigation }: any) => {
 
           <View style={styles.form}>
             <Text style={styles.title}>{STRINGS.LOGIN_TITLE}</Text>
-            
+
             <Input
               label={STRINGS.EMAIL_LABEL}
               placeholder={STRINGS.EMAIL_PLACEHOLDER}
@@ -113,7 +139,7 @@ export const LoginScreen = ({ navigation }: any) => {
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            
+
             <Input
               label={STRINGS.PASSWORD_LABEL}
               placeholder={STRINGS.PASSWORD_PLACEHOLDER}
@@ -123,7 +149,9 @@ export const LoginScreen = ({ navigation }: any) => {
             />
 
             <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={styles.forgotPasswordText}>{STRINGS.FORGOT_PASSWORD}</Text>
+              <Text style={styles.forgotPasswordText}>
+                {STRINGS.FORGOT_PASSWORD}
+              </Text>
             </TouchableOpacity>
 
             <Button
