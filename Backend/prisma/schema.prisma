@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 ////////////////////
@@ -141,14 +142,14 @@ model RefreshToken {
 ////////////////////
 
 model Game {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   name      String
   iconUrl   String?
   bannerUrl String?
-  isActive  Boolean  @default(true)
+  isActive  Boolean    @default(true)
   platforms Platform[]
 
-  zones        Zone[]
+  zones Zone[]
 
   groups       Group[]
   userProfiles UserGameProfile[]

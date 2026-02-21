@@ -1137,6 +1137,11 @@ curl -s -X POST http://localhost:3000/zones \
       "username": "testuser",
       "avatarUrl": null
     },
+    "game": {
+      "id": "472515e6-f4be-4c35-88bb-a8fb3a52680a",
+      "name": "League of Legends",
+      "iconUrl": "https://example.com/lol.png"
+    },
     "joinRequests": []
   },
   "timestamp": "2026-01-31T17:26:15.689Z"
@@ -1192,6 +1197,14 @@ curl -s "http://localhost:3000/zones?page=1&limit=10"
       "owner": {
         "id": "user-uuid",
         "username": "testuser"
+      },
+      "game": {
+        "id": "game-uuid",
+        "name": "League of Legends",
+        "iconUrl": "https://example.com/lol.png"
+      },
+      "_count": {
+        "joinRequests": 2
       }
     }
   ],

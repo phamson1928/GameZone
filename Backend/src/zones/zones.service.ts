@@ -12,7 +12,7 @@ import { Prisma, ContactMethodType } from '@prisma/client';
 
 @Injectable()
 export class ZonesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(ownerId: string, createZoneDto: CreateZoneDto) {
     const { tagIds, contacts, ...zoneData } = createZoneDto;
@@ -100,6 +100,13 @@ export class ZonesService {
               avatarUrl: true,
             },
           },
+          game: {
+            select: {
+              id: true,
+              name: true,
+              iconUrl: true,
+            },
+          },
           _count: {
             select: {
               joinRequests: { where: { status: 'APPROVED' } },
@@ -167,7 +174,6 @@ export class ZonesService {
             id: true,
             name: true,
             iconUrl: true,
-            bannerUrl: true,
           },
         },
         joinRequests: {
