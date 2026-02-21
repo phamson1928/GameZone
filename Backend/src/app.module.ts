@@ -16,6 +16,7 @@ import { ReportsModule } from './reports/reports.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { UserGameProfilesModule } from './user-game-profiles/user-game-profiles.module';
 import { TagsModule } from './tags/tags.module';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { TagsModule } from './tags/tags.module';
     ReportsModule,
     UserGameProfilesModule,
     TagsModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [
@@ -65,4 +67,4 @@ import { TagsModule } from './tags/tags.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
