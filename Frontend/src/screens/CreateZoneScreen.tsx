@@ -172,7 +172,7 @@ export const CreateZoneScreen = () => {
 
           {gamesLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator color="#2563EB" size="large" />
+              <ActivityIndicator color="#2563FF" size="large" />
             </View>
           ) : (
             <ScrollView
@@ -265,7 +265,7 @@ export const CreateZoneScreen = () => {
 
           <View style={styles.tagsContainer}>
             {tagsLoading ? (
-              <ActivityIndicator color="#2563EB" />
+              <ActivityIndicator color="#2563FF" />
             ) : (
               tags?.map(tag => {
                 const isSelected = selectedTagIds.includes(tag.id);
@@ -301,7 +301,7 @@ export const CreateZoneScreen = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIconContainer}>
-              <Trophy color="#2563EB" size={18} />
+              <Trophy color="#2563FF" size={18} />
             </View>
             <Text style={styles.sectionTitle}>Yêu cầu Rank</Text>
           </View>
@@ -383,7 +383,7 @@ export const CreateZoneScreen = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIconContainer}>
-              <Users color="#2563EB" size={18} />
+              <Users color="#2563FF" size={18} />
             </View>
             <Text style={styles.sectionTitle}>Số người cần tìm</Text>
           </View>
@@ -401,7 +401,7 @@ export const CreateZoneScreen = () => {
               <View style={styles.playerButtonInner}>
                 <Minus
                   size={24}
-                  color={requiredPlayers <= 1 ? '#CBD5E1' : '#2563EB'}
+                  color={requiredPlayers <= 1 ? '#334155' : '#2563FF'}
                   strokeWidth={2.5}
                 />
               </View>
@@ -424,7 +424,7 @@ export const CreateZoneScreen = () => {
               <View style={styles.playerButtonInner}>
                 <Plus
                   size={24}
-                  color={requiredPlayers >= 10 ? '#CBD5E1' : '#2563EB'}
+                  color={requiredPlayers >= 10 ? '#334155' : '#2563FF'}
                   strokeWidth={2.5}
                 />
               </View>
@@ -461,7 +461,7 @@ export const CreateZoneScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#0F172A',
   },
   headerContainer: {
     position: 'relative',
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#2563FF',
   },
   header: {
     flexDirection: 'row',
@@ -486,9 +486,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   headerTitleContainer: {
     flexDirection: 'row',
@@ -498,10 +500,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#FFFFFF',
-    letterSpacing: 0.3,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   headerRight: {
     width: 40,
@@ -523,7 +526,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: 'rgba(37,99,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -531,15 +534,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-    letterSpacing: 0.2,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   sectionSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
     marginTop: 2,
+    fontWeight: '500',
   },
   loadingContainer: {
     padding: 40,
@@ -556,28 +561,29 @@ const styles = StyleSheet.create({
   gameCard: {
     width: 110,
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 4,
   },
   gameCardSelected: {
-    borderColor: '#2563EB',
-    backgroundColor: '#EFF6FF',
-    shadowColor: '#2563EB',
-    shadowOpacity: 0.15,
+    borderColor: '#2563FF',
+    borderWidth: 2,
+    backgroundColor: 'rgba(37,99,255,0.12)',
+    shadowColor: '#2563FF',
+    shadowOpacity: 0.35,
     shadowRadius: 12,
-    elevation: 4,
+    elevation: 6,
   },
   gameImageContainer: {
     position: 'relative',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   gameIcon: {
     width: 56,
@@ -588,25 +594,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -6,
     right: -6,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#2563EB',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#22C55E',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    shadowColor: '#2563EB',
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    shadowColor: '#22C55E',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.5,
     shadowRadius: 4,
   },
   gameName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#CBD5E1',
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 17,
   },
   inputLabel: {
     flexDirection: 'row',
@@ -615,33 +621,30 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   labelText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#334155',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   labelRequired: {
     fontSize: 15,
     color: '#EF4444',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   inputContainer: {
     position: 'relative',
   },
   input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
+    backgroundColor: '#1E293B',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 14,
     padding: 16,
     paddingRight: 60,
-    color: '#1E293B',
+    color: '#F8FAFC',
     fontSize: 15,
     fontWeight: '500',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
   },
   textArea: {
     minHeight: 120,
@@ -650,11 +653,11 @@ const styles = StyleSheet.create({
   },
   charCount: {
     position: 'absolute',
-    right: 16,
-    top: 16,
-    fontSize: 12,
-    color: '#94A3B8',
-    fontWeight: '500',
+    right: 14,
+    top: 14,
+    fontSize: 11,
+    color: '#475569',
+    fontWeight: '600',
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -668,158 +671,159 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 2,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
   },
   tagChipSelected: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
-    shadowColor: '#2563EB',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    backgroundColor: 'rgba(37,99,255,0.2)',
+    borderColor: '#2563FF',
+    borderWidth: 1.5,
+    shadowColor: '#2563FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   tagText: {
-    color: '#475569',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '700',
   },
   tagTextSelected: {
-    color: '#FFFFFF',
+    color: '#2563FF',
   },
   rankContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#1E293B',
+    borderRadius: 18,
     padding: 20,
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
   },
   rankSection: {
     marginBottom: 20,
   },
   rankLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: '#64748B',
     marginBottom: 12,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
   },
   rankGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
   rankButton: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
   rankButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: '#64748B',
   },
   rankButtonTextSelected: {
     color: '#FFFFFF',
-    fontWeight: '700',
+    fontWeight: '800',
   },
   rankDivider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     marginVertical: 4,
   },
   playerCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1E293B',
     borderRadius: 20,
     padding: 24,
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
   },
   playerButton: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: 'rgba(37,99,255,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(37,99,255,0.25)',
   },
   playerButtonDisabled: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.06)',
   },
   playerButtonInner: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
   },
   playerDisplay: {
     alignItems: 'center',
   },
   playerNumber: {
-    fontSize: 42,
-    fontWeight: '800',
-    color: '#2563EB',
-    letterSpacing: -1,
+    fontSize: 52,
+    fontWeight: '900',
+    color: '#2563FF',
+    letterSpacing: -2,
   },
   playerLabel: {
-    fontSize: 13,
+    fontSize: 11,
     color: '#64748B',
-    fontWeight: '600',
+    fontWeight: '700',
     marginTop: 4,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#2563FF',
     paddingVertical: 18,
     borderRadius: 16,
     marginTop: 8,
-    shadowColor: '#2563EB',
+    shadowColor: '#2563FF',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.45,
     shadowRadius: 16,
-    elevation: 8,
+    elevation: 10,
   },
   submitButtonDisabled: {
-    backgroundColor: '#94A3B8',
-    shadowOpacity: 0.1,
+    backgroundColor: '#334155',
+    shadowOpacity: 0,
   },
   submitButtonText: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: '#FFFFFF',
-    letterSpacing: 0.3,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   bottomSpacer: {
-    height: 40,
+    height: 60,
   },
 });

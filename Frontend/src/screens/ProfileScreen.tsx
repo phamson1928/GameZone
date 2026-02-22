@@ -1,19 +1,17 @@
 import React from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  Image, 
-  ScrollView, 
+import {
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  ScrollView,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  ImageBackground,
-  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Edit2, Trash2, Gamepad2, Users, Star, Trophy, MapPin, Calendar, Settings } from 'lucide-react-native';
+import { Edit2, Trash2, Gamepad2, Users, Star, Trophy, MapPin, Settings, LogOut, Zap } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { Container } from '../components/Container';
@@ -52,58 +50,58 @@ export const ProfileScreen = () => {
   });
 
   const handleDelete = (id: string) => {
-    Alert.alert(
-      'Xác nhận',
-      'Bạn có chắc chắn muốn xóa hồ sơ game này?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        { 
-          text: 'Xóa', 
-          style: 'destructive', 
-          onPress: () => deleteProfileMutation.mutate(id) 
-        },
-      ]
-    );
+    Alert.alert('Xác nhận', 'Bạn có chắc muốn xóa hồ sơ game này?', [
+      { text: 'Hủy', style: 'cancel' },
+      { text: 'Xóa', style: 'destructive', onPress: () => deleteProfileMutation.mutate(id) },
+    ]);
   };
 
   return (
     <Container>
-      {/* Top Bar - Consistent with HomeScreen */}
+      {/* Top Bar */}
       <View style={styles.topBar}>
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>HỒ SƠ CỦA TÔI</Text>
+          <Text style={styles.headerTitle}>HỒ SƠ</Text>
           <Text style={styles.headerSubtitle}>THÔNG TIN CÁ NHÂN</Text>
         </View>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.settingsButton}
           onPress={() => navigation.navigate('EditProfile' as never)}
         >
-          <Settings size={20} color={theme.colors.text} />
+          <Settings size={20} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* User Card - Main Info */}
-        <View style={styles.userCard}>
-          <View style={styles.userCardHeader}>
-            <View style={styles.avatarContainer}>
+        {/* Hero Card */}
+        <View style={styles.heroCard}>
+          <LinearGradient
+            colors={['rgba(37,99,255,0.15)', 'rgba(124,58,237,0.08)']}
+            style={styles.heroCardBg}
+          />
+
+          <View style={styles.avatarSection}>
+            <View style={styles.avatarWrapper}>
               {user?.avatarUrl ? (
                 <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
               ) : (
-                <View style={styles.avatarPlaceholder}>
+                <LinearGradient colors={['#2563FF', '#7C3AED']} style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarInitial}>
                     {user?.username?.charAt(0).toUpperCase()}
                   </Text>
-                </View>
+                </LinearGradient>
               )}
-              <View style={styles.statusBadge} />
+              <View style={styles.onlineBadge} />
             </View>
-            
+
             <View style={styles.userInfo}>
               <Text style={styles.username}>{user?.username}</Text>
-              <Text style={styles.userRole}>
-                {user?.role === 'ADMIN' ? STRINGS.ROLE_ADMIN : STRINGS.ROLE_USER}
-              </Text>
+              <View style={styles.roleBadge}>
+                <Zap size={10} color="#F59E0B" fill="#F59E0B" />
+                <Text style={styles.roleText}>
+                  {user?.role === 'ADMIN' ? STRINGS.ROLE_ADMIN : STRINGS.ROLE_USER}
+                </Text>
+              </View>
               <View style={styles.playStyleBadge}>
                 <Gamepad2 size={12} color={theme.colors.primary} />
                 <Text style={styles.playStyleText}>
@@ -113,8 +111,7 @@ export const ProfileScreen = () => {
             </View>
           </View>
 
-          <View style={styles.divider} />
-          
+          <View style={styles.bioDivider} />
           <Text style={styles.bioText}>
             {user?.profile?.bio || STRINGS.BIO_PLACEHOLDER}
           </Text>
@@ -122,79 +119,71 @@ export const ProfileScreen = () => {
 
         {/* Stats Row */}
         <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <View style={[styles.statIconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
-              <Trophy size={20} color={theme.colors.primary} />
+          {[
+            { icon: Trophy, color: theme.colors.primary, value: gameProfiles?.length || 0, label: 'Games' },
+            { icon: Users, color: '#22C55E', value: 142, label: 'Bạn bè' },
+            { icon: Star, color: '#F59E0B', value: '4.9', label: 'Rating' },
+          ].map((stat, idx) => (
+            <View key={idx} style={styles.statCard}>
+              <LinearGradient
+                colors={[stat.color + '20', stat.color + '05']}
+                style={styles.statIconBg}
+              >
+                <stat.icon size={20} color={stat.color} />
+              </LinearGradient>
+              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
             </View>
-            <Text style={styles.statValue}>{gameProfiles?.length || 0}</Text>
-            <Text style={styles.statLabel}>Games</Text>
-          </View>
-          <View style={styles.statItem}>
-            <View style={[styles.statIconContainer, { backgroundColor: theme.colors.accent + '15' }]}>
-              <Users size={20} color={theme.colors.accent} />
-            </View>
-            <Text style={styles.statValue}>142</Text>
-            <Text style={styles.statLabel}>Bạn bè</Text>
-          </View>
-          <View style={styles.statItem}>
-            <View style={[styles.statIconContainer, { backgroundColor: theme.colors.warning + '15' }]}>
-              <Star size={20} color={theme.colors.warning} />
-            </View>
-            <Text style={styles.statValue}>4.9</Text>
-            <Text style={styles.statLabel}>Rating</Text>
-          </View>
+          ))}
         </View>
 
         {/* Game Profiles Section */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Gamepad2 size={20} color={theme.colors.accent} />
+            <View style={styles.sectionAccent} />
+            <Gamepad2 size={18} color={theme.colors.primary} />
             <Text style={styles.sectionTitle}>GAME ĐÃ CHƠI</Text>
           </View>
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('AddGameProfile' as never)}
-          >
-            <Text style={styles.seeAllButton}>+ Thêm Game</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('AddGameProfile' as never)}>
+            <Text style={styles.addButton}>+ Thêm Game</Text>
           </TouchableOpacity>
         </View>
 
         {isLoading ? (
-          <ActivityIndicator color={theme.colors.primary} />
+          <ActivityIndicator color={theme.colors.primary} style={{ marginVertical: 24 }} />
         ) : gameProfiles?.length > 0 ? (
           gameProfiles.map((profile: UserGameProfile) => {
             const borderColor = getBorderColorById(profile.id);
             return (
               <View key={profile.id} style={styles.gameProfileCard}>
-                {/* Removed accentBar */}
-                <Image 
-                  source={{ uri: profile.game.iconUrl }} 
-                  style={styles.gameProfileIcon} 
+                <View style={[styles.gameCardAccent, { backgroundColor: borderColor }]} />
+                <Image
+                  source={{ uri: profile.game.iconUrl }}
+                  style={styles.gameProfileIcon}
                 />
                 <View style={styles.gameProfileInfo}>
                   <Text style={styles.gameProfileName}>{profile.game.name}</Text>
-                  <View style={[
-                    styles.rankPill, 
-                    { backgroundColor: RANK_COLORS[profile.rankLevel] + '20' } // lighter bg
-                  ]}>
-                    <Text style={[styles.rankPillText, { color: RANK_COLORS[profile.rankLevel] }]}>
+                  <View style={[styles.rankPill, { backgroundColor: (RANK_COLORS[profile.rankLevel] || borderColor) + '20' }]}>
+                    <Text style={[styles.rankPillText, { color: RANK_COLORS[profile.rankLevel] || borderColor }]}>
                       {getRankDisplay(profile.rankLevel)}
                     </Text>
                   </View>
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => handleDelete(profile.id)}
-                  style={styles.actionButton}
+                  style={styles.deleteButton}
                 >
-                  <Trash2 size={18} color={theme.colors.textSecondary} />
+                  <Trash2 size={16} color={theme.colors.textMuted} />
                 </TouchableOpacity>
               </View>
             );
           })
         ) : (
           <View style={styles.emptyContainer}>
+            <Gamepad2 size={40} color={theme.colors.primary} style={{ opacity: 0.3 }} />
             <Text style={styles.emptyText}>{STRINGS.NO_RANKS}</Text>
-            <Button 
-              title="Thêm Game Ngay" 
+            <Button
+              title="Thêm Game Ngay"
               onPress={() => navigation.navigate('AddGameProfile' as never)}
               size="sm"
               variant="outline"
@@ -202,26 +191,30 @@ export const ProfileScreen = () => {
           </View>
         )}
 
+        {/* Footer Actions */}
         <View style={styles.footerActions}>
-          <Button 
-            title="My Zones"
-            onPress={() => navigation.navigate('MyZones' as never)} 
-            variant="primary" 
-            style={styles.footerButton}
-            icon={<MapPin size={18} color="#FFF" />}
-          />
-          <Button 
-            title={STRINGS.LOGOUT}
-            onPress={logout} 
-            variant="outline" 
-            style={styles.footerButton}
-          />
+          <TouchableOpacity
+            style={styles.myZonesButton}
+            onPress={() => navigation.navigate('MyZones' as never)}
+          >
+            <LinearGradient colors={['#2563FF', '#7C3AED']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.myZonesGradient}>
+              <MapPin size={16} color="#FFF" />
+              <Text style={styles.myZonesText}>My Zones</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={logout}
+          >
+            <LogOut size={16} color={theme.colors.error} />
+            <Text style={styles.logoutText}>{STRINGS.LOGOUT}</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </Container>
   );
 };
-
 
 const styles = StyleSheet.create({
   content: {
@@ -240,48 +233,57 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
     color: theme.colors.text,
-    letterSpacing: -0.5,
+    letterSpacing: 2,
     textTransform: 'uppercase',
   },
   headerSubtitle: {
     fontSize: 10,
     fontWeight: '700',
     color: theme.colors.primary,
-    letterSpacing: 2,
+    letterSpacing: 2.5,
     textTransform: 'uppercase',
   },
   settingsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surfaceLight,
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: '#1E293B',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
   },
-  userCard: {
-    backgroundColor: theme.colors.surface,
+
+  // Hero Card
+  heroCard: {
+    backgroundColor: '#1E293B',
     borderRadius: 24,
-    padding: 24,
-    marginBottom: theme.spacing.xl,
-    // Soft shadow, neutral color
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
     elevation: 8,
-    position: 'relative',
     overflow: 'hidden',
+    position: 'relative',
   },
-  userCardHeader: {
+  heroCardBg: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 24,
+  },
+  avatarSection: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
     marginBottom: 16,
   },
-  avatarContainer: {
+  avatarWrapper: {
     position: 'relative',
   },
   avatar: {
@@ -289,73 +291,79 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 3,
-    borderColor: theme.colors.surface,
-    backgroundColor: theme.colors.surfaceLight,
+    borderColor: 'rgba(37,99,255,0.5)',
   },
   avatarPlaceholder: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: theme.colors.surface,
+    borderColor: 'rgba(37,99,255,0.4)',
   },
   avatarInitial: {
     fontSize: 32,
     color: '#FFF',
-    fontWeight: 'bold',
+    fontWeight: '900',
   },
-  statusBadge: {
+  onlineBadge: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
+    bottom: 3,
+    right: 3,
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: theme.colors.success,
-    borderWidth: 2,
-    borderColor: theme.colors.surface,
+    backgroundColor: '#22C55E',
+    borderWidth: 3,
+    borderColor: '#1E293B',
   },
   userInfo: {
     flex: 1,
+    gap: 6,
   },
   username: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '900',
     color: theme.colors.text,
     letterSpacing: -0.5,
-    marginBottom: 4,
   },
-  userRole: {
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+  },
+  roleText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.textSecondary,
+    color: '#F59E0B',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   playStyleBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: 'rgba(37,99,255,0.12)',
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(37,99,255,0.2)',
   },
   playStyleText: {
     fontSize: 11,
     fontWeight: '700',
     color: theme.colors.primary,
     textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
-  divider: {
+  bioDivider: {
     height: 1,
-    backgroundColor: theme.colors.border,
-    marginVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    marginBottom: 12,
   },
   bioText: {
     fontSize: 14,
@@ -363,100 +371,114 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontStyle: 'italic',
   },
-  
-  // Stats Row
+
+  // Stats
   statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: theme.spacing.xl,
-    paddingHorizontal: theme.spacing.md,
+    gap: 12,
+    marginBottom: 24,
   },
-  statItem: {
-    alignItems: 'center',
+  statCard: {
     flex: 1,
+    backgroundColor: '#1E293B',
+    borderRadius: 18,
+    padding: 16,
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  statIconContainer: {
+  statIconBg: {
     width: 44,
     height: 44,
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 2,
   },
   statValue: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '900',
     color: theme.colors.text,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  
-  // Games Section
+
+  // Section
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
-    paddingHorizontal: 4,
+    marginBottom: 16,
   },
   sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
+  sectionAccent: {
+    width: 3,
+    height: 16,
+    borderRadius: 2,
+    backgroundColor: theme.colors.primary,
+  },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '800',
     color: theme.colors.text,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
   },
-  seeAllButton: {
-    fontSize: 12,
+  addButton: {
+    fontSize: 13,
     fontWeight: '700',
     color: theme.colors.primary,
   },
+
+  // Game Profile Card
   gameProfileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    padding: 16,
+    backgroundColor: '#1E293B',
     borderRadius: 16,
-    marginBottom: 12,
-    // Soft shadow instead of border
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    position: 'relative',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  accentBar: {
-    width: 4,
+  gameCardAccent: {
+    width: 3,
     height: '100%',
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
+    alignSelf: 'stretch',
   },
   gameProfileIcon: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    marginLeft: 12,
-    marginRight: 12,
-    backgroundColor: theme.colors.surfaceLight,
+    margin: 12,
   },
   gameProfileInfo: {
     flex: 1,
-    gap: 4,
+    gap: 5,
+    paddingRight: 8,
   },
   gameProfileName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: theme.colors.text,
   },
@@ -464,39 +486,81 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   rankPillText: {
     fontSize: 10,
     fontWeight: '800',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  actionButton: {
-    padding: 8,
-    backgroundColor: theme.colors.surfaceLight,
-    borderRadius: 8,
+  deleteButton: {
+    padding: 14,
+    margin: 2,
   },
+
+  // Empty
   emptyContainer: {
     alignItems: 'center',
     padding: 32,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    backgroundColor: '#1E293B',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: 'rgba(255,255,255,0.06)',
     borderStyle: 'dashed',
     marginBottom: theme.spacing.lg,
+    gap: 10,
   },
   emptyText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    marginBottom: 12,
     fontWeight: '500',
   },
+
+  // Footer
   footerActions: {
     gap: 12,
-    marginTop: theme.spacing.lg,
+    marginTop: 24,
   },
-  footerButton: {
-    width: '100%',
+  myZonesButton: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#2563FF',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  myZonesGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 16,
+  },
+  myZonesText: {
+    color: '#FFF',
+    fontWeight: '800',
+    fontSize: 15,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: 'rgba(239,68,68,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.2)',
+  },
+  logoutText: {
+    color: theme.colors.error,
+    fontWeight: '700',
+    fontSize: 15,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

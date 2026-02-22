@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # ================================
@@ -6,18 +6,18 @@ services:
   # ================================
   postgres:
     image: postgres:16-alpine
-    container_name: GameZone_Postgres
+    container_name: TeamZoneVN_Postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: backend_db
     ports:
-      - '5433:5432'
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,10 +32,10 @@ services:
       context: .
       dockerfile: Dockerfile
       target: development
-    container_name: GameZone_App_Dev
+    container_name: TeamZoneVN_App_Dev
     restart: unless-stopped
     ports:
-      - '3000:3000'
+      - "3000:3000"
     volumes:
       - .:/app
       - /app/node_modules
@@ -58,10 +58,10 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
-    container_name: GameZone_App_Prod
+    container_name: TeamZoneVN_App_Prod
     restart: unless-stopped
     ports:
-      - '3000:3000'
+      - "3000:3000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/backend_db?schema=public
       - NODE_ENV=production

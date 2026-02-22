@@ -1,6 +1,6 @@
-# GameZone - UI Specification
+# TeamZoneVN - UI Specification
 
-Dựa trên **Development Plan** và **Prisma Schema**, tài liệu này chi tiết hóa cấu trúc giao diện và trải nghiệm người dùng (UX) cho ứng dụng GameZone.
+Dựa trên **Development Plan** và **Prisma Schema**, tài liệu này chi tiết hóa cấu trúc giao diện và trải nghiệm người dùng (UX) cho ứng dụng TeamZoneVN.
 
 ---
 

@@ -55,10 +55,10 @@ const MainLayout: React.FC = () => {
       <Sider trigger={null} collapsible collapsed={collapsed} theme="dark">
         <div className="flex items-center justify-center h-16 m-4 bg-opacity-20 bg-white rounded-lg">
           <span className={`text-white font-bold text-xl ${collapsed ? 'hidden' : 'block'}`}>
-            GAMEZONE
+            TEAMZONEVN
           </span>
           <span className={`text-white font-bold text-xl ${collapsed ? 'block' : 'hidden'}`}>
-            GZ
+            TZ
           </span>
         </div>
         <Menu

@@ -35,7 +35,7 @@ export const Container: React.FC<ContainerProps> = ({
   const Content = (
     <>
       <StatusBar
-        barStyle="dark-content"
+        barStyle="light-content"
         backgroundColor={theme.colors.background}
       />
       {disableKeyboardAvoidingView ? (

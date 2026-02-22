@@ -37,7 +37,7 @@ const FILTER_OPTIONS = [
 export const DiscoverScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [selectedPlatform, setSelectedPlatform] = useState('ALL');
-  
+
   const { data: games, isLoading, refetch } = useQuery({
     queryKey: ['games'],
     queryFn: async () => {
@@ -50,8 +50,8 @@ export const DiscoverScreen = () => {
   const filteredGames = useMemo(() => {
     if (!games) return [];
     if (selectedPlatform === 'ALL') return games;
-    
-    return games.filter(game => 
+
+    return games.filter(game =>
       game.platforms?.includes(selectedPlatform as Platform)
     );
   }, [games, selectedPlatform]);
@@ -69,12 +69,12 @@ export const DiscoverScreen = () => {
           return null;
       }
     };
-    
+
     return (
       <TouchableOpacity
         style={styles.cardContainer}
         onPress={() =>
-          navigation.navigate('GameZones', {
+          navigation.navigate('TeamZoneVNs', {
             gameId: item.id,
             gameName: item.name,
           })
@@ -103,7 +103,7 @@ export const DiscoverScreen = () => {
             )}
           </View>
         </View>
-        
+
         <View style={styles.cardInfo}>
           <Text style={styles.gameName} numberOfLines={1}>{item.name}</Text>
           <Text style={styles.zoneCount}>
@@ -137,15 +137,15 @@ export const DiscoverScreen = () => {
 
             {/* Platform Filter */}
             <View style={styles.filterSection}>
-              <ScrollView 
-                horizontal 
+              <ScrollView
+                horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.filterScroll}
               >
                 {FILTER_OPTIONS.map((option) => {
                   const Icon = option.icon;
                   const isActive = selectedPlatform === option.value;
-                  
+
                   return (
                     <TouchableOpacity
                       key={option.value}
@@ -156,9 +156,9 @@ export const DiscoverScreen = () => {
                       onPress={() => setSelectedPlatform(option.value)}
                       activeOpacity={0.7}
                     >
-                      <Icon 
-                        size={16} 
-                        color={isActive ? '#FFFFFF' : theme.colors.textSecondary} 
+                      <Icon
+                        size={16}
+                        color={isActive ? '#FFFFFF' : theme.colors.textSecondary}
                       />
                       <Text style={[
                         styles.filterChipText,
@@ -206,18 +206,18 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.sm,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 26,
+    fontWeight: '900',
     color: theme.colors.text,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    fontFamily: RNPlatform.OS === 'ios' ? 'Courier' : 'monospace',
+    letterSpacing: 2,
   },
   subtitle: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: theme.colors.textMuted,
     letterSpacing: 0.5,
     marginTop: 4,
+    fontWeight: '500',
   },
   // Filter Section
   filterSection: {
@@ -235,22 +235,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1.5,
-    borderColor: theme.colors.border,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
   },
   filterChipActive: {
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
   },
   filterChipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
   },
   filterChipTextActive: {
     color: '#FFFFFF',
-    fontWeight: '700',
+    fontWeight: '800',
   },
   resultsInfo: {
     paddingHorizontal: theme.spacing.lg,
@@ -259,12 +264,12 @@ const styles = StyleSheet.create({
   },
   resultsText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: theme.colors.textMuted,
     fontWeight: '500',
   },
   listContent: {
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: 100,
   },
   columnWrapper: {
     justifyContent: 'space-between',
@@ -276,13 +281,17 @@ const styles = StyleSheet.create({
   posterCard: {
     width: '100%',
     aspectRatio: 3 / 4,
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#1E293B',
     position: 'relative',
-    ...theme.shadows.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.5)', // slate-200 equivalent with opacity
+    borderColor: 'rgba(255,255,255,0.06)',
   },
   posterImage: {
     width: '100%',
@@ -306,40 +315,41 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   platformBadges: {
     flexDirection: 'row',
     gap: 4,
   },
   platformBadge: {
-    width: 20,
-    height: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 4,
+    width: 22,
+    height: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   genreText: {
     color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: '800',
     textTransform: 'uppercase',
   },
   cardInfo: {
     marginTop: 8,
   },
   gameName: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '800',
     color: theme.colors.text,
     marginBottom: 2,
   },
   zoneCount: {
     fontSize: 12,
-    color: theme.colors.accent,
+    color: theme.colors.primary,
+    fontWeight: '600',
   },
 });
 

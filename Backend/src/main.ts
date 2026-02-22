@@ -34,8 +34,8 @@ async function bootstrap(): Promise<void> {
 
   // Swagger Documentation
   const config = new DocumentBuilder()
-    .setTitle('PlayZone API')
-    .setDescription('PlayZone Backend API - Find your gaming teammates')
+    .setTitle('TeamZoneVN API')
+    .setDescription('TeamZoneVN Backend API - Find your gaming teammates')
     .setVersion('1.0')
     .addBearerAuth(
       {

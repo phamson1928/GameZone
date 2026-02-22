@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuthStore } from '../store/useAuthStore';
 import { theme } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Home,
   Compass,
@@ -24,7 +25,7 @@ import { ZoneDetailsScreen } from '../screens/ZoneDetailsScreen';
 import { CreateZoneScreen } from '../screens/CreateZoneScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
 import { AddGameProfileScreen } from '../screens/AddGameProfileScreen';
-import { GameZonesScreen } from '../screens/GameZonesScreen';
+import { TeamZoneVNsScreen } from '../screens/TeamZoneVNsScreen';
 import { MyZonesScreen } from '../screens/MyZonesScreen';
 
 export type RootStackParamList = {
@@ -35,7 +36,7 @@ export type RootStackParamList = {
   CreateZone: { gameId?: string } | undefined;
   EditProfile: undefined;
   AddGameProfile: undefined;
-  GameZones: { gameId: string; gameName: string };
+  TeamZoneVNs: { gameId: string; gameName: string };
   MyZones: undefined;
   Notifications: undefined;
 };
@@ -53,15 +54,24 @@ const AuthNavigator = () => (
 // Placeholder component for the center tab (does nothing, we handle navigation via custom button)
 const DummyScreen = () => null;
 
-// Custom center button component
+// Custom center FAB (Create Zone)
 const AddZoneButton = ({ onPress }: { onPress: () => void }) => (
-  <View style={styles.addButtonContainer}>
-    <TouchableOpacity style={styles.addButton} onPress={onPress} activeOpacity={0.8}>
-      <View style={styles.addButtonInner}>
-        <Plus color="#FFFFFF" size={28} strokeWidth={2.5} />
-      </View>
+  <View style={styles.fabContainer}>
+    <TouchableOpacity
+      style={styles.fabWrapper}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <LinearGradient
+        colors={['#2563FF', '#7C3AED']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.fabGradient}
+      >
+        <Plus color="#FFFFFF" size={26} strokeWidth={2.5} />
+      </LinearGradient>
     </TouchableOpacity>
-    <Text style={styles.addButtonLabel}>Tạo mới</Text>
+    <Text style={styles.fabLabel}>Tạo mới</Text>
   </View>
 );
 
@@ -70,8 +80,9 @@ const TabNavigator = () => (
     screenOptions={{
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderTopWidth: 0,
+        backgroundColor: '#111827',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.06)',
         height: 80,
         paddingBottom: 20,
         paddingTop: 10,
@@ -80,21 +91,21 @@ const TabNavigator = () => (
         left: 0,
         right: 0,
         shadowColor: '#000',
-        shadowOffset: {
-          width: 0,
-          height: -4,
-        },
-        shadowOpacity: 0.05,
+        shadowOffset: { width: 0, height: -6 },
+        shadowOpacity: 0.3,
         shadowRadius: 12,
-        elevation: 0,
+        elevation: 12,
       },
       tabBarActiveTintColor: theme.colors.primary,
-      tabBarInactiveTintColor: '#94a3b8',
+      tabBarInactiveTintColor: '#475569',
       tabBarLabelStyle: {
         fontSize: 10,
-        fontWeight: '600',
+        fontWeight: '700',
         marginTop: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
       },
+      tabBarHideOnKeyboard: true,
     }}
   >
     <Tab.Screen
@@ -102,7 +113,12 @@ const TabNavigator = () => (
       component={HomeScreen}
       options={{
         tabBarIcon: ({ color, size, focused }) => (
-          <Home color={color} size={size} fill={focused ? color : 'transparent'} />
+          <Home
+            color={color}
+            size={size}
+            fill={focused ? color : 'transparent'}
+            strokeWidth={focused ? 2.5 : 2}
+          />
         ),
         tabBarLabel: 'Sảnh',
       }}
@@ -112,7 +128,12 @@ const TabNavigator = () => (
       component={DiscoverScreen}
       options={{
         tabBarIcon: ({ color, size, focused }) => (
-          <Compass color={color} size={size} fill={focused ? color : 'transparent'} />
+          <Compass
+            color={color}
+            size={size}
+            fill={focused ? color : 'transparent'}
+            strokeWidth={focused ? 2.5 : 2}
+          />
         ),
         tabBarLabel: 'Khám phá',
       }}
@@ -127,7 +148,7 @@ const TabNavigator = () => (
         },
       })}
       options={({ navigation }) => ({
-        tabBarLabel: () => null, // Hide default label as we render it in custom button
+        tabBarLabel: () => null,
         tabBarIcon: () => null,
         tabBarButton: () => (
           <AddZoneButton onPress={() => {
@@ -141,7 +162,12 @@ const TabNavigator = () => (
       component={GroupsScreen}
       options={{
         tabBarIcon: ({ color, size, focused }) => (
-          <Users color={color} size={size} fill={focused ? color : 'transparent'} />
+          <Users
+            color={color}
+            size={size}
+            fill={focused ? color : 'transparent'}
+            strokeWidth={focused ? 2.5 : 2}
+          />
         ),
         tabBarLabel: 'Đội',
       }}
@@ -151,7 +177,12 @@ const TabNavigator = () => (
       component={ProfileScreen}
       options={{
         tabBarIcon: ({ color, size, focused }) => (
-          <User color={color} size={size} fill={focused ? color : 'transparent'} />
+          <User
+            color={color}
+            size={size}
+            fill={focused ? color : 'transparent'}
+            strokeWidth={focused ? 2.5 : 2}
+          />
         ),
         tabBarLabel: 'Hồ sơ',
       }}
@@ -171,7 +202,7 @@ const MainNavigator = () => (
     <Stack.Screen name="CreateZone" component={CreateZoneScreen} />
     <Stack.Screen name="EditProfile" component={EditProfileScreen} />
     <Stack.Screen name="AddGameProfile" component={AddGameProfileScreen} />
-    <Stack.Screen name="GameZones" component={GameZonesScreen} />
+    <Stack.Screen name="TeamZoneVNs" component={TeamZoneVNsScreen} />
     <Stack.Screen name="MyZones" component={MyZonesScreen} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
   </Stack.Navigator>
@@ -188,38 +219,39 @@ export const AppNavigator = () => {
 };
 
 const styles = StyleSheet.create({
-  addButtonContainer: {
+  fabContainer: {
     position: 'absolute',
-    top: -30,
+    top: -28,
     alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
+    width: 64,
   },
-  addButton: {
+  fabWrapper: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 8,
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
+    overflow: 'hidden',
+    shadowColor: '#2563FF',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    elevation: 10,
+    borderWidth: 3,
+    borderColor: '#111827',
   },
-  addButtonInner: {
+  fabGradient: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  addButtonLabel: {
-    marginTop: 4,
+  fabLabel: {
+    marginTop: 6,
     fontSize: 10,
-    fontWeight: '600',
-    color: '#94a3b8',
+    fontWeight: '700',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

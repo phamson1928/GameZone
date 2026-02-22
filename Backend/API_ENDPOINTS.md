@@ -1,4 +1,4 @@
-# GameZone API Endpoints Documentation
+# TeamZoneVN API Endpoints Documentation
 
 ## Base URL
 
@@ -35,7 +35,7 @@ curl -s http://localhost:3000/
   "success": true,
   "data": {
     "status": "ok",
-    "message": "PlayZone API is running",
+    "message": "TeamZoneVN API is running",
     "timestamp": "2026-01-31T17:13:29.347Z"
   },
   "timestamp": "2026-01-31T17:13:29.347Z"

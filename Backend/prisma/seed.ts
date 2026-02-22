@@ -8,7 +8,7 @@ async function main() {
 
   // 0. Clean up existing data
   console.log('🧹 Cleaning up existing data...');
-  
+
   // Delete in correct order to respect foreign keys
   await prisma.message.deleteMany();
   await prisma.groupMember.deleteMany();
@@ -19,26 +19,26 @@ async function main() {
   await prisma.zone.deleteMany();
   await prisma.userGameProfile.deleteMany();
   await prisma.game.deleteMany();
-  
+
   // Optional: delete users if you want a full reset, but upsert handles existing ones fine
   // await prisma.user.deleteMany();
-  
+
   console.log('✅ Cleaned up existing data');
 
   // 1. Create Admin User
   const adminPassword = await bcrypt.hash('Admin123456', 12);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@gamezone.com' },
+    where: { email: 'admin@teamzonevn.com' },
     update: {},
     create: {
-      email: 'admin@gamezone.com',
+      email: 'admin@teamzonevn.com',
       username: 'admin',
       passwordHash: adminPassword,
       role: 'ADMIN',
       status: 'ACTIVE',
       profile: {
         create: {
-          bio: 'GameZone Administrator',
+          bio: 'TeamZoneVN Administrator',
           playStyle: 'Competitive',
           timezone: 'Asia/Ho_Chi_Minh',
         },
@@ -346,7 +346,7 @@ async function main() {
   console.log('   - 4 User Game Profiles');
   console.log('   - 4 Zones (with tags and contacts)');
   console.log('\n🔐 Login credentials:');
-  console.log('   Admin: admin@gamezone.com / Admin123456');
+  console.log('   Admin: admin@teamzonevn.com / Admin123456');
   console.log('   User1: user1@example.com / User123456');
   console.log('   User2: user2@example.com / User123456');
 }

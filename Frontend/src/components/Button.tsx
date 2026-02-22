@@ -21,6 +21,7 @@ interface ButtonProps {
   active?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  icon?: React.ReactNode;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -33,20 +34,21 @@ export const Button: React.FC<ButtonProps> = ({
   active = false,
   style,
   textStyle,
+  icon,
 }) => {
   const isOutline = variant === 'outline';
   const isGhost = variant === 'ghost';
   const isPill = variant === 'pill';
 
   const getGradientColors = (): readonly [string, string] => {
-    if (disabled) return ['#C8C8C8', '#AEAEAE'] as const;
+    if (disabled) return ['#334155', '#1E293B'] as const;
     if (variant === 'secondary') return theme.gradients.secondary;
     return theme.gradients.primary;
   };
 
   const getButtonHeight = () => {
     if (isPill) return size === 'sm' ? 36 : 40;
-    
+
     switch (size) {
       case 'sm': return 36;
       case 'lg': return 56;
@@ -71,11 +73,11 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const shadowStyle = (variant === 'primary' && !disabled) ? {
-    shadowColor: theme.colors.primary,
+    shadowColor: '#2563FF',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   } : {};
 
   const getPillStyle = () => {
@@ -85,29 +87,32 @@ export const Button: React.FC<ButtonProps> = ({
         backgroundColor: theme.colors.primary,
         shadowColor: theme.colors.primary,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 3,
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+        elevation: 4,
         borderWidth: 0,
       };
     }
     return {
-      backgroundColor: '#f1f5f9',
-      borderWidth: 0,
+      backgroundColor: '#1E293B',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.08)',
     };
   };
 
   const getPillTextStyle = () => {
     if (!isPill) return {};
     if (active) return { color: '#FFFFFF' };
-    return { color: '#64748b' };
+    return { color: '#94A3B8' };
   };
 
   const renderContent = () => {
-    const textColor = isOutline ? theme.colors.primary : 
-                     isGhost ? theme.colors.secondary :
-                     isPill ? getPillTextStyle().color :
-                     '#FFFFFF';
+    const textColor =
+      isOutline ? theme.colors.primary :
+        isGhost ? theme.colors.success :
+          isPill ? (getPillTextStyle().color ?? '#FFFFFF') :
+            disabled ? '#64748B' :
+              '#FFFFFF';
 
     return loading ? (
       <ActivityIndicator color={textColor} />
@@ -117,8 +122,9 @@ export const Button: React.FC<ButtonProps> = ({
           styles.text,
           { fontSize: getFontSize() },
           isOutline && { color: theme.colors.primary },
-          isGhost && { color: theme.colors.secondary },
+          isGhost && { color: theme.colors.success },
           isPill && getPillTextStyle(),
+          disabled && { color: '#64748B' },
           textStyle,
         ]}
       >
@@ -127,19 +133,41 @@ export const Button: React.FC<ButtonProps> = ({
     );
   };
 
-  if (isOutline || isGhost || isPill) {
+  if (isOutline) {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={disabled || loading}
+        activeOpacity={0.8}
+        style={[
+          styles.container,
+          {
+            height: getButtonHeight(),
+            borderRadius: getBorderRadius(),
+            borderWidth: 1.5,
+            borderColor: disabled ? '#334155' : theme.colors.primary,
+            backgroundColor: 'transparent',
+          },
+          style,
+        ]}
+      >
+        {renderContent()}
+      </TouchableOpacity>
+    );
+  }
+
+  if (isGhost || isPill) {
     return (
       <TouchableOpacity
         onPress={onPress}
         disabled={disabled || loading}
         style={[
           styles.container,
-          { 
+          {
             height: getButtonHeight(),
             borderRadius: getBorderRadius(),
             paddingHorizontal: isPill ? 16 : 0,
           },
-          isOutline && { borderWidth: 1, borderColor: theme.colors.primary },
           isPill && getPillStyle(),
           style,
         ]}
@@ -153,10 +181,10 @@ export const Button: React.FC<ButtonProps> = ({
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
       style={[
         styles.container,
-        { 
+        {
           height: getButtonHeight(),
           borderRadius: getBorderRadius(),
         },
@@ -184,12 +212,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: theme.spacing.sm,
+    flexDirection: 'row',
+    gap: 8,
   },
   gradient: {
     flex: 1,
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
   text: {
     color: '#FFFFFF',

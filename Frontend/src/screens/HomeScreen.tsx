@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,6 +11,8 @@ import {
   Modal,
   Pressable,
   TextInput,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -78,7 +80,7 @@ const MOCK_NOTIFICATIONS: NotificationItem[] = [
   {
     id: '2',
     title: 'System Update',
-    message: 'GameZone mobile app is now live with a fresh new look!',
+    message: 'TeamZoneVN mobile app is now live with a fresh new look!',
     time: '1h ago',
     read: false,
     type: 'system',
@@ -109,33 +111,23 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'players_desc', label: 'Nhiều người nhất' },
 ];
 
-// Memoized Search Section to prevent re-renders while typing
-// DEPRECATED: Removed to fix mobile focus issues
-// const SearchSection = ...
-
 export const HomeScreen = () => {
   const navigation = useNavigation<HomeNavigationProp>();
-  const tabNavigation = useNavigation<any>(); // For tab navigation
+  const tabNavigation = useNavigation<any>();
   const { user } = useAuthStore();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] =
-    useState<NotificationItem[]>(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(MOCK_NOTIFICATIONS);
   const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0].value);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [submittedSearch, setSubmittedSearch] = useState('');
-  // Local state for search text to control Input
   const [searchText, setSearchText] = useState('');
-
-  // Ref for search input focus management
   const searchInputRef = useRef<InputRef>(null);
 
-  // Handle search submission
   const handleSearchSubmit = useCallback(() => {
     setSubmittedSearch(searchText);
   }, [searchText]);
 
-  // Handle filter button press (stable reference for SearchSection memo)
   const handleFilterPress = useCallback(() => {
     setShowFilterModal(true);
   }, []);
@@ -149,17 +141,14 @@ export const HomeScreen = () => {
     },
   });
 
-  // Filter games by selected platform category (frontend filtering)
   const filteredGames = useMemo(() => {
     if (!games) return [];
     if (selectedCategory === 'ALL') return games;
-    
-    return games.filter(game => 
+    return games.filter(game =>
       game.platforms?.includes(selectedCategory as Platform)
     );
   }, [games, selectedCategory]);
 
-  // Fetch zones with search and sort
   const {
     data: zones,
     isLoading: zonesLoading,
@@ -171,15 +160,12 @@ export const HomeScreen = () => {
       if (submittedSearch.trim()) {
         url += `&q=${encodeURIComponent(submittedSearch.trim())}`;
       }
-      console.log('Fetching zones:', url);
       const response = await apiClient.get(url);
-      console.log('Zones response:', response.data?.data?.data?.length);
       return response.data.data.data as Zone[];
     },
   });
 
   const handleNotificationPress = (item: NotificationItem) => {
-    console.log('Pressed notification:', item.title);
     const updated = notifications.map(n =>
       n.id === item.id ? { ...n, read: true } : n,
     );
@@ -187,15 +173,16 @@ export const HomeScreen = () => {
     setShowNotifications(false);
   };
 
-  // Since API handles search and sort, just return zones directly
   const filteredZones = zones || [];
 
-  // Filter Modal Component
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Filter Modal
   const renderFilterModal = () => (
     <Modal
       visible={showFilterModal}
       transparent
-      animationType="fade"
+      animationType="slide"
       onRequestClose={() => setShowFilterModal(false)}
     >
       <Pressable
@@ -203,10 +190,11 @@ export const HomeScreen = () => {
         onPress={() => setShowFilterModal(false)}
       >
         <Pressable style={styles.modalContent}>
+          <View style={styles.modalHandle} />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>SẮP XẾP THEO</Text>
             <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-              <X size={24} color={theme.colors.text} />
+              <X size={22} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -232,7 +220,7 @@ export const HomeScreen = () => {
                   {option.label}
                 </Text>
                 {sortBy === option.value && (
-                  <Check size={20} color={theme.colors.primary} />
+                  <Check size={18} color={theme.colors.primary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -244,39 +232,36 @@ export const HomeScreen = () => {
 
   const renderGameCard = useCallback((game: Game) => {
     const accentColor = getBorderColorById(game.id);
-    
-    // Get platform icon
+
     const getPlatformIcon = (platform: string) => {
       switch (platform) {
-        case 'PC':
-          return <Monitor size={10} color="#FFFFFF" />;
-        case 'CONSOLE':
-          return <Gamepad size={10} color="#FFFFFF" />;
-        case 'MOBILE':
-          return <Smartphone size={10} color="#FFFFFF" />;
-        default:
-          return null;
+        case 'PC': return <Monitor size={10} color="#FFFFFF" />;
+        case 'CONSOLE': return <Gamepad size={10} color="#FFFFFF" />;
+        case 'MOBILE': return <Smartphone size={10} color="#FFFFFF" />;
+        default: return null;
       }
     };
-    
+
     return (
       <TouchableOpacity
         key={game.id}
         style={styles.gameCardContainer}
         onPress={() =>
-          navigation.navigate('GameZones', {
+          navigation.navigate('TeamZoneVNs', {
             gameId: game.id,
             gameName: game.name,
           })
         }
         activeOpacity={0.8}
       >
-        <View style={styles.gameCardImageContainer}>
+        <View style={[styles.gameCardImageContainer, { shadowColor: accentColor }]}>
           <Image source={{ uri: game.iconUrl }} style={styles.gameCardImage} />
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.8)']}
+            colors={['transparent', 'rgba(0,0,0,0.85)']}
             style={styles.gameCardOverlay}
           />
+          {/* Top highlight line */}
+          <View style={[styles.gameCardTopLine, { backgroundColor: accentColor }]} />
           <View style={styles.gameCardBadge}>
             {game.platforms && game.platforms.length > 0 ? (
               <View style={styles.platformBadges}>
@@ -307,164 +292,123 @@ export const HomeScreen = () => {
     );
   }, [navigation]);
 
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case 'OPEN': return { color: '#22C55E', label: 'OPEN', bg: 'rgba(34,197,94,0.15)' };
+      case 'FULL': return { color: '#EF4444', label: 'FULL', bg: 'rgba(239,68,68,0.15)' };
+      case 'STARTING': return { color: '#F59E0B', label: 'STARTING', bg: 'rgba(245,158,11,0.15)' };
+      default: return { color: '#64748B', label: 'CLOSED', bg: 'rgba(100,116,139,0.15)' };
+    }
+  };
+
   const renderZoneItem = ({ item }: { item: Zone }) => {
-    // Check for "Mic" in tags
-    const hasMic =
-      item.tags?.some(t => t.tag?.name?.toLowerCase().includes('mic')) ?? false;
+    const hasMic = item.tags?.some(t => t.tag?.name?.toLowerCase().includes('mic')) ?? false;
+    const statusCfg = getStatusConfig(item.status);
+
+    // Player progress
+    const approvedCount = item._count?.joinRequests ?? 0;
+    const currentPlayers = approvedCount + 1;
+    const maxPlayers = item.requiredPlayers;
+    const progress = Math.min(currentPlayers / (maxPlayers || 1), 1);
 
     return (
       <TouchableOpacity
         style={styles.zoneCard}
         onPress={() => navigation.navigate('ZoneDetails', { zoneId: item.id })}
-        activeOpacity={0.9}
+        activeOpacity={0.88}
       >
-        <View
-          style={[styles.accentBar, { backgroundColor: theme.colors.primary }]}
+        {/* Top colored accent line */}
+        <LinearGradient
+          colors={['#2563FF', '#7C3AED']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.zoneCardTopLine}
         />
 
         <View style={styles.zoneContent}>
-          {/* Header: Avatar Stack + Title */}
-          <View style={styles.zoneHeader}>
-            <View style={styles.avatarStack}>
-              {/* Owner Avatar */}
-              {item.owner.avatarUrl ? (
-                <Image
-                  source={{ uri: item.owner.avatarUrl }}
-                  style={[styles.avatarStackItem, { zIndex: 3 }]}
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.avatarStackItem,
-                    styles.avatarPlaceholder,
-                    { zIndex: 3 },
-                  ]}
-                >
-                  <Text style={styles.avatarPlaceholderText}>
-                    {item.owner.username.charAt(0).toUpperCase()}
-                  </Text>
+          {/* Row 1: Game tag + Status Badge */}
+          <View style={styles.zoneTopRow}>
+            <Text style={styles.zoneGameTag}>{item.game?.name || 'GAME'}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusCfg.color }]} />
+              <Text style={[styles.statusBadgeText, { color: statusCfg.color }]}>
+                {statusCfg.label}
+              </Text>
+            </View>
+          </View>
+
+          {/* Row 2: Title + Avatar */}
+          <View style={styles.zoneMiddleRow}>
+            <View style={styles.zoneTitleArea}>
+              <Text style={styles.zoneTitle} numberOfLines={1}>{item.title}</Text>
+              <View style={styles.zoneHostRow}>
+                <View style={styles.hostAvatar}>
+                  {item.owner.avatarUrl ? (
+                    <Image source={{ uri: item.owner.avatarUrl }} style={styles.hostAvatarImg} />
+                  ) : (
+                    <Text style={styles.hostAvatarText}>
+                      {item.owner.username.charAt(0).toUpperCase()}
+                    </Text>
+                  )}
                 </View>
-              )}
-              {/* Mock participants */}
-              <View
-                style={[
-                  styles.avatarStackItem,
-                  styles.avatarPlaceholder,
-                  {
-                    zIndex: 2,
-                    marginLeft: -10,
-                    backgroundColor: theme.colors.surfaceLight,
-                  },
-                ]}
-              >
-                <Users size={12} color={theme.colors.textSecondary} />
+                <Text style={styles.hostName} numberOfLines={1}>{item.owner.username}</Text>
+                <View style={styles.dotSep} />
+                <Clock size={11} color={theme.colors.textMuted} />
+                <Text style={styles.zoneTime}>{formatTimeAgo(item.createdAt)}</Text>
               </View>
             </View>
+          </View>
 
-            <View style={styles.zoneTitleContainer}>
-              {/* Game Name Tag */}
-              <Text style={styles.zoneGameTag}>
-                {item.game?.name || 'GAME'}
-              </Text>
-              
-              <Text style={styles.zoneTitle} numberOfLines={1}>
-                {item.title}
-              </Text>
-              
-              <View style={styles.zoneMetaRow}>
-                <View style={styles.zoneMetaItem}>
-                  <Clock size={12} color={theme.colors.textSecondary} />
-                  <Text style={styles.zoneMetaText}>
-                    {formatTimeAgo(item.createdAt)}
-                  </Text>
-                </View>
+          {/* Row 3: Tags */}
+          <View style={styles.tagsRow}>
+            {hasMic && (
+              <View style={styles.tagPill}>
+                <Mic size={10} color="#2563FF" />
+                <Text style={[styles.tagPillText, { color: '#2563FF' }]}>VOICE ON</Text>
               </View>
+            )}
+            {item.tags
+              ?.filter(t => !t.tag?.name?.toLowerCase().includes('mic'))
+              .slice(0, 3)
+              .map(t => (
+                <View key={t.tag.id} style={styles.tagPill}>
+                  <Text style={styles.tagPillText}>#{t.tag.name}</Text>
+                </View>
+              ))}
+            <View style={[styles.tagPill, { backgroundColor: 'rgba(37,99,255,0.12)' }]}>
+              <Text style={[styles.tagPillText, { color: '#94A3B8' }]}>
+                {getRankDisplay(item.minRankLevel)}
+              </Text>
             </View>
+          </View>
 
-            <View style={styles.liveIndicator}>
-              <View style={styles.liveDot} />
-              {/* Use absolute positioning for the ping effect if animation is complex, simple static for now */}
-              <View
-                style={[
-                  styles.liveDotPing,
-                  { backgroundColor: theme.colors.success },
-                ]}
+          {/* Row 4: Player progress */}
+          <View style={styles.progressSection}>
+            <View style={styles.progressInfo}>
+              <Users size={12} color={theme.colors.textMuted} />
+              <Text style={styles.progressText}>
+                <Text style={styles.progressCurrent}>{currentPlayers}</Text>
+                <Text style={styles.progressMuted}>/{maxPlayers} players</Text>
+              </Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <LinearGradient
+                colors={['#2563FF', '#7C3AED']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.progressFill, { width: `${progress * 100}%` }]}
               />
             </View>
           </View>
-
-          {/* Badges & Join Button */}
-          <View style={styles.zoneFooter}>
-            <View style={styles.badgesContainer}>
-              {hasMic && (
-                <View
-                  style={[
-                    styles.badge,
-                    { backgroundColor: theme.colors.infoBlue + '20' },
-                  ]}
-                >
-                  <Mic size={10} color={theme.colors.infoBlue} />
-                  <Text
-                    style={[styles.badgeText, { color: theme.colors.infoBlue }]}
-                  >
-                    CÓ MIC
-                  </Text>
-                </View>
-              )}
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: theme.colors.surfaceLight },
-                ]}
-              >
-                <Text style={styles.badgeText}>
-                  {getRankDisplay(item.minRankLevel)} - {getRankDisplay(item.maxRankLevel)}
-                </Text>
-              </View>
-            </View>
-
-            <Button
-              title="THAM GIA"
-              onPress={() =>
-                navigation.navigate('ZoneDetails', { zoneId: item.id })
-              }
-              variant="outline"
-              size="sm"
-              style={styles.joinButton}
-              textStyle={styles.joinButtonText}
-            />
-          </View>
-
-          {/* Tags */}
-          {item.tags && item.tags.filter(t => !t.tag?.name?.toLowerCase().includes('mic')).length > 0 && (
-            <View style={styles.tagsRow}>
-              {item.tags
-                .filter(t => !t.tag?.name?.toLowerCase().includes('mic'))
-                .slice(0, 3)
-                .map(t => (
-                  <View key={t.tag.id} style={styles.tagChip}>
-                    <Text style={styles.tagChipText}>#{t.tag.name}</Text>
-                  </View>
-                ))}
-              {item.tags.filter(t => !t.tag?.name?.toLowerCase().includes('mic')).length > 3 && (
-                <View style={[styles.tagChip, styles.tagChipMore]}>
-                  <Text style={styles.tagChipMoreText}>
-                    +{item.tags.filter(t => !t.tag?.name?.toLowerCase().includes('mic')).length - 3}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
         </View>
       </TouchableOpacity>
     );
   };
 
-  // Memoize renderHeader WITHOUT search - search stays outside FlatList
   const renderHeader = useCallback(
     () => (
       <View style={styles.headerContainer}>
-        {/* 1. Categories */}
+        {/* Categories */}
         <View style={styles.categoriesSection}>
           <ScrollView
             horizontal
@@ -486,14 +430,12 @@ export const HomeScreen = () => {
           </ScrollView>
         </View>
 
-        {/* 2. Popular Games */}
+        {/* Popular Games */}
         <View style={styles.gamesSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>TRÒ CHƠI PHỔ BIẾN</Text>
-            <TouchableOpacity
-              onPress={() => tabNavigation.navigate('Discover')}
-            >
-              <Text style={styles.seeAllButton}>Xem tất cả</Text>
+            <TouchableOpacity onPress={() => tabNavigation.navigate('Discover')}>
+              <Text style={styles.seeAllButton}>Xem tất cả →</Text>
             </TouchableOpacity>
           </View>
           <ScrollView
@@ -516,14 +458,10 @@ export const HomeScreen = () => {
           </ScrollView>
         </View>
 
-        {/* 3. Recent Zones Title */}
+        {/* Zones Section Title */}
         <View style={styles.zonesSectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Zap
-              size={20}
-              color={theme.colors.accent}
-              fill={theme.colors.accent}
-            />
+            <Zap size={18} color="#F59E0B" fill="#F59E0B" />
             <Text style={styles.sectionTitle}>KHU VỰC GỢI Ý</Text>
           </View>
         </View>
@@ -536,27 +474,28 @@ export const HomeScreen = () => {
     <Container disableKeyboardAvoidingView>
       {renderFilterModal()}
 
-      {/* Fixed Header - Outside FlatList to prevent focus loss */}
+      {/* Fixed Header */}
       <View style={styles.fixedHeader}>
         {/* Top Bar */}
         <View style={styles.topBar}>
           <View style={styles.userInfo}>
             <View style={styles.userAvatarContainer}>
               {user?.avatarUrl ? (
-                <Image
-                  source={{ uri: user.avatarUrl }}
-                  style={styles.userAvatar}
-                />
+                <Image source={{ uri: user.avatarUrl }} style={styles.userAvatar} />
               ) : (
-                <View style={[styles.userAvatar, styles.userAvatarPlaceholder]}>
+                <LinearGradient
+                  colors={['#2563FF', '#7C3AED']}
+                  style={[styles.userAvatar, styles.userAvatarPlaceholder]}
+                >
                   <Text style={styles.userAvatarText}>
                     {user?.username?.charAt(0).toUpperCase() || 'G'}
                   </Text>
-                </View>
+                </LinearGradient>
               )}
+              <View style={styles.onlineDot} />
             </View>
             <View>
-              <Text style={styles.headerTitle}>GAMEZONE</Text>
+              <Text style={styles.headerTitle}>TEAMZONEVN</Text>
               <Text style={styles.headerSubtitle}>LOBBY</Text>
             </View>
           </View>
@@ -565,16 +504,21 @@ export const HomeScreen = () => {
             style={styles.notificationButton}
             onPress={() => setShowNotifications(true)}
           >
-            <Bell color={theme.colors.text} size={20} />
-            {notifications.some(n => !n.read) && (
-              <View style={styles.notificationBadge} />
+            <Bell color={theme.colors.textSecondary} size={20} />
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Text>
+              </View>
             )}
           </TouchableOpacity>
         </View>
 
+        {/* Search Bar */}
         <View style={styles.searchSection}>
-          <View style={[styles.searchInputContainer, styles.simpleSearchContainer]}>
-            <Search size={20} color={theme.colors.textSecondary} />
+          <View style={styles.simpleSearchContainer}>
+            <Search size={18} color={theme.colors.textMuted} />
             <TextInput
               style={styles.simpleSearchInput}
               placeholder="Tìm kiếm zone, game..."
@@ -582,11 +526,14 @@ export const HomeScreen = () => {
               onChangeText={setSearchText}
               onSubmitEditing={handleSearchSubmit}
               returnKeyType="search"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.colors.textMuted}
             />
           </View>
-          <TouchableOpacity style={styles.filterButton} onPress={handleFilterPress}>
-            <Filter size={20} color={theme.colors.text} />
+          <TouchableOpacity
+            style={[styles.filterButton, sortBy !== 'newest' && styles.filterButtonActive]}
+            onPress={handleFilterPress}
+          >
+            <Filter size={18} color={sortBy !== 'newest' ? theme.colors.primary : theme.colors.textSecondary} />
             {sortBy !== 'newest' && <View style={styles.filterActiveDot} />}
           </TouchableOpacity>
         </View>
@@ -611,6 +558,7 @@ export const HomeScreen = () => {
         ListEmptyComponent={
           !zonesLoading ? (
             <View style={styles.emptyContainer}>
+              <Zap size={48} color={theme.colors.primary} style={{ opacity: 0.4 }} />
               <Text style={styles.emptyText}>{STRINGS.NO_ZONES}</Text>
               <Button
                 title={STRINGS.CREATE_FIRST_ZONE}
@@ -632,11 +580,14 @@ export const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  // Fixed Header
   fixedHeader: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#0F172A',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   headerContainer: {
-    paddingBottom: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
   },
   topBar: {
     flexDirection: 'row',
@@ -652,33 +603,42 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   userAvatarContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: theme.colors.primary + '33', // 20% opacity
-    padding: 2,
+    position: 'relative',
+    width: 42,
+    height: 42,
   },
   userAvatar: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 2,
+    borderColor: 'rgba(37,99,255,0.5)',
   },
   userAvatarPlaceholder: {
-    backgroundColor: theme.colors.surfaceLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
   userAvatarText: {
-    color: theme.colors.primary,
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontWeight: '800',
     fontSize: 16,
+  },
+  onlineDot: {
+    position: 'absolute',
+    bottom: 1,
+    right: 1,
+    width: 11,
+    height: 11,
+    borderRadius: 5.5,
+    backgroundColor: '#22C55E',
+    borderWidth: 2,
+    borderColor: '#0F172A',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: theme.colors.text,
-    letterSpacing: -0.5,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
     lineHeight: 20,
   },
@@ -686,27 +646,38 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: theme.colors.primary,
-    letterSpacing: 2,
+    letterSpacing: 3,
     textTransform: 'uppercase',
   },
   notificationButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12, // rounded-xl
-    backgroundColor: theme.colors.surfaceLight, // bg-slate-100 equivalent
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: '#1E293B',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    position: 'relative',
   },
   notificationBadge: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: theme.colors.error,
-    borderWidth: 1,
-    borderColor: theme.colors.surface,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+  },
+  notificationBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
 
   // Search Section
@@ -714,63 +685,74 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,
-    gap: 12,
+    gap: 10,
     marginBottom: theme.spacing.md,
-  },
-  searchInputContainer: {
-    flex: 1,
-    marginVertical: 0,
   },
   simpleSearchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#1E293B',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#dbeafe',
-    paddingHorizontal: 12,
-    height: 48,
+    borderColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 14,
+    height: 46,
+    gap: 10,
   },
   simpleSearchInput: {
     flex: 1,
-    marginLeft: 8,
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.text,
     height: '100%',
   },
   filterButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surfaceLight,
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#1E293B',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 4,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(255,255,255,0.06)',
+    position: 'relative',
+  },
+  filterButtonActive: {
+    borderColor: 'rgba(37,99,255,0.4)',
+    backgroundColor: 'rgba(37,99,255,0.1)',
   },
   filterActiveDot: {
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: theme.colors.primary,
   },
 
-  // Modal Styles
+  // Filter Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: theme.colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: '#1E293B',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     paddingBottom: 40,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 4,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -778,13 +760,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: theme.spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
   },
   modalTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
     color: theme.colors.text,
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   modalBody: {
     padding: theme.spacing.md,
@@ -799,7 +782,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sortOptionActive: {
-    backgroundColor: theme.colors.primary + '10',
+    backgroundColor: 'rgba(37,99,255,0.12)',
   },
   sortOptionText: {
     fontSize: 15,
@@ -808,12 +791,13 @@ const styles = StyleSheet.create({
   },
   sortOptionTextActive: {
     color: theme.colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 
   // Categories
   categoriesSection: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
   },
   categoriesContent: {
     paddingHorizontal: theme.spacing.lg,
@@ -826,7 +810,6 @@ const styles = StyleSheet.create({
   // Games Section
   gamesSection: {
     marginBottom: theme.spacing.xl,
-    paddingBottom: theme.spacing.sm, // Extra padding for shadow overflow
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -836,11 +819,11 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '800',
     color: theme.colors.text,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -849,22 +832,23 @@ const styles = StyleSheet.create({
   },
   seeAllButton: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.primary,
+    letterSpacing: 0.5,
   },
   gamesScrollContent: {
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md, // Add vertical padding for shadow visibility
-    gap: 16,
+    paddingVertical: theme.spacing.sm,
+    gap: 14,
   },
   gamesLoadingPlaceholder: {
-    width: 200,
+    width: 120,
     height: 140,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: theme.colors.textSecondary,
+    color: theme.colors.textMuted,
     fontSize: 14,
   },
 
@@ -875,17 +859,17 @@ const styles = StyleSheet.create({
   },
   gameCardImageContainer: {
     width: GAME_CARD_WIDTH,
-    height: GAME_CARD_WIDTH * 1.33, // Aspect ratio 3/4
+    height: GAME_CARD_WIDTH * 1.33,
     borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: theme.colors.surfaceLight,
-    // Add shadow to the image container
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: '#1E293B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
   },
   gameCardImage: {
     width: '100%',
@@ -897,18 +881,27 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: '50%',
+    height: '60%',
+  },
+  gameCardTopLine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   gameCardBadge: {
     position: 'absolute',
     bottom: 8,
     left: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingVertical: 3,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   platformBadges: {
     flexDirection: 'row',
@@ -930,7 +923,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   gameCardName: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: theme.colors.text,
     marginBottom: 2,
@@ -938,7 +931,6 @@ const styles = StyleSheet.create({
   gameCardCount: {
     fontSize: 11,
     fontWeight: '600',
-    color: theme.colors.seaBlue, // Use sea blue for small details
   },
 
   // Zones Section
@@ -947,183 +939,185 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   listContent: {
-    paddingBottom: theme.spacing.xxl,
+    paddingBottom: 100,
   },
 
-  // Zone Card
+  // Zone Card - New Gaming Dashboard Style
   zoneCard: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#1E293B',
     marginHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.md,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  accentBar: {
-    width: 4,
-    height: '100%',
+  zoneCardTopLine: {
+    height: 2,
+    width: '100%',
   },
   zoneContent: {
-    flex: 1,
-    padding: 14,
+    padding: 16,
     gap: 12,
   },
-  zoneHeader: {
+  zoneTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  avatarStack: {
-    flexDirection: 'row',
-    marginRight: 12,
-  },
-  avatarStackItem: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: theme.colors.surface,
-  },
-  avatarPlaceholder: {
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
     alignItems: 'center',
-  },
-  avatarPlaceholderText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  zoneTitleContainer: {
-    flex: 1,
-    gap: 4,
   },
   zoneGameTag: {
     fontSize: 10,
     fontWeight: '800',
     color: theme.colors.primary,
     textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    gap: 5,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
     letterSpacing: 0.5,
-    marginBottom: 2,
+  },
+  zoneMiddleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  zoneTitleArea: {
+    flex: 1,
+    gap: 6,
   },
   zoneTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: theme.colors.text,
+    letterSpacing: -0.3,
   },
-  zoneMetaRow: {
+  zoneHostRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
   },
-  zoneMetaItem: {
-    flexDirection: 'row',
+  hostAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
+    overflow: 'hidden',
   },
-  zoneMetaText: {
-    fontSize: 11,
+  hostAvatarImg: {
+    width: '100%',
+    height: '100%',
+  },
+  hostAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  hostName: {
+    fontSize: 12,
+    fontWeight: '600',
     color: theme.colors.textSecondary,
+    maxWidth: 80,
+  },
+  dotSep: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: theme.colors.textMuted,
+  },
+  zoneTime: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
     fontWeight: '500',
   },
-  liveIndicator: {
-    position: 'relative',
-    width: 8,
-    height: 8,
-    marginTop: 6,
-    marginRight: 4,
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme.colors.success,
-  },
-  liveDotPing: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    opacity: 0.4,
-  },
-  zoneFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  badgesContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: theme.colors.textSecondary,
-  },
-  joinButton: {
-    height: 32,
-    marginVertical: 0,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  joinButtonText: {
-    fontSize: 11,
-    letterSpacing: 0.5,
-  },
+
+  // Tags
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
   },
-  tagChip: {
-    backgroundColor: theme.colors.surfaceLight,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+  tagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
-  tagChipText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  tagChipMore: {
-    backgroundColor: theme.colors.primary + '10',
-    borderColor: theme.colors.primary + '30',
-  },
-  tagChipMoreText: {
+  tagPillText: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+
+  // Progress section
+  progressSection: {
+    gap: 6,
+  },
+  progressInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  progressText: {
+    fontSize: 12,
+  },
+  progressCurrent: {
+    color: theme.colors.text,
+    fontWeight: '800',
+  },
+  progressMuted: {
+    color: theme.colors.textMuted,
+    fontWeight: '500',
+  },
+  progressTrack: {
+    height: 5,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
   },
 
   // Empty State
   emptyContainer: {
     padding: theme.spacing.xxl,
     alignItems: 'center',
+    gap: 12,
   },
   emptyText: {
     color: theme.colors.textSecondary,
-    fontSize: 16,
+    fontSize: 15,
     textAlign: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
   },
   emptyButton: {
     width: '100%',

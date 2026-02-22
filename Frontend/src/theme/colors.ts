@@ -1,55 +1,60 @@
-// Vibrant White Theme for Gamers
+// Dark Mode Navy Gaming Theme - Gen Z Gamers
 export const COLORS = {
-  background: '#FFFFFF',
-  surface: '#FFFFFF',
-  surfaceLight: '#f8fafc',
-  
-  // Punchy primary colors
-  primary: '#2563eb',      // Electric Blue (Updated)
-  secondary: '#00D26A',    // Vivid Green  
-  accent: '#FFB800',       // Bright Gold
-  seaBlue: '#0ea5e9',      // Sea Blue for small details (sky-500)
-  
-  // High contrast text
-  text: '#111827',
-  textSecondary: '#4B5563',
-  
-  // Bright status colors
-  success: '#00C851',
-  error: '#FF3547',
-  warning: '#FFBB33',
-  info: '#33B5E5',
-  infoBlue: '#3b82f6',
-  neonGreen: '#10b981',
-  
-  card: '#FFFFFF',
-  border: '#D1D5DB',        // More visible border (was #F3F4F6)
-  borderLight: '#E5E7EB',   // Lighter variant for subtle borders
-  borderBlue: '#dbeafe',
-  notification: '#FF3547',
-  
-  // Vibrant card borders
-  cardBorders: [
-    '#2D5BFF',  // Electric Blue
-    '#F72585',  // Neon Pink
-    '#7209B7',  // Deep Purple
-    '#4CC9F0',  // Cyan
-    '#FF9F1C',  // Bright Orange
-    '#00D26A',  // Vivid Green
-    '#FFD166',  // Sunny Yellow
-    '#EF476F',  // Hot Red-Pink
-  ],
-  
+  // === Backgrounds ===
+  background: '#0F172A',      // Main background (Navy dark)
+  surface: '#111827',         // Surface section (slightly lighter)
+  card: '#1E293B',            // Card background
+
+  // === Accent Colors ===
+  primary: '#2563FF',         // Electric Blue (primary accent)
+  primaryDark: '#1D4ED8',
+  secondary: '#7C3AED',       // Purple (gradient end)
+
+  // === Status Colors ===
+  success: '#22C55E',         // Neon Green (OPEN)
+  error: '#EF4444',           // Soft Red (FULL/error)
+  warning: '#F59E0B',         // Amber (STARTING/warning)
+  info: '#2563FF',
+
+  // === Text Colors ===
+  text: '#F8FAFC',            // Primary text
+  textSecondary: '#94A3B8',   // Secondary text
+  textMuted: '#64748B',       // Muted text
+
+  // === Borders ===
+  border: 'rgba(255,255,255,0.05)',
+  borderLight: 'rgba(255,255,255,0.08)',
+  borderBlue: 'rgba(37,99,255,0.3)',
+
+  // === Legacy aliases kept for backward compatibility ===
+  surfaceLight: '#1E293B',
+  accent: '#F59E0B',
+  infoBlue: '#2563FF',
+  neonGreen: '#22C55E',
+  notification: '#EF4444',
   slate: '#64748B',
+
+  // Vibrant card accent colors (consistent with dark theme)
+  cardBorders: [
+    '#2563FF',  // Electric Blue
+    '#7C3AED',  // Purple
+    '#22C55E',  // Neon Green
+    '#F59E0B',  // Amber
+    '#EF4444',  // Red
+    '#06B6D4',  // Cyan
+    '#EC4899',  // Pink
+    '#10B981',  // Emerald
+  ],
 };
 
 export const GRADIENTS = {
-  primary: ['#2D5BFF', '#5C82FF'] as const,
-  secondary: ['#00D26A', '#45E891'] as const,
-  accent: ['#FFB800', '#FFD666'] as const,
-  warm: ['#FF9F1C', '#FFB84C'] as const,
-  cool: ['#4CC9F0', '#7ADBF5'] as const,
-  neutral: ['#F3F4F6', '#FFFFFF'] as const,
+  primary: ['#2563FF', '#7C3AED'] as const,       // Blue → Purple (main brand)
+  secondary: ['#22C55E', '#10B981'] as const,     // Green gradient
+  accent: ['#F59E0B', '#EF4444'] as const,        // Amber → Red
+  warm: ['#EC4899', '#7C3AED'] as const,          // Pink → Purple
+  cool: ['#06B6D4', '#2563FF'] as const,          // Cyan → Blue
+  neutral: ['#1E293B', '#111827'] as const,       // Card gradient
+  dark: ['#0F172A', '#111827'] as const,
 };
 
 // Helper to get random card border color

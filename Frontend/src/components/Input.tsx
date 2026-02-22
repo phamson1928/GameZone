@@ -64,7 +64,7 @@ export const Input = forwardRef<InputRef, InputProps>(
             styles.inputContainer,
             variant === 'default' && styles.defaultContainer,
             isSearch && styles.searchContainer,
-            isSearch && isFocused && styles.searchFocused,
+            isFocused && styles.focused,
             error ? { borderColor: theme.colors.error } : {},
           ]}
         >
@@ -72,7 +72,7 @@ export const Input = forwardRef<InputRef, InputProps>(
           <TextInput
             ref={inputRef}
             style={[styles.input, style]}
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={theme.colors.textMuted}
             onFocus={handleFocus}
             onBlur={handleBlur}
             {...props}
@@ -90,34 +90,37 @@ const styles = StyleSheet.create({
   },
   label: {
     color: theme.colors.primary,
-    fontSize: 12,
+    fontSize: 11,
     marginBottom: theme.spacing.xs,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    fontWeight: 'bold',
+    letterSpacing: 1.5,
+    fontWeight: '700',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.card,
     paddingHorizontal: theme.spacing.md,
   },
   defaultContainer: {
-    height: 50,
-    borderRadius: theme.borderRadius.lg,
+    height: 52,
+    borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: theme.colors.borderBlue || theme.colors.border,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   searchContainer: {
     height: 48,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.card,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#dbeafe',
+    borderColor: 'rgba(255,255,255,0.06)',
   },
-  searchFocused: {
+  focused: {
     borderColor: theme.colors.primary,
-    ...theme.shadows.sm,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   leftIcon: {
     marginRight: theme.spacing.sm,

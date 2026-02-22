@@ -29,14 +29,14 @@ export const RegisterScreen = ({ navigation }: any) => {
 
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
-    
+
     if (!username) newErrors.username = STRINGS.REQUIRED_FIELD;
     if (!email) newErrors.email = STRINGS.REQUIRED_FIELD;
     else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = STRINGS.INVALID_EMAIL;
-    
+
     if (!password) newErrors.password = STRINGS.REQUIRED_FIELD;
     else if (password.length < 6) newErrors.password = STRINGS.SHORT_PASSWORD;
-    
+
     if (password !== confirmPassword) newErrors.confirmPassword = STRINGS.PASSWORD_MISMATCH;
 
     setErrors(newErrors);
@@ -48,7 +48,7 @@ export const RegisterScreen = ({ navigation }: any) => {
 
     setLoading(true);
     setErrors({});
-    
+
     try {
       const response = await apiClient.post('/auth/register', {
         email,
@@ -58,7 +58,7 @@ export const RegisterScreen = ({ navigation }: any) => {
 
       const { data } = response.data;
       const { tokens } = data;
-      
+
       const userResponse = await apiClient.get('/users/me', {
         headers: { Authorization: `Bearer ${tokens.accessToken}` },
       });
@@ -67,7 +67,7 @@ export const RegisterScreen = ({ navigation }: any) => {
     } catch (error: any) {
       console.log('Registration Error Details:', error.response?.data);
       const message = error.response?.data?.message;
-      
+
       if (Array.isArray(message)) {
         const backendErrors: { [key: string]: string } = {};
         message.forEach((msg: string) => {
@@ -75,7 +75,7 @@ export const RegisterScreen = ({ navigation }: any) => {
           else if (msg.toLowerCase().includes('username')) backendErrors.username = msg;
           else if (msg.toLowerCase().includes('password')) backendErrors.password = msg;
         });
-        
+
         if (Object.keys(backendErrors).length > 0) {
           setErrors(backendErrors);
         } else {
@@ -97,7 +97,7 @@ export const RegisterScreen = ({ navigation }: any) => {
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
-            <Text style={styles.logoText}>GAMEZONE</Text>
+            <Text style={styles.logoText}>TEAMZONEVN</Text>
             <Text style={styles.tagline}>{STRINGS.TAGLINE}</Text>
           </View>
 
@@ -108,7 +108,7 @@ export const RegisterScreen = ({ navigation }: any) => {
               label={STRINGS.USERNAME_LABEL}
               placeholder={STRINGS.USERNAME_PLACEHOLDER}
               value={username}
-              onChangeText={(text) => { setUsername(text); setErrors({...errors, username: ''}); }}
+              onChangeText={(text) => { setUsername(text); setErrors({ ...errors, username: '' }); }}
               autoCapitalize="none"
               error={errors.username}
             />
@@ -117,7 +117,7 @@ export const RegisterScreen = ({ navigation }: any) => {
               label={STRINGS.EMAIL_LABEL}
               placeholder={STRINGS.EMAIL_PLACEHOLDER}
               value={email}
-              onChangeText={(text) => { setEmail(text); setErrors({...errors, email: ''}); }}
+              onChangeText={(text) => { setEmail(text); setErrors({ ...errors, email: '' }); }}
               keyboardType="email-address"
               autoCapitalize="none"
               error={errors.email}
@@ -127,7 +127,7 @@ export const RegisterScreen = ({ navigation }: any) => {
               label={STRINGS.PASSWORD_LABEL}
               placeholder={STRINGS.PASSWORD_MIN_HINT}
               value={password}
-              onChangeText={(text) => { setPassword(text); setErrors({...errors, password: ''}); }}
+              onChangeText={(text) => { setPassword(text); setErrors({ ...errors, password: '' }); }}
               secureTextEntry
               error={errors.password}
             />
@@ -136,7 +136,7 @@ export const RegisterScreen = ({ navigation }: any) => {
               label={STRINGS.CONFIRM_PASSWORD_LABEL}
               placeholder={STRINGS.CONFIRM_PASSWORD_PLACEHOLDER}
               value={confirmPassword}
-              onChangeText={(text) => { setConfirmPassword(text); setErrors({...errors, confirmPassword: ''}); }}
+              onChangeText={(text) => { setConfirmPassword(text); setErrors({ ...errors, confirmPassword: '' }); }}
               secureTextEntry
               error={errors.confirmPassword}
             />
@@ -164,46 +164,47 @@ export const RegisterScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    padding: theme.spacing.xl,
+    padding: theme.spacing.lg,
     justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 32,
   },
   logoText: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-    letterSpacing: 4,
-    textShadowColor: theme.colors.primary,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    fontSize: 36,
+    fontWeight: '900',
+    color: theme.colors.text,
+    letterSpacing: 6,
+    textTransform: 'uppercase',
   },
   tagline: {
-    fontSize: 14,
-    color: theme.colors.accent,
+    fontSize: 11,
+    color: '#F59E0B',
     textTransform: 'uppercase',
-    letterSpacing: 2,
-    marginTop: 5,
+    letterSpacing: 3,
+    marginTop: 6,
+    fontWeight: '700',
   },
   form: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#1E293B',
     padding: theme.spacing.lg,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: 'rgba(255,255,255,0.07)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 8,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '800',
     color: theme.colors.text,
     marginBottom: theme.spacing.lg,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   registerButton: {
     marginTop: theme.spacing.md,
@@ -211,13 +212,15 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: theme.spacing.xl,
+    marginTop: theme.spacing.lg,
   },
   footerText: {
-    color: theme.colors.textSecondary,
+    color: theme.colors.textMuted,
+    fontSize: 14,
   },
   signInText: {
-    color: theme.colors.accent,
-    fontWeight: 'bold',
+    color: theme.colors.primary,
+    fontWeight: '700',
+    fontSize: 14,
   },
 });
