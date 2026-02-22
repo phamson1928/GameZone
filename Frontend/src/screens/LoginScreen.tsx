@@ -14,6 +14,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gamepad2, Zap } from 'lucide-react-native';
+import { Svg, Path, G } from 'react-native-svg';
 import { Container } from '../components/Container';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
@@ -24,6 +25,30 @@ import { STRINGS } from '../constants/strings';
 import { RootStackParamList } from '../navigation';
 
 WebBrowser.maybeCompleteAuthSession();
+
+// Simple Google Icon SVG
+const GoogleIcon = () => (
+  <Svg width={20} height={20} viewBox="0 0 24 24">
+    <G>
+      <Path
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+        fill="#4285F4"
+      />
+      <Path
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+        fill="#34A853"
+      />
+      <Path
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+        fill="#FBBC05"
+      />
+      <Path
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+        fill="#EA4335"
+      />
+    </G>
+  </Svg>
+);
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -104,27 +129,19 @@ export const LoginScreen = ({ navigation }: Props) => {
                 colors={['#2563FF', '#7C3AED']}
                 style={styles.logoIconBg}
               >
-                <Gamepad2 size={36} color="#FFFFFF" />
+                <Gamepad2 size={28} color="#FFFFFF" />
               </LinearGradient>
             </View>
-            <Text style={styles.logoText}>TEAMZONEVN</Text>
+            <Text style={styles.logoText}>TeamZoneVN</Text>
             <View style={styles.taglineRow}>
-              <Zap size={12} color="#F59E0B" fill="#F59E0B" />
-              <Text style={styles.tagline}>FIND. PLAY. WIN.</Text>
-              <Zap size={12} color="#F59E0B" fill="#F59E0B" />
+              <Zap size={10} color="#F59E0B" fill="#F59E0B" />
+              <Text style={styles.tagline}>MỜI BẠN - CHIẾN GAME</Text>
+              <Zap size={10} color="#F59E0B" fill="#F59E0B" />
             </View>
           </View>
 
           {/* Form Card */}
           <View style={styles.formCard}>
-            {/* Thin gradient top border */}
-            <LinearGradient
-              colors={['#2563FF', '#7C3AED']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.formTopBorder}
-            />
-
             <Text style={styles.title}>{STRINGS.LOGIN_TITLE}</Text>
             <Text style={styles.subtitle}>Chào mừng trở lại, gamer 👋</Text>
 
@@ -135,6 +152,7 @@ export const LoginScreen = ({ navigation }: Props) => {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              style={styles.input}
             />
 
             <Input
@@ -143,6 +161,7 @@ export const LoginScreen = ({ navigation }: Props) => {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              style={styles.input}
             />
 
             <TouchableOpacity style={styles.forgotPassword}>
@@ -154,7 +173,7 @@ export const LoginScreen = ({ navigation }: Props) => {
               onPress={handleLogin}
               loading={loading}
               style={styles.loginButton}
-              size="lg"
+              size="md"
             />
 
             <View style={styles.divider}>
@@ -168,7 +187,9 @@ export const LoginScreen = ({ navigation }: Props) => {
               onPress={() => promptAsync()}
               disabled={!request}
               variant="outline"
+              icon={<GoogleIcon />}
               style={styles.googleButton}
+              size="md"
             />
 
             <View style={styles.footer}>
@@ -187,91 +208,72 @@ export const LoginScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    padding: theme.spacing.lg,
+    padding: 24,
     justifyContent: 'center',
   },
   hero: {
     alignItems: 'center',
-    marginBottom: 36,
+    marginBottom: 32,
   },
   logoContainer: {
-    marginBottom: 16,
-    shadowColor: '#2563FF',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
+    marginBottom: 12,
   },
   logoIconBg: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoText: {
-    fontSize: 36,
-    fontWeight: '900',
+    fontSize: 28,
+    fontWeight: '800',
     color: theme.colors.text,
-    letterSpacing: 6,
-    textTransform: 'uppercase',
-    marginBottom: 8,
+    letterSpacing: 1,
+    marginBottom: 4,
   },
   taglineRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   tagline: {
-    fontSize: 11,
-    color: '#F59E0B',
+    fontSize: 10,
+    color: '#94A3B8',
     textTransform: 'uppercase',
-    letterSpacing: 3,
-    fontWeight: '700',
+    letterSpacing: 2,
+    fontWeight: '600',
   },
   formCard: {
-    backgroundColor: '#1E293B',
-    padding: theme.spacing.lg,
-    borderRadius: 24,
+    backgroundColor: 'rgba(30, 41, 59, 0.7)',
+    padding: 24,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 8,
-    overflow: 'hidden',
-  },
-  formTopBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 2,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   title: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '700',
     color: theme.colors.text,
     marginBottom: 4,
-    marginTop: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   subtitle: {
     fontSize: 14,
     color: theme.colors.textMuted,
-    marginBottom: theme.spacing.md,
+    marginBottom: 24,
+  },
+  input: {
+    marginBottom: 16,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: theme.spacing.md,
-    marginTop: -4,
+    marginBottom: 20,
+    marginTop: -8,
   },
   forgotPasswordText: {
     color: theme.colors.primary,
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
   },
   loginButton: {
     marginTop: 4,
@@ -279,27 +281,27 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: theme.spacing.lg,
+    marginVertical: 20,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   dividerText: {
-    marginHorizontal: theme.spacing.md,
+    marginHorizontal: 12,
     color: theme.colors.textMuted,
     fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontWeight: '600',
   },
   googleButton: {
     marginTop: 0,
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: theme.spacing.lg,
+    marginTop: 24,
   },
   footerText: {
     color: theme.colors.textMuted,
@@ -307,7 +309,8 @@ const styles = StyleSheet.create({
   },
   signUpText: {
     color: theme.colors.primary,
-    fontWeight: '700',
+    fontWeight: '600',
     fontSize: 14,
   },
 });
+

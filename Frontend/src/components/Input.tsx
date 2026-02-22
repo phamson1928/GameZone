@@ -89,38 +89,33 @@ const styles = StyleSheet.create({
     marginVertical: theme.spacing.sm,
   },
   label: {
-    color: theme.colors.primary,
-    fontSize: 11,
+    color: '#94A3B8', // More subtle color
+    fontSize: 12, // Slightly larger but less bold
     marginBottom: theme.spacing.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.card,
+    backgroundColor: 'rgba(30, 41, 59, 0.4)', // Slightly transparent background
     paddingHorizontal: theme.spacing.md,
   },
   defaultContainer: {
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.08)',
+    height: 48, // Reduced from 52
+    borderRadius: 10, // Matches button
+    borderWidth: 1, // Reduced from 1.5
+    borderColor: 'rgba(255,255,255,0.06)',
   },
   searchContainer: {
-    height: 48,
+    height: 44, // Reduced from 48
     backgroundColor: theme.colors.card,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
   },
   focused: {
     borderColor: theme.colors.primary,
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    backgroundColor: 'rgba(30, 41, 59, 0.6)',
   },
   leftIcon: {
     marginRight: theme.spacing.sm,
@@ -130,9 +125,10 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     color: theme.colors.text,
-    fontSize: 16,
+    fontSize: 14, // Reduced from 16 for cleaner look
     height: '100%',
   },
+
   errorText: {
     color: theme.colors.error,
     fontSize: 12,

@@ -51,8 +51,8 @@ export const Button: React.FC<ButtonProps> = ({
 
     switch (size) {
       case 'sm': return 36;
-      case 'lg': return 56;
-      default: return 50;
+      case 'lg': return 52; // Reduced from 56 for cleaner look
+      default: return 48; // Reduced from 50
     }
   };
 
@@ -61,23 +61,24 @@ export const Button: React.FC<ButtonProps> = ({
 
     switch (size) {
       case 'sm': return 12;
-      case 'lg': return 18;
-      default: return 16;
+      case 'lg': return 16; // Reduced from 18
+      default: return 14; // Reduced from 16
     }
   };
 
   const getBorderRadius = () => {
     if (isPill) return 9999;
-    if (variant === 'primary' || variant === 'secondary') return 12;
+    if (variant === 'primary' || variant === 'secondary') return 10; // Slightly more rounded but not overly so
     return theme.borderRadius.md;
   };
 
+  // Fixed "ugly black shadow" by using more subtle values and matching shadowColor better
   const shadowStyle = (variant === 'primary' && !disabled) ? {
-    shadowColor: '#2563FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3, // Reduced from 6
   } : {};
 
   const getPillStyle = () => {
@@ -87,9 +88,9 @@ export const Button: React.FC<ButtonProps> = ({
         backgroundColor: theme.colors.primary,
         shadowColor: theme.colors.primary,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-        elevation: 4,
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 2,
         borderWidth: 0,
       };
     }
@@ -115,21 +116,24 @@ export const Button: React.FC<ButtonProps> = ({
               '#FFFFFF';
 
     return loading ? (
-      <ActivityIndicator color={textColor} />
+      <ActivityIndicator color={textColor} size="small" />
     ) : (
-      <Text
-        style={[
-          styles.text,
-          { fontSize: getFontSize() },
-          isOutline && { color: theme.colors.primary },
-          isGhost && { color: theme.colors.success },
-          isPill && getPillTextStyle(),
-          disabled && { color: '#64748B' },
-          textStyle,
-        ]}
-      >
-        {title}
-      </Text>
+      <>
+        {icon && icon}
+        <Text
+          style={[
+            styles.text,
+            { fontSize: getFontSize() },
+            isOutline && { color: theme.colors.primary },
+            isGhost && { color: theme.colors.success },
+            isPill && getPillTextStyle(),
+            disabled && { color: '#64748B' },
+            textStyle,
+          ]}
+        >
+          {title}
+        </Text>
+      </>
     );
   };
 
@@ -138,14 +142,14 @@ export const Button: React.FC<ButtonProps> = ({
       <TouchableOpacity
         onPress={onPress}
         disabled={disabled || loading}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
         style={[
           styles.container,
           {
             height: getButtonHeight(),
             borderRadius: getBorderRadius(),
-            borderWidth: 1.5,
-            borderColor: disabled ? '#334155' : theme.colors.primary,
+            borderWidth: 1, // Reduced from 1.5
+            borderColor: disabled ? '#334155' : 'rgba(255,255,255,0.1)', // More subtle border
             backgroundColor: 'transparent',
           },
           style,
@@ -181,12 +185,13 @@ export const Button: React.FC<ButtonProps> = ({
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.85}
+      activeOpacity={0.8}
       style={[
         styles.container,
         {
           height: getButtonHeight(),
           borderRadius: getBorderRadius(),
+          backgroundColor: disabled ? '#1E293B' : theme.colors.primary, // Fallback bg color
         },
         shadowStyle,
         style
@@ -211,22 +216,22 @@ const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: theme.spacing.sm,
+    marginVertical: theme.spacing.xs, // Reduced margin
     flexDirection: 'row',
-    gap: 8,
   },
   gradient: {
     flex: 1,
     width: '100%',
+    height: '100%', // Ensure it fills the container
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 8,
+    gap: 10, // Slightly more gap for icon/text
   },
   text: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    fontWeight: '600', // Changed from bold (700 or heavier) for cleaner look
+    letterSpacing: 0.5, // Reduced letter spacing
   },
 });
+

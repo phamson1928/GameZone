@@ -9,6 +9,8 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Gamepad2 } from 'lucide-react-native';
 import { Container } from '../components/Container';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
@@ -95,14 +97,23 @@ export const RegisterScreen = ({ navigation }: any) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Text style={styles.logoText}>TEAMZONEVN</Text>
-            <Text style={styles.tagline}>{STRINGS.TAGLINE}</Text>
+            <View style={styles.logoContainer}>
+              <LinearGradient
+                colors={['#2563FF', '#7C3AED']}
+                style={styles.logoIconBg}
+              >
+                <Gamepad2 size={24} color="#FFFFFF" />
+              </LinearGradient>
+            </View>
+            <Text style={styles.logoText}>TeamZoneVN</Text>
+            <Text style={styles.tagline}>MỜI BẠN - CHIẾN GAME</Text>
           </View>
 
-          <View style={styles.form}>
+          <View style={styles.formCard}>
             <Text style={styles.title}>{STRINGS.REGISTER_TITLE}</Text>
+            <Text style={styles.subtitle}>Tạo tài khoản mới để bắt đầu ngay</Text>
 
             <Input
               label={STRINGS.USERNAME_LABEL}
@@ -111,6 +122,7 @@ export const RegisterScreen = ({ navigation }: any) => {
               onChangeText={(text) => { setUsername(text); setErrors({ ...errors, username: '' }); }}
               autoCapitalize="none"
               error={errors.username}
+              style={styles.input}
             />
 
             <Input
@@ -121,6 +133,7 @@ export const RegisterScreen = ({ navigation }: any) => {
               keyboardType="email-address"
               autoCapitalize="none"
               error={errors.email}
+              style={styles.input}
             />
 
             <Input
@@ -130,6 +143,7 @@ export const RegisterScreen = ({ navigation }: any) => {
               onChangeText={(text) => { setPassword(text); setErrors({ ...errors, password: '' }); }}
               secureTextEntry
               error={errors.password}
+              style={styles.input}
             />
 
             <Input
@@ -139,6 +153,7 @@ export const RegisterScreen = ({ navigation }: any) => {
               onChangeText={(text) => { setConfirmPassword(text); setErrors({ ...errors, confirmPassword: '' }); }}
               secureTextEntry
               error={errors.confirmPassword}
+              style={styles.input}
             />
 
             <Button
@@ -146,12 +161,13 @@ export const RegisterScreen = ({ navigation }: any) => {
               onPress={handleRegister}
               loading={loading}
               style={styles.registerButton}
+              size="md"
             />
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>{STRINGS.HAVE_ACCOUNT}</Text>
               <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={styles.signInText}>{STRINGS.LOGIN_TITLE}</Text>
+                <Text style={styles.signInText}> {STRINGS.LOGIN_TITLE}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -164,55 +180,65 @@ export const RegisterScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    padding: theme.spacing.lg,
+    padding: 24,
     justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 28,
+  },
+  logoContainer: {
+    marginBottom: 8,
+  },
+  logoIconBg: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoText: {
-    fontSize: 36,
-    fontWeight: '900',
-    color: theme.colors.text,
-    letterSpacing: 6,
-    textTransform: 'uppercase',
-  },
-  tagline: {
-    fontSize: 11,
-    color: '#F59E0B',
-    textTransform: 'uppercase',
-    letterSpacing: 3,
-    marginTop: 6,
-    fontWeight: '700',
-  },
-  form: {
-    backgroundColor: '#1E293B',
-    padding: theme.spacing.lg,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
     color: theme.colors.text,
-    marginBottom: theme.spacing.lg,
+    letterSpacing: 1,
+  },
+  tagline: {
+    fontSize: 10,
+    color: '#94A3B8',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 2,
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  formCard: {
+    backgroundColor: 'rgba(30, 41, 59, 0.7)',
+    padding: 24,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: theme.colors.textMuted,
+    marginBottom: 20,
+  },
+  input: {
+    marginBottom: 4, // Input component already has marginVertical
   },
   registerButton: {
-    marginTop: theme.spacing.md,
+    marginTop: 12,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: theme.spacing.lg,
+    marginTop: 24,
   },
   footerText: {
     color: theme.colors.textMuted,
@@ -220,7 +246,8 @@ const styles = StyleSheet.create({
   },
   signInText: {
     color: theme.colors.primary,
-    fontWeight: '700',
+    fontWeight: '600',
     fontSize: 14,
   },
 });
+
