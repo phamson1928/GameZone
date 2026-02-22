@@ -13,9 +13,11 @@ import {
   User,
   Plus,
 } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { LoginScreen } from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { DiscoverScreen } from '../screens/DiscoverScreen';
 import { GroupsScreen } from '../screens/GroupsScreen';
@@ -29,6 +31,8 @@ import { TeamZoneVNsScreen } from '../screens/TeamZoneVNsScreen';
 import { MyZonesScreen } from '../screens/MyZonesScreen';
 
 export type RootStackParamList = {
+  Onboarding: undefined;
+  App: undefined;
   Login: undefined;
   Register: undefined;
   MainTabs: undefined;
@@ -43,13 +47,6 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
-
-const AuthNavigator = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Login" component={LoginScreen} />
-    <Stack.Screen name="Register" component={RegisterScreen} />
-  </Stack.Navigator>
-);
 
 // Placeholder component for the center tab (does nothing, we handle navigation via custom button)
 const DummyScreen = () => null;
@@ -190,6 +187,13 @@ const TabNavigator = () => (
   </Tab.Navigator>
 );
 
+const AuthNavigator = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Login" component={LoginScreen} />
+    <Stack.Screen name="Register" component={RegisterScreen} />
+  </Stack.Navigator>
+);
+
 const MainNavigator = () => (
   <Stack.Navigator
     screenOptions={{
@@ -210,13 +214,48 @@ const MainNavigator = () => (
 
 export const AppNavigator = () => {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const [showOnboarding, setShowOnboarding] = React.useState<boolean>(false);
+  const [isReady, setIsReady] = React.useState(true); // Force ready to true immediately
+
+  React.useEffect(() => {
+    const checkOnboarding = async () => {
+      console.log('AppNavigator: Starting onboarding check...');
+      try {
+        const value = await AsyncStorage.getItem('@onboarding_completed');
+        console.log('AppNavigator: Onboarding value is:', value);
+        if (value === null) {
+          setShowOnboarding(true);
+        }
+      } catch (err) {
+        console.error('AppNavigator: Onboarding check error:', err);
+      }
+    };
+    checkOnboarding();
+  }, []);
+
+
+
+
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0F172A', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: '#FFFFFF' }}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
-      {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {showOnboarding ? (
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        ) : null}
+        <Stack.Screen name="App" component={isAuthenticated ? MainNavigator : AuthNavigator} />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 };
+
 
 const styles = StyleSheet.create({
   fabContainer: {

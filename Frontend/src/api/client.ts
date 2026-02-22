@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 
-const BASE_URL = 'http://192.168.1.45:3000'; // Dùng IP máy tính để Expo Go (điện thoại) gọi được Backend local
+const BASE_URL = 'http://192.168.1.47:3000'; // Đã cập nhật theo IP LAN hiện tại của bạn
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,

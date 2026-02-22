@@ -53,6 +53,7 @@ const GoogleIcon = () => (
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export const LoginScreen = ({ navigation }: Props) => {
+  console.log('LoginScreen: Rendering...');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -62,6 +63,13 @@ export const LoginScreen = ({ navigation }: Props) => {
     webClientId: '946383947788-mc938c7idvv3opb987p0fr1cbug97qs1.apps.googleusercontent.com',
     androidClientId: '946383947788-n388v43pc27qrafm49ltkao1er3h770n.apps.googleusercontent.com',
   });
+
+
+
+
+
+  // Cleanup: Removed Google Redirect URI logging
+
 
   useEffect(() => {
     const handleGoogleLogin = async (idToken: string) => {
@@ -134,16 +142,14 @@ export const LoginScreen = ({ navigation }: Props) => {
             </View>
             <Text style={styles.logoText}>TeamZoneVN</Text>
             <View style={styles.taglineRow}>
-              <Zap size={10} color="#F59E0B" fill="#F59E0B" />
-              <Text style={styles.tagline}>MỜI BẠN - CHIẾN GAME</Text>
-              <Zap size={10} color="#F59E0B" fill="#F59E0B" />
+              <Text style={styles.tagline}>TÌM BẠN - CHIẾN GAME</Text>
             </View>
           </View>
 
           {/* Form Card */}
           <View style={styles.formCard}>
             <Text style={styles.title}>{STRINGS.LOGIN_TITLE}</Text>
-            <Text style={styles.subtitle}>Chào mừng trở lại, gamer 👋</Text>
+            <Text style={styles.subtitle}>Chào mừng trở lại, gamer</Text>
 
             <Input
               label={STRINGS.EMAIL_LABEL}

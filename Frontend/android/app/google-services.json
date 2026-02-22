@@ -1,0 +1,47 @@
+{
+    "project_info": {
+        "project_number": "946383947788",
+        "project_id": "teamzonevn",
+        "storage_bucket": "teamzonevn.firebasestorage.app"
+    },
+    "client": [
+        {
+            "client_info": {
+                "mobilesdk_app_id": "1:946383947788:android:ffa319009e9d30446f0629",
+                "android_client_info": {
+                    "package_name": "com.teamzonevn.app"
+                }
+            },
+            "oauth_client": [
+                {
+                    "client_id": "946383947788-n388v43pc27qrafm49ltkao1er3h770n.apps.googleusercontent.com",
+                    "client_type": 1,
+                    "android_info": {
+                        "package_name": "com.teamzonevn.app",
+                        "certificate_hash": "f69c56f343c63ea08371f2bf3f2f936b506b57f0"
+                    }
+                },
+                {
+                    "client_id": "946383947788-mc938c7idvv3opb987p0fr1cbug97qs1.apps.googleusercontent.com",
+                    "client_type": 3
+                }
+            ],
+            "api_key": [
+                {
+                    "current_key": "AIzaSyB-d-zL6hoF62LHQbRbk0XWwhuPzzlqyok"
+                }
+            ],
+            "services": {
+                "appinvite_service": {
+                    "other_platform_oauth_client": [
+                        {
+                            "client_id": "946383947788-mc938c7idvv3opb987p0fr1cbug97qs1.apps.googleusercontent.com",
+                            "client_type": 3
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "configuration_version": "1"
+}
