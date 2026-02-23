@@ -195,27 +195,27 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 
 ### 6.1 WebSocket Setup
 
-- [ ] Setup Socket.io với NestJS Gateway
-- [ ] JWT authentication cho WebSocket
-- [ ] Room management (mỗi group = 1 room)
+- [x] Setup Socket.io với NestJS Gateway
+- [x] JWT authentication cho WebSocket
+- [x] Room management (mỗi group = 1 room)
 
 ### 6.2 Chat Features
 
-- [ ] `event: sendMessage` - Gửi tin nhắn
-- [ ] `event: newMessage` - Nhận tin nhắn real-time
-- [ ] `event: typing` - Đang nhập
-- [ ] `event: joinRoom` - Join group room
-- [ ] `event: leaveRoom` - Leave group room
+- [x] `event: sendMessage` - Gửi tin nhắn
+- [x] `event: newMessage` - Nhận tin nhắn real-time
+- [x] `event: typing` - Đang nhập
+- [x] `event: joinRoom` - Join group room
+- [x] `event: leaveRoom` - Leave group room
 
 ### 6.3 Message History
 
-- [ ] `GET /groups/:id/messages` - Lịch sử chat (pagination)
-- [ ] `DELETE /messages/:id` - Xóa tin nhắn (sender only)
+- [x] `GET /groups/:id/messages` - Lịch sử chat (pagination)
+- [x] `DELETE /messages/:id` - Xóa tin nhắn (sender only)
 
 ### 6.4 Message Moderation (Admin)
 
-- [ ] `GET /admin/messages` - Danh sách messages được report (Admin)
-- [ ] `DELETE /admin/messages/:id` - Force delete message (Admin)
+- [x] `GET /messages/admin` - Danh sách tất cả messages (Admin)
+- [x] `DELETE /messages/admin/:id` - Force delete message (Admin)
 - [ ] `GET /admin/messages/flagged` - Messages vi phạm (Auto-flagged, Admin)
 
 ---

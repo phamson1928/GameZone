@@ -2129,7 +2129,176 @@ Xem messages của group (Admin only, pagination).
 
 ---
 
-## 14. Error Responses
+---
+
+## 14. Messages & Chat
+
+### GET `/groups/:groupId/messages`
+
+Lấy lịch sử tin nhắn của group. Chỉ member mới được xem.
+
+**Auth Required:** Yes
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| groupId | string (UUID) | Yes | Group ID |
+
+**Query Parameters:**
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| page | number | 1 | Trang hiện tại |
+| limit | number | 30 | Số tin nhắn mỗi trang (max 100) |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "data": [
+      {
+        "id": "message-uuid",
+        "groupId": "group-uuid",
+        "senderId": "user-uuid",
+        "content": "Hello team!",
+        "isDeleted": false,
+        "createdAt": "2026-02-23T15:43:52.000Z",
+        "sender": {
+          "id": "user-uuid",
+          "username": "progamer",
+          "avatarUrl": "https://example.com/avatar.jpg"
+        }
+      }
+    ],
+    "meta": {
+      "page": 1,
+      "limit": 30,
+      "total": 50,
+      "totalPages": 2
+    }
+  },
+  "timestamp": "2026-02-23T15:44:00.000Z"
+}
+```
+
+---
+
+### DELETE `/messages/:id`
+
+Xóa tin nhắn của chính mình (soft delete). Chỉ người gửi mới được xóa.
+
+**Auth Required:** Yes
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Message ID |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Đã xóa tin nhắn"
+  },
+  "timestamp": "2026-02-23T15:45:00.000Z"
+}
+```
+
+---
+
+## 15. WebSocket Events (Real-time)
+
+Kết nối tới namespace `/chat` tại địa chỉ: `ws://localhost:3000/chat`.
+Token JWT được gửi qua trường `auth.token` trong handshake.
+
+### Client Send Events
+
+#### `joinRoom`
+Tham gia vào phòng của group.
+- **Payload:** `{ "groupId": "string" }`
+- **Ack:** `{ "success": boolean, "message": "string" }`
+
+#### `leaveRoom`
+Rời khỏi phòng của group.
+- **Payload:** `{ "groupId": "string" }`
+- **Ack:** `{ "success": boolean }`
+
+#### `sendMessage`
+Gửi tin nhắn mới tới group.
+- **Payload:** `{ "groupId": "string", "content": "string" }`
+- **Ack:** `{ "success": boolean }`
+
+#### `typing`
+Thông báo trạng thái đang nhập tin nhắn.
+- **Payload:** `{ "groupId": "string", "isTyping": boolean }`
+
+### Server Emitted Events
+
+#### `newMessage`
+Gửi tới các thành viên trong room khi có tin nhắn mới.
+- **Payload:** 
+```json
+{
+  "id": "uuid",
+  "content": "string",
+  "createdAt": "iso-date",
+  "sender": { "id": "uuid", "username": "string", "avatarUrl": "string" }
+}
+```
+
+#### `userTyping`
+Broadcast trạng thái đang nhập của một thành viên cho những người khác.
+- **Payload:** `{ "userId": "uuid", "username": "string", "isTyping": boolean }`
+
+---
+
+## 16. Message Management (Admin)
+
+### GET `/messages/admin`
+
+Admin lấy danh sách tất cả messages trong hệ thống (pagination).
+
+**Auth Required:** Yes (Admin)
+
+**Query Parameters:**
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| page | number | 1 | Trang hiện tại |
+| limit | number | 20 | Số lượng mỗi trang |
+
+**Response:** Giống GET messages theo group nhưng bao gồm cả tin nhắn đã xóa.
+
+---
+
+### DELETE `/messages/admin/:id`
+
+Admin xóa bất kỳ tin nhắn nào (soft delete).
+
+**Auth Required:** Yes (Admin)
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Message ID |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Admin đã xóa tin nhắn"
+  },
+  "timestamp": "2026-02-23T15:46:00.000Z"
+}
+```
+
+---
+
+## 17. Error Responses
 
 ### 401 Unauthorized
 
@@ -2193,7 +2362,9 @@ Khi resource không tồn tại.
 
 ---
 
-## 15. Enums Reference
+---
+
+## 18. Enums Reference
 
 ### RankLevel
 
@@ -2258,7 +2429,9 @@ GOOGLE
 
 ---
 
-## 16. Modules chưa implement đầy đủ
+---
+
+## 19. Modules chưa implement đầy đủ
 
 Các modules sau chỉ có boilerplate, cần implement thêm:
 

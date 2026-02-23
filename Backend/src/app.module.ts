@@ -17,6 +17,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { UserGameProfilesModule } from './user-game-profiles/user-game-profiles.module';
 import { TagsModule } from './tags/tags.module';
 import { FilesModule } from './files/files.module';
+import { ChatModule } from './chat/chat.module';
+import { MessagesModule } from './messages/messages.module';
 
 @Module({
   imports: [
@@ -50,6 +52,8 @@ import { FilesModule } from './files/files.module';
     UserGameProfilesModule,
     TagsModule,
     FilesModule,
+    ChatModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [

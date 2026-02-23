@@ -461,7 +461,6 @@ export const HomeScreen = () => {
         {/* Zones Section Title */}
         <View style={styles.zonesSectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Zap size={18} color="#F59E0B" fill="#F59E0B" />
             <Text style={styles.sectionTitle}>KHU VỰC GỢI Ý</Text>
           </View>
         </View>

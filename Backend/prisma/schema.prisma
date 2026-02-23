@@ -281,15 +281,18 @@ model GroupMember {
 ////////////////////
 
 model Message {
-  id       String @id @default(uuid())
-  groupId  String
-  senderId String
-  content  String
+  id        String  @id @default(uuid())
+  groupId   String
+  senderId  String
+  content   String
+  isDeleted Boolean @default(false)
 
   group  Group @relation(fields: [groupId], references: [id])
   sender User  @relation(fields: [senderId], references: [id])
 
   createdAt DateTime @default(now())
+
+  @@index([groupId, createdAt])
 }
 
 ////////////////////
