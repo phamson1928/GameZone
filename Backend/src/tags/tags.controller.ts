@@ -8,12 +8,17 @@ import {
   Delete,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { TagsService } from './tags.service';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
-import { ApiTags } from '@nestjs/swagger/dist/decorators/api-use-tags.decorator';
 import { JwtAuthGuard, Public, Roles, RolesGuard } from 'src/common';
-import { ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Tags')
 @Controller('tags')

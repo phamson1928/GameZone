@@ -9,6 +9,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { GroupsService } from './groups.service';
 import { ChangeMemberRoleDto } from './dto/change-member-role.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -18,9 +26,6 @@ import {
   Roles,
   PaginationDto,
 } from '../common/index.js';
-import { ApiBearerAuth } from '@nestjs/swagger/dist/decorators/api-bearer.decorator';
-import { ApiOperation } from '@nestjs/swagger/dist/decorators/api-operation.decorator';
-import { ApiTags } from '@nestjs/swagger';
 
 @Controller('groups')
 @ApiTags('Groups')

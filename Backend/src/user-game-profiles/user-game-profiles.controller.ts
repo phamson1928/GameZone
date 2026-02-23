@@ -8,10 +8,16 @@ import {
   Delete,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { UserGameProfilesService } from './user-game-profiles.service';
 import { CreateUserGameProfileDto } from './dto/create-user-game-profile.dto';
 import { UpdateUserGameProfileDto } from './dto/update-user-game-profile.dto';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, JwtAuthGuard } from '../common/index.js';
 
 @ApiTags('User Game Profiles')

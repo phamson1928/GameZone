@@ -9,11 +9,18 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
+import {
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { GamesService } from './games.service';
 import { CreateGameDto } from './dto/create-game.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Public, Roles, RolesGuard } from '../common/index.js';
+import { Public, Roles, RolesGuard, PaginationDto } from '../common/index.js';
 
 @ApiTags('Games')
 @Controller('games')

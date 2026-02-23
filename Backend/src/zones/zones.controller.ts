@@ -9,6 +9,14 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { ZonesService } from './zones.service.js';
 import { CreateZoneDto } from './dto/create-zone.dto.js';
 import { UpdateZoneDto } from './dto/update-zone.dto.js';
@@ -21,7 +29,6 @@ import {
   Roles,
   PaginationDto,
 } from '../common/index.js';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Zones')
 @Controller('zones')

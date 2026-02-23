@@ -5,15 +5,21 @@ import {
   Param,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { MessagesService } from './messages.service';
 import { MessageQueryDto } from './dto/message-query.dto';
 import { Roles } from '../common/decorators/roles.decorator';
-import { UseGuards } from '@nestjs/common';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { ApiOperation } from '@nestjs/swagger';
-import { ApiResponse } from '@nestjs/swagger';
 
 @Controller()
 @UseGuards(RolesGuard, JwtAuthGuard)
