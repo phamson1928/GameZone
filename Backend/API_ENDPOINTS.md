@@ -6,6 +6,11 @@
 http://localhost:3000
 ```
 
+## Swagger Documentation
+
+To view the live API documentation and test endpoints, visit:
+[http://localhost:3000/api/docs](http://localhost:3000/api/docs)
+
 ## Authentication
 
 Hầu hết các endpoints yêu cầu JWT token trong header:

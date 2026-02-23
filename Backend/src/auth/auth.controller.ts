@@ -37,19 +37,19 @@ import type { JwtPayload } from '../common/interfaces/request.interface';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('register')
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
-  @ApiOperation({ summary: 'Register a new user' })
+  @ApiOperation({ summary: 'Đăng ký tài khoản mới' })
   @ApiResponse({
     status: 201,
-    description: 'User registered successfully',
+    description: 'Đăng ký thành công',
     type: AuthResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Validation error' })
-  @ApiResponse({ status: 409, description: 'Email or username already exists' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 409, description: 'Email hoặc username đã tồn tại' })
   async register(@Body() registerDto: RegisterDto): Promise<AuthResponseDto> {
     return this.authService.register(registerDto);
   }
@@ -58,13 +58,13 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
-  @ApiOperation({ summary: 'Login user' })
+  @ApiOperation({ summary: 'Đăng nhập hệ thống' })
   @ApiResponse({
     status: 200,
-    description: 'Login successful',
+    description: 'Đăng nhập thành công',
     type: AuthResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 401, description: 'Thông tin đăng nhập không hợp lệ' })
   async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
     return this.authService.login(loginDto);
   }
@@ -78,14 +78,14 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({
-    summary: 'Google login (Mobile) — verify idToken from client SDK',
+    summary: 'Đăng nhập Google (Mobile) — verify idToken từ SDK',
   })
   @ApiResponse({
     status: 200,
-    description: 'Google login successful',
+    description: 'Đăng nhập Google thành công',
     type: AuthResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'Invalid Google token' })
+  @ApiResponse({ status: 401, description: 'Google token không hợp lệ' })
   async googleLogin(
     @Body() googleAuthDto: GoogleAuthDto,
   ): Promise<AuthResponseDto> {
@@ -100,9 +100,9 @@ export class AuthController {
   @Public()
   @UseGuards(AuthGuard('google'))
   @ApiOperation({
-    summary: 'Google login (Web) — redirect to Google consent screen',
+    summary: 'Đăng nhập Google (Web) — redirect tới trang consent',
   })
-  @ApiResponse({ status: 302, description: 'Redirects to Google OAuth' })
+  @ApiResponse({ status: 302, description: 'Redirect to Google OAuth' })
   googleRedirect() {
     // Guard triggers redirect to Google
   }
@@ -111,11 +111,11 @@ export class AuthController {
   @Public()
   @UseGuards(AuthGuard('google'))
   @ApiOperation({
-    summary: 'Google OAuth callback — exchanges code for tokens',
+    summary: 'Google OAuth callback — xử lý sau khi người dùng chấp thuận',
   })
   @ApiResponse({
     status: 200,
-    description: 'Google login successful, returns JWT tokens',
+    description: 'Đăng nhập thành công, trả về JWT tokens qua redirect',
   })
   async googleCallback(
     @Req() req: Request,
@@ -131,7 +131,6 @@ export class AuthController {
     const result = await this.authService.googleCallbackLogin(googleProfile);
 
     // For web clients: redirect with tokens as query params
-    // Frontend should extract tokens from URL
     const frontendUrl = process.env['FRONTEND_URL'] || 'http://localhost:3001';
     const params = new URLSearchParams({
       accessToken: result.tokens.accessToken,
@@ -150,13 +149,13 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
-  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiOperation({ summary: 'Làm mới Access Token' })
   @ApiResponse({
     status: 200,
-    description: 'Tokens refreshed successfully',
+    description: 'Làm mới token thành công',
     type: TokensResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
+  @ApiResponse({ status: 401, description: 'Refresh token không hợp lệ hoặc hết hạn' })
   async refresh(
     @Body() refreshTokenDto: RefreshTokenDto,
   ): Promise<TokensResponseDto> {
@@ -166,10 +165,10 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Logout user (revoke refresh token)' })
-  @ApiResponse({ status: 204, description: 'Logged out successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Đăng xuất (thu hồi refresh token)' })
+  @ApiResponse({ status: 204, description: 'Đăng xuất thành công' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
   async logout(@Body() refreshTokenDto: RefreshTokenDto): Promise<void> {
     await this.authService.logout(refreshTokenDto.refreshToken);
   }
@@ -177,10 +176,10 @@ export class AuthController {
   @Post('logout-all')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Logout from all devices' })
-  @ApiResponse({ status: 204, description: 'Logged out from all devices' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Đăng xuất khỏi tất cả thiết bị' })
+  @ApiResponse({ status: 204, description: 'Đã đăng xuất tất cả' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
   async logoutAll(@CurrentUser() user: JwtPayload): Promise<void> {
     await this.authService.logoutAll(user.sub);
   }

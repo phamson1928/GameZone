@@ -32,32 +32,33 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { Roles } from '../common/index.js';
 
 @ApiTags('Users')
+@ApiBearerAuth('access-token')
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Get('me')
-  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiOperation({ summary: 'Lấy thông tin profile cá nhân' })
   @ApiResponse({
     status: 200,
-    description: 'Current user profile',
+    description: 'Thông tin profile người dùng hiện tại',
     type: UserResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
   async getMe(@CurrentUser() user: JwtPayload): Promise<UserResponseDto> {
     return this.usersService.getMe(user.sub);
   }
 
   @Patch('me')
-  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiOperation({ summary: 'Cập nhật thông tin profile cá nhân' })
   @ApiResponse({
     status: 200,
-    description: 'Profile updated successfully',
+    description: 'Cập nhật thành công',
     type: UserResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Validation error' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
   async updateProfile(
     @CurrentUser() user: JwtPayload,
     @Body() updateProfileDto: UpdateProfileDto,
@@ -66,13 +67,13 @@ export class UsersController {
   }
 
   @Patch('me/avatar')
-  @ApiOperation({ summary: 'Update user avatar' })
+  @ApiOperation({ summary: 'Cập nhật avatar người dùng' })
   @ApiResponse({
     status: 200,
-    description: 'Avatar updated successfully',
+    description: 'Cập nhật avatar thành công',
     type: UserResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
   async updateAvatar(
     @CurrentUser() user: JwtPayload,
     @Body('avatarUrl') avatarUrl: string,
@@ -83,14 +84,14 @@ export class UsersController {
   @Get('search')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Search users by email/username (Admin only)' })
+  @ApiOperation({ summary: 'Tìm kiếm người dùng bằng email/username [ADMIN ONLY]' })
   @ApiResponse({
     status: 200,
-    description: 'Search results',
+    description: 'Kết quả tìm kiếm',
     type: [PublicUserResponseDto],
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
+  @ApiResponse({ status: 403, description: 'Không có quyền (Cần Admin)' })
   async searchUsers(
     @Query() searchDto: SearchUsersDto,
     @Query() pagination: PaginationDto,
@@ -106,16 +107,16 @@ export class UsersController {
   @Get(':id/activities')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Get user activity history (Admin only)' })
+  @ApiOperation({ summary: 'Lấy lịch sử hoạt động của người dùng [ADMIN ONLY]' })
   @ApiParam({ name: 'id', description: 'User ID (UUID)' })
   @ApiResponse({
     status: 200,
-    description: 'User activity history',
+    description: 'Lịch sử hoạt động',
     type: [UserActivityDto],
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
+  @ApiResponse({ status: 403, description: 'Không có quyền (Cần Admin)' })
+  @ApiResponse({ status: 404, description: 'Người dùng không tồn tại' })
   async getUserActivities(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<UserActivityDto[]> {
@@ -123,15 +124,15 @@ export class UsersController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get public profile of another user' })
+  @ApiOperation({ summary: 'Xem profile công khai của người khác' })
   @ApiParam({ name: 'id', description: 'User ID (UUID)' })
   @ApiResponse({
     status: 200,
-    description: 'User public profile',
+    description: 'Thông tin profile công khai',
     type: PublicUserResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
+  @ApiResponse({ status: 404, description: 'Người dùng không tồn tại' })
   async getPublicProfile(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<PublicUserResponseDto> {
@@ -141,14 +142,14 @@ export class UsersController {
   @Get()
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Get list of all users (Admin only)' })
+  @ApiOperation({ summary: 'Lấy danh sách tất cả người dùng [ADMIN ONLY]' })
   @ApiResponse({
     status: 200,
-    description: 'List of users',
+    description: 'Danh sách người dùng',
     type: [PublicUserResponseDto],
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
+  @ApiResponse({ status: 403, description: 'Không có quyền (Cần Admin)' })
   async getAllUsers(@Query() pagination: PaginationDto): Promise<any> {
     const { page = 1, limit = 20 } = pagination;
     return this.usersService.getAllUsersForAdmin(Number(page), Number(limit));
@@ -157,20 +158,20 @@ export class UsersController {
   @Patch(':id/ban')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Ban a user (Admin only)' })
+  @ApiOperation({ summary: 'Ban người dùng [ADMIN ONLY]' })
   @ApiParam({ name: 'id', description: 'User ID (UUID)' })
   @ApiResponse({
     status: 200,
-    description: 'User has been banned',
+    description: 'Đã ban người dùng thành công',
     type: PublicUserResponseDto,
   })
   @ApiResponse({
     status: 400,
-    description: 'Bad request (self-ban or already banned)',
+    description: 'Lỗi: Tự ban bản thân hoặc đã bị ban từ trước',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
+  @ApiResponse({ status: 403, description: 'Không có quyền (Cần Admin)' })
+  @ApiResponse({ status: 404, description: 'Người dùng không tồn tại' })
   async banUser(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() admin: JwtPayload,
@@ -181,17 +182,17 @@ export class UsersController {
   @Patch(':id/unban')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Unban a user (Admin only)' })
+  @ApiOperation({ summary: 'Bỏ ban người dùng [ADMIN ONLY]' })
   @ApiParam({ name: 'id', description: 'User ID (UUID)' })
   @ApiResponse({
     status: 200,
-    description: 'User has been unbanned',
+    description: 'Đã bỏ ban người dùng thành công',
     type: PublicUserResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Bad request (user not banned)' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 400, description: 'Lỗi: Người dùng chưa bị ban' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
+  @ApiResponse({ status: 403, description: 'Không có quyền (Cần Admin)' })
+  @ApiResponse({ status: 404, description: 'Người dùng không tồn tại' })
   async unbanUser(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.unBanUser(id);
   }
@@ -199,16 +200,16 @@ export class UsersController {
   @Patch(':id/delete')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Delete a user (Admin only - Soft delete)' })
+  @ApiOperation({ summary: 'Xóa người dùng (Soft delete) [ADMIN ONLY]' })
   @ApiParam({ name: 'id', description: 'User ID (UUID)' })
   @ApiResponse({
     status: 200,
-    description: 'User has been deleted',
+    description: 'Đã xóa người dùng thành công',
   })
-  @ApiResponse({ status: 400, description: 'Bad request (self-delete)' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 400, description: 'Lỗi: Tự xóa bản thân' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
+  @ApiResponse({ status: 403, description: 'Không có quyền (Cần Admin)' })
+  @ApiResponse({ status: 404, description: 'Người dùng không tồn tại' })
   async deleteUser(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() admin: JwtPayload,

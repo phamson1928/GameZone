@@ -31,14 +31,16 @@ import {
 } from '../common/index.js';
 
 @ApiTags('Zones')
+@ApiBearerAuth('access-token')
 @Controller('zones')
 @UseGuards(JwtAuthGuard)
 export class ZonesController {
-  constructor(private readonly zonesService: ZonesService) {}
+  constructor(private readonly zonesService: ZonesService) { }
 
   @Post()
   @ApiOperation({ summary: 'Tạo zone mới (tối đa 4 zone)' })
-  @ApiBearerAuth()
+  @ApiResponse({ status: 201, description: 'Created' })
+  @ApiResponse({ status: 400, description: 'Bad request / Max zones' })
   create(
     @Body() createZoneDto: CreateZoneDto,
     @CurrentUser('sub') ownerId: string,
@@ -63,35 +65,39 @@ export class ZonesController {
 
   @Get('my')
   @ApiOperation({ summary: 'Lấy danh sách zones của user hiện tại' })
-  @ApiBearerAuth()
+  @ApiResponse({ status: 200, description: 'Success' })
   findMyZones(@CurrentUser('sub') ownerId: string) {
     return this.zonesService.findAllByOwner(ownerId);
   }
 
   @Get('admin')
-  @ApiOperation({ summary: 'Lấy danh sách tất cả zones (admin only)' })
-  @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @ApiOperation({ summary: 'Lấy danh sách tất cả zones [ADMIN ONLY]' })
+  @ApiResponse({ status: 200, description: 'Success' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   findAllByAdmin(@Query() pagination: PaginationDto) {
     const { page, limit } = pagination;
     return this.zonesService.findAllByAdmin(Number(page), Number(limit));
   }
 
   @Delete('admin/:id')
-  @ApiOperation({ summary: 'Force delete zone (Admin only)' })
-  @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @ApiOperation({ summary: 'Force delete zone [ADMIN ONLY]' })
+  @ApiParam({ name: 'id', description: 'Zone ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Deleted' })
+  @ApiResponse({ status: 404, description: 'Not Found' })
   removeByAdmin(@Param('id') id: string) {
     return this.zonesService.adminDeleteZone(id);
   }
 
   @Patch('admin/:id/close')
-  @ApiOperation({ summary: 'Force close zone (Admin only)' })
-  @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @ApiOperation({ summary: 'Force close zone [ADMIN ONLY]' })
+  @ApiParam({ name: 'id', description: 'Zone ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Closed' })
   closeByAdmin(@Param('id') id: string) {
     return this.zonesService.adminCloseZone(id);
   }
@@ -105,14 +111,18 @@ export class ZonesController {
 
   @Get(':id/owner')
   @ApiOperation({ summary: 'Lấy chi tiết zone (owner only)' })
-  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Zone ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Success' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   findOneByOwner(@Param('id') id: string, @CurrentUser('sub') ownerId: string) {
     return this.zonesService.findOneByOwner(id, ownerId);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Cập nhật zone (owner only)' })
-  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Zone ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Updated' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   update(
     @Param('id') id: string,
     @Body() updateZoneDto: UpdateZoneDto,
@@ -123,7 +133,9 @@ export class ZonesController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Xóa zone (owner only)' })
-  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Zone ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Deleted' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   remove(@Param('id') id: string, @CurrentUser('sub') ownerId: string) {
     return this.zonesService.remove(id, ownerId);
   }

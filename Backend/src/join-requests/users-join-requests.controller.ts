@@ -1,18 +1,24 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JoinRequestsService } from './join-requests.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { ApiBearerAuth } from '@nestjs/swagger/dist/decorators/api-bearer.decorator';
-import { ApiOperation } from '@nestjs/swagger/dist/decorators/api-operation.decorator';
-import { ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
 @Controller('users')
 @ApiTags('Join Requests')
+@ApiBearerAuth('access-token')
+@UseGuards(JwtAuthGuard)
 export class UsersJoinRequestsController {
-  constructor(private readonly joinRequestsService: JoinRequestsService) {}
+  constructor(private readonly joinRequestsService: JoinRequestsService) { }
 
   @Get('me/join-requests')
   @ApiOperation({ summary: 'Lấy danh sách yêu cầu tham gia của bản thân' })
-  @ApiBearerAuth()
+  @ApiResponse({ status: 200, description: 'Success' })
   getUserJoinRequests(@CurrentUser('sub') userId: string) {
     return this.joinRequestsService.getUserJoinRequests(userId);
   }

@@ -27,15 +27,16 @@ import {
   PaginationDto,
 } from '../common/index.js';
 
-@Controller('groups')
 @ApiTags('Groups')
+@ApiBearerAuth('access-token')
+@Controller('groups')
 @UseGuards(JwtAuthGuard)
 export class GroupsController {
-  constructor(private readonly groupsService: GroupsService) {}
+  constructor(private readonly groupsService: GroupsService) { }
 
   @Get()
   @ApiOperation({ summary: 'Danh sách groups của user' })
-  @ApiBearerAuth()
+  @ApiResponse({ status: 200, description: 'Success' })
   getUserGroups(@CurrentUser('sub') userId: string) {
     return this.groupsService.getUserGroups(userId);
   }
@@ -45,29 +46,35 @@ export class GroupsController {
   // ========================
 
   @Get('admin')
-  @ApiOperation({ summary: 'Danh sách tất cả groups (Admin only)' })
-  @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @ApiOperation({ summary: 'Danh sách tất cả groups [ADMIN ONLY]' })
+  @ApiResponse({ status: 200, description: 'Success' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   getAllGroupsAdmin(@Query() pagination: PaginationDto) {
     const { page, limit } = pagination;
     return this.groupsService.adminGetAllGroups(Number(page), Number(limit));
   }
 
   @Delete('admin/:id')
-  @ApiOperation({ summary: 'Force dissolve group (Admin only)' })
-  @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @ApiOperation({ summary: 'Force dissolve group [ADMIN ONLY]' })
+  @ApiParam({ name: 'id', description: 'Group ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Dissolved' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Not Found' })
   forceDissolveAdmin(@Param('id') groupId: string) {
     return this.groupsService.adminForceDissolve(groupId);
   }
 
   @Get('admin/:id/messages')
-  @ApiOperation({ summary: 'Xem messages của group (Admin only)' })
-  @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @ApiOperation({ summary: 'Xem messages của group [ADMIN ONLY]' })
+  @ApiParam({ name: 'id', description: 'Group ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Success' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   getGroupMessagesAdmin(
     @Param('id') groupId: string,
     @Query() pagination: PaginationDto,
@@ -86,7 +93,9 @@ export class GroupsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Chi tiết group' })
-  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Group ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Success' })
+  @ApiResponse({ status: 404, description: 'Not Found' })
   getGroupDetail(
     @CurrentUser('sub') userId: string,
     @Param('id') groupId: string,
@@ -96,7 +105,8 @@ export class GroupsController {
 
   @Get(':id/members')
   @ApiOperation({ summary: 'Danh sách members của group' })
-  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Group ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Success' })
   getGroupMembers(
     @CurrentUser('sub') userId: string,
     @Param('id') groupId: string,
@@ -106,14 +116,18 @@ export class GroupsController {
 
   @Post(':id/leave')
   @ApiOperation({ summary: 'Rời group' })
-  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Group ID (UUID)' })
+  @ApiResponse({ status: 201, description: 'Left successfully' })
   leaveGroup(@CurrentUser('sub') userId: string, @Param('id') groupId: string) {
     return this.groupsService.leaveGroup(userId, groupId);
   }
 
   @Delete(':id/members/:userId')
   @ApiOperation({ summary: 'Kick member (leader only)' })
-  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Group ID (UUID)' })
+  @ApiParam({ name: 'userId', description: 'User ID to kick (UUID)' })
+  @ApiResponse({ status: 200, description: 'Kicked successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden (Not leader)' })
   kickMember(
     @CurrentUser('sub') leaderId: string,
     @Param('id') groupId: string,
@@ -124,7 +138,9 @@ export class GroupsController {
 
   @Patch(':id/members/:userId')
   @ApiOperation({ summary: 'Đổi role member (leader only)' })
-  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Group ID (UUID)' })
+  @ApiParam({ name: 'userId', description: 'User ID to change role (UUID)' })
+  @ApiResponse({ status: 200, description: 'Role changed successfully' })
   changeMemberRole(
     @CurrentUser('sub') leaderId: string,
     @Param('id') groupId: string,
@@ -141,7 +157,8 @@ export class GroupsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Giải tán group (leader only)' })
-  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Group ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Dissolved successfully' })
   dissolveGroup(
     @CurrentUser('sub') userId: string,
     @Param('id') groupId: string,

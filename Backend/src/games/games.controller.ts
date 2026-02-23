@@ -25,24 +25,27 @@ import { Public, Roles, RolesGuard, PaginationDto } from '../common/index.js';
 @ApiTags('Games')
 @Controller('games')
 export class GamesController {
-  constructor(private readonly gamesService: GamesService) {}
+  constructor(private readonly gamesService: GamesService) { }
 
   @Post()
+  @ApiBearerAuth('access-token')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Create a new game (Admin only)' })
+  @ApiOperation({ summary: 'Tạo game mới [ADMIN ONLY]' })
   @ApiResponse({
     status: 201,
-    description: 'The game has been successfully created.',
+    description: 'Tạo game thành công',
   })
+  @ApiResponse({ status: 403, description: 'Không có quyền' })
   create(@Body() dto: CreateGameDto) {
     return this.gamesService.create(dto);
   }
 
   @Get('admin')
+  @ApiBearerAuth('access-token')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Get all games for administration (Admin only)' })
+  @ApiOperation({ summary: 'Lấy tất cả games cho quản trị [ADMIN ONLY]' })
   findAllForAdmin(@Query() query: { page?: string; limit?: string }) {
     return this.gamesService.findAllForAdmin(
       Number(query.page),
@@ -52,32 +55,42 @@ export class GamesController {
 
   @Get('mobile')
   @Public()
-  @ApiOperation({ summary: 'Get list of active games for users' })
+  @ApiOperation({ summary: 'Lấy danh sách games cho người dùng' })
+  @ApiResponse({ status: 200, description: 'Danh sách games đang hoạt động' })
   findAllForUser() {
     return this.gamesService.findAllForUser();
   }
 
   @Get(':id')
   @Public()
-  @ApiOperation({ summary: 'Get a specific game by ID' })
-  @ApiResponse({ status: 200, description: 'Returns the game details.' })
-  @ApiResponse({ status: 404, description: 'Game not found.' })
+  @ApiOperation({ summary: 'Xem chi tiết game' })
+  @ApiParam({ name: 'id', description: 'Game ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Thông tin chi tiết game' })
+  @ApiResponse({ status: 404, description: 'Game không tồn tại' })
   findOne(@Param('id') id: string) {
     return this.gamesService.findOne(id);
   }
 
   @Patch(':id')
+  @ApiBearerAuth('access-token')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Update a game (Admin only)' })
+  @ApiOperation({ summary: 'Cập nhật game [ADMIN ONLY]' })
+  @ApiParam({ name: 'id', description: 'Game ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
+  @ApiResponse({ status: 404, description: 'Game không tồn tại' })
   update(@Param('id') id: string, @Body() dto: UpdateGameDto) {
     return this.gamesService.update(id, dto);
   }
 
   @Delete(':id')
+  @ApiBearerAuth('access-token')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Delete a game (Admin only)' })
+  @ApiOperation({ summary: 'Xóa game [ADMIN ONLY]' })
+  @ApiParam({ name: 'id', description: 'Game ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Xóa thành công' })
+  @ApiResponse({ status: 404, description: 'Game không tồn tại' })
   remove(@Param('id') id: string) {
     return this.gamesService.remove(id);
   }

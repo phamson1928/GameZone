@@ -21,20 +21,19 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
+@ApiTags('Messages')
+@ApiBearerAuth('access-token')
 @Controller()
 @UseGuards(RolesGuard, JwtAuthGuard)
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) { }
 
-  /**
-   * GET /groups/:id/messages
-   * Lấy lịch sử tin nhắn của group. Chỉ member mới được xem.
-   */
   @Get('groups/:groupId/messages')
   @ApiOperation({ summary: 'Lấy lịch sử tin nhắn của group' })
+  @ApiParam({ name: 'groupId', description: 'Group ID (UUID)' })
   @ApiResponse({ status: 200, description: 'Lấy lịch sử tin nhắn thành công' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
+  @ApiResponse({ status: 403, description: 'Không có quyền xem' })
   @ApiResponse({ status: 404, description: 'Group không tồn tại' })
   getGroupMessages(
     @Req() req: any,
@@ -49,44 +48,33 @@ export class MessagesController {
     );
   }
 
-  /**
-   * DELETE /messages/:id
-   * Xóa tin nhắn của chính mình.
-   */
   @Delete('messages/:id')
-  @ApiOperation({ summary: 'Xóa tin nhắn của chính mình' })
+  @ApiOperation({ summary: 'Xóa tin nhắn của chính mình (Soft delete)' })
+  @ApiParam({ name: 'id', description: 'Message ID (UUID)' })
   @ApiResponse({ status: 200, description: 'Xóa tin nhắn thành công' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
+  @ApiResponse({ status: 403, description: 'Không có quyền xóa' })
   @ApiResponse({ status: 404, description: 'Tin nhắn không tồn tại' })
   deleteMessage(@Req() req: any, @Param('id') id: string) {
     return this.messagesService.deleteMessage(req.user.sub, id);
   }
 
-  /**
-   * GET /messages/admin
-   * Admin lấy danh sách tất cả messages. (Chỉ ADMIN)
-   */
   @Roles('ADMIN')
   @Get('messages/admin')
-  @ApiOperation({ summary: 'Admin lấy danh sách tất cả messages' })
+  @ApiOperation({ summary: 'Lấy danh sách tất cả tin nhắn hệ thống [ADMIN ONLY]' })
   @ApiResponse({ status: 200, description: 'Lấy danh sách messages thành công' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 403, description: 'Không có quyền (Cần Admin)' })
   adminGetMessages(@Query() query: MessageQueryDto) {
     return this.messagesService.adminGetMessages(query.page, query.limit);
   }
 
-  /**
-   * DELETE /messages/admin/:id
-   * Admin xóa bất kỳ tin nhắn nào. (Chỉ ADMIN)
-   */
   @Roles('ADMIN')
   @Delete('messages/admin/:id')
-  @ApiOperation({ summary: 'Admin xóa bất kỳ tin nhắn nào' })
+  @ApiOperation({ summary: 'Admin xóa cưỡng chế bất kỳ tin nhắn nào [ADMIN ONLY]' })
+  @ApiParam({ name: 'id', description: 'Message ID (UUID)' })
   @ApiResponse({ status: 200, description: 'Xóa tin nhắn thành công' })
+  @ApiResponse({ status: 403, description: 'Không có quyền (Cần Admin)' })
   @ApiResponse({ status: 404, description: 'Tin nhắn không tồn tại' })
-  @ApiResponse({ status: 403, description: 'Bạn không có quyền xóa tin nhắn này' })
   adminDeleteMessage(@Param('id') id: string) {
     return this.messagesService.adminDeleteMessage(id);
   }

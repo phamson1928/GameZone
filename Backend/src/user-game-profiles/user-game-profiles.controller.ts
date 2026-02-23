@@ -21,16 +21,17 @@ import { UpdateUserGameProfileDto } from './dto/update-user-game-profile.dto';
 import { CurrentUser, JwtAuthGuard } from '../common/index.js';
 
 @ApiTags('User Game Profiles')
-@ApiBearerAuth()
+@ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
 @Controller('user-game-profiles')
 export class UserGameProfilesController {
   constructor(
     private readonly userGameProfilesService: UserGameProfilesService,
-  ) {}
+  ) { }
 
   @Post()
-  @ApiOperation({ summary: 'Add a game profile for the current user' })
+  @ApiOperation({ summary: 'Thêm hồ sơ game mới cho người dùng' })
+  @ApiResponse({ status: 201, description: 'Added' })
   create(
     @CurrentUser('sub') userId: string,
     @Body() dto: CreateUserGameProfileDto,
@@ -40,19 +41,25 @@ export class UserGameProfilesController {
 
   // IMPORTANT: Static routes must come BEFORE dynamic routes (:id)
   @Get('me')
-  @ApiOperation({ summary: 'Get all game profiles of the current user' })
+  @ApiOperation({ summary: 'Lấy danh sách hồ sơ game của bản thân' })
+  @ApiResponse({ status: 200, description: 'Success' })
   findMyProfiles(@CurrentUser('sub') userId: string) {
     return this.userGameProfilesService.findAllByMe(userId);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a specific game profile' })
+  @ApiOperation({ summary: 'Xem chi tiết hồ sơ game' })
+  @ApiParam({ name: 'id', description: 'Profile ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Success' })
+  @ApiResponse({ status: 404, description: 'Not Found' })
   findOne(@Param('id') id: string) {
     return this.userGameProfilesService.findOne(id);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update rank level of a game profile' })
+  @ApiOperation({ summary: 'Cập nhật rank level của hồ sơ game' })
+  @ApiParam({ name: 'id', description: 'Profile ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Updated' })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -62,7 +69,9 @@ export class UserGameProfilesController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a game profile' })
+  @ApiOperation({ summary: 'Xóa hồ sơ game' })
+  @ApiParam({ name: 'id', description: 'Profile ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Deleted' })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.userGameProfilesService.remove(userId, id);
   }
