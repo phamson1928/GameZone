@@ -10,10 +10,9 @@ import {
   Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Gamepad2, Zap } from 'lucide-react-native';
+import { Gamepad2 } from 'lucide-react-native';
 import { Svg, Path, G } from 'react-native-svg';
 import { Container } from '../components/Container';
 import { Input } from '../components/Input';
@@ -24,7 +23,11 @@ import { useAuthStore } from '../store/useAuthStore';
 import { STRINGS } from '../constants/strings';
 import { RootStackParamList } from '../navigation';
 
-WebBrowser.maybeCompleteAuthSession();
+// Configure Google Sign-In
+GoogleSignin.configure({
+  webClientId: '946383947788-mc938c7idvv3opb987p0fr1cbug97qs1.apps.googleusercontent.com',
+  offlineAccess: true,
+});
 
 // Simple Google Icon SVG
 const GoogleIcon = () => (
@@ -53,50 +56,47 @@ const GoogleIcon = () => (
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export const LoginScreen = ({ navigation }: Props) => {
-  console.log('LoginScreen: Rendering...');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const setAuth = useAuthStore(state => state.setAuth);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: '946383947788-mc938c7idvv3opb987p0fr1cbug97qs1.apps.googleusercontent.com',
-    androidClientId: '946383947788-n388v43pc27qrafm49ltkao1er3h770n.apps.googleusercontent.com',
-  });
-
-
-
-
-
-  // Cleanup: Removed Google Redirect URI logging
-
-
-  useEffect(() => {
-    const handleGoogleLogin = async (idToken: string) => {
+  const handleGoogleLogin = async () => {
+    try {
       setLoading(true);
-      try {
-        const googleResponse = await apiClient.post('/auth/google', { idToken });
-        const { data } = googleResponse.data;
-        const { tokens } = data;
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo.data?.idToken;
 
-        const userResponse = await apiClient.get('/users/me', {
-          headers: { Authorization: `Bearer ${tokens.accessToken}` },
-        });
-
-        setAuth(userResponse.data.data, tokens.accessToken, tokens.refreshToken);
-      } catch (error: any) {
-        const message = error.response?.data?.message || STRINGS.LOGIN_FAILED;
-        Alert.alert(STRINGS.LOGIN_FAILED, Array.isArray(message) ? message[0] : message);
-      } finally {
-        setLoading(false);
+      if (!idToken) {
+        throw new Error('No ID Token found');
       }
-    };
 
-    if (response?.type === 'success') {
-      const idToken = response.authentication?.idToken;
-      if (idToken) handleGoogleLogin(idToken);
+      const googleResponse = await apiClient.post('/auth/google', { idToken });
+      const { data } = googleResponse.data;
+      const { tokens } = data;
+
+      const userResponse = await apiClient.get('/users/me', {
+        headers: { Authorization: `Bearer ${tokens.accessToken}` },
+      });
+
+      setAuth(userResponse.data.data, tokens.accessToken, tokens.refreshToken);
+    } catch (error: any) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // user cancelled the login flow
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        // operation (e.g. sign in) is in progress already
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Lỗi', 'Google Play Services không khả dụng');
+      } else {
+        const message = error.response?.data?.message || error.message || STRINGS.LOGIN_FAILED;
+        Alert.alert(STRINGS.LOGIN_FAILED, Array.isArray(message) ? message[0] : message);
+      }
+    } finally {
+      setLoading(false);
     }
-  }, [response, setAuth]);
+  };
+
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -190,8 +190,7 @@ export const LoginScreen = ({ navigation }: Props) => {
 
             <Button
               title={STRINGS.GOOGLE_LOGIN_BUTTON}
-              onPress={() => promptAsync()}
-              disabled={!request}
+              onPress={handleGoogleLogin}
               variant="outline"
               icon={<GoogleIcon />}
               style={styles.googleButton}

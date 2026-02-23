@@ -9,6 +9,8 @@ import {
   Alert,
   ActivityIndicator,
   TextInput,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -20,13 +22,17 @@ import {
   Sparkles,
   Users,
   Trophy,
+  Gamepad2,
+  Tag,
 } from 'lucide-react-native';
 import { apiClient } from '../api/client';
-import { Game, RankLevel, Tag } from '../types';
+import { Game, RankLevel, Tag as TagType } from '../types';
 import { RootStackParamList } from '../navigation';
 import { RANK_LEVELS, getRankColor, getRankDisplay } from '../utils/rank';
 
 type CreateZoneRouteProp = RouteProp<RootStackParamList, 'CreateZone'>;
+
+const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 44;
 
 export const CreateZoneScreen = () => {
   const navigation = useNavigation();
@@ -34,9 +40,7 @@ export const CreateZoneScreen = () => {
   const queryClient = useQueryClient();
   const initialGameId = route.params?.gameId ?? null;
 
-  const [selectedGameId, setSelectedGameId] = useState<string | null>(
-    initialGameId,
-  );
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(initialGameId);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [minRank, setMinRank] = useState<RankLevel>('BEGINNER');
@@ -75,7 +79,7 @@ export const CreateZoneScreen = () => {
     queryKey: ['tags'],
     queryFn: async () => {
       const response = await apiClient.get('/tags');
-      return response.data.data as Tag[];
+      return response.data.data as TagType[];
     },
   });
 
@@ -138,692 +142,545 @@ export const CreateZoneScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Modern Header with Gradient */}
-      <View style={styles.headerContainer}>
-        <View style={styles.headerGradient} />
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <ArrowLeft color="#FFFFFF" size={24} strokeWidth={2.5} />
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Sparkles color="#FFFFFF" size={20} />
-            <Text style={styles.headerTitle}>Tạo Phòng Mới</Text>
-          </View>
-          <View style={styles.headerRight} />
-        </View>
-      </View>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+
+      {/* Floating back button — no heavy header bar */}
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backButton}
+        activeOpacity={0.7}
+      >
+        <ArrowLeft color="#94A3B8" size={20} strokeWidth={2.5} />
+      </TouchableOpacity>
 
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Game Selection with Modern Cards */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIconContainer}>
-              <Text style={styles.sectionIcon}>🎮</Text>
-            </View>
-            <Text style={styles.sectionTitle}>Chọn Game</Text>
-          </View>
+        {/* Page title inside scroll body */}
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageTitle}>Tạo phòng mới</Text>
+          <Text style={styles.pageSubtitle}>Tìm đồng đội ngay</Text>
+        </View>
 
-          {gamesLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator color="#2563FF" size="large" />
-            </View>
+        {/* ── Game Selection ── */}
+        <SectionLabel icon={<Gamepad2 color="#2563FF" size={15} strokeWidth={2.5} />} title="Chọn game" />
+
+        {gamesLoading ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator color="#2563FF" />
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.gamesScroll}
+            contentContainerStyle={styles.gamesContent}
+          >
+            {games?.map(game => (
+              <TouchableOpacity
+                key={game.id}
+                style={[styles.gameCard, selectedGameId === game.id && styles.gameCardSelected]}
+                onPress={() => setSelectedGameId(game.id)}
+                activeOpacity={0.75}
+              >
+                <View style={styles.gameImageWrap}>
+                  <Image source={{ uri: game.iconUrl }} style={styles.gameIcon} />
+                  {selectedGameId === game.id && (
+                    <View style={styles.checkOverlay}>
+                      <Check color="#FFF" size={12} strokeWidth={3} />
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.gameName} numberOfLines={2}>
+                  {game.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
+        {/* ── Title ── */}
+        <SectionLabel title="Tiêu đề phòng" required />
+        <View style={styles.inputWrap}>
+          <TextInput
+            style={styles.input}
+            placeholder="VD: Tìm đồng đội rank Vàng"
+            placeholderTextColor="#475569"
+            value={title}
+            onChangeText={setTitle}
+            maxLength={100}
+          />
+          <Text style={styles.charCount}>{title.length}/100</Text>
+        </View>
+
+        {/* ── Description ── */}
+        <SectionLabel title="Mô tả chi tiết" required />
+        <View style={styles.inputWrap}>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Mô tả chi tiết về phòng của bạn..."
+            placeholderTextColor="#475569"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={4}
+            maxLength={500}
+          />
+          <Text style={[styles.charCount, styles.charCountArea]}>{description.length}/500</Text>
+        </View>
+
+        {/* ── Tags ── */}
+        <SectionLabel
+          icon={<Tag color="#2563FF" size={15} strokeWidth={2.5} />}
+          title="Tags"
+          sub="tối đa 3"
+        />
+        <View style={styles.tagsWrap}>
+          {tagsLoading ? (
+            <ActivityIndicator color="#2563FF" />
           ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.gamesScroll}
-              contentContainerStyle={styles.gamesContent}
-            >
-              {games?.map(game => (
+            tags?.map(tag => {
+              const selected = selectedTagIds.includes(tag.id);
+              return (
                 <TouchableOpacity
-                  key={game.id}
-                  style={[
-                    styles.gameCard,
-                    selectedGameId === game.id && styles.gameCardSelected,
-                  ]}
-                  onPress={() => setSelectedGameId(game.id)}
-                  activeOpacity={0.7}
+                  key={tag.id}
+                  style={[styles.tagChip, selected && styles.tagChipSelected]}
+                  onPress={() => toggleTag(tag.id)}
+                  activeOpacity={0.75}
                 >
-                  <View style={styles.gameImageContainer}>
-                    <Image
-                      source={{ uri: game.iconUrl }}
-                      style={styles.gameIcon}
-                    />
-                    {selectedGameId === game.id && (
-                      <View style={styles.checkIconOverlay}>
-                        <Check color="#FFFFFF" size={20} strokeWidth={3} />
-                      </View>
-                    )}
-                  </View>
-                  <Text style={styles.gameName} numberOfLines={2}>
-                    {game.name}
+                  {selected && <Check color="#2563FF" size={12} strokeWidth={3} />}
+                  <Text style={[styles.tagText, selected && styles.tagTextSelected]}>
+                    {tag.name}
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              );
+            })
           )}
         </View>
 
-        {/* Title Input */}
-        <View style={styles.section}>
-          <View style={styles.inputLabel}>
-            <Text style={styles.labelText}>Tiêu đề phòng</Text>
-            <Text style={styles.labelRequired}>*</Text>
-          </View>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="VD: Tìm đồng đội rank Vàng"
-              placeholderTextColor="#94A3B8"
-              value={title}
-              onChangeText={setTitle}
-              maxLength={100}
-            />
-            <Text style={styles.charCount}>{title.length}/100</Text>
-          </View>
-        </View>
-
-        {/* Description Input */}
-        <View style={styles.section}>
-          <View style={styles.inputLabel}>
-            <Text style={styles.labelText}>Mô tả chi tiết</Text>
-            <Text style={styles.labelRequired}>*</Text>
-          </View>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Mô tả chi tiết về phòng của bạn..."
-              placeholderTextColor="#94A3B8"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={4}
-              maxLength={500}
-            />
-            <Text style={styles.charCount}>{description.length}/500</Text>
-          </View>
-        </View>
-
-        {/* Tags Selection */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIconContainer}>
-              <Text style={styles.sectionIcon}>🏷️</Text>
-            </View>
-            <View>
-              <Text style={styles.sectionTitle}>Thẻ tags</Text>
-              <Text style={styles.sectionSubtitle}>Chọn tối đa 3 thẻ</Text>
-            </View>
+        {/* ── Rank ── */}
+        <SectionLabel icon={<Trophy color="#2563FF" size={15} strokeWidth={2.5} />} title="Yêu cầu rank" />
+        <View style={styles.rankBox}>
+          <Text style={styles.rankLabel}>Tối thiểu</Text>
+          <View style={styles.rankRow}>
+            {RANK_LEVELS.map(rank => {
+              const sel = minRank === rank;
+              return (
+                <TouchableOpacity
+                  key={`min-${rank}`}
+                  style={[styles.rankBtn, sel && { backgroundColor: getRankColor(rank), borderColor: getRankColor(rank) }]}
+                  onPress={() => setMinRank(rank)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.rankBtnText, sel && styles.rankBtnTextSel]}>
+                    {getRankDisplay(rank)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
-          <View style={styles.tagsContainer}>
-            {tagsLoading ? (
-              <ActivityIndicator color="#2563FF" />
-            ) : (
-              tags?.map(tag => {
-                const isSelected = selectedTagIds.includes(tag.id);
-                return (
-                  <TouchableOpacity
-                    key={tag.id}
-                    style={[
-                      styles.tagChip,
-                      isSelected && styles.tagChipSelected,
-                    ]}
-                    onPress={() => toggleTag(tag.id)}
-                    activeOpacity={0.7}
-                  >
-                    {isSelected && (
-                      <Check color="#FFFFFF" size={14} strokeWidth={2.5} />
-                    )}
-                    <Text
-                      style={[
-                        styles.tagText,
-                        isSelected && styles.tagTextSelected,
-                      ]}
-                    >
-                      {tag.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })
-            )}
+          <View style={styles.divider} />
+
+          <Text style={styles.rankLabel}>Tối đa</Text>
+          <View style={styles.rankRow}>
+            {RANK_LEVELS.map(rank => {
+              const sel = maxRank === rank;
+              return (
+                <TouchableOpacity
+                  key={`max-${rank}`}
+                  style={[styles.rankBtn, sel && { backgroundColor: getRankColor(rank), borderColor: getRankColor(rank) }]}
+                  onPress={() => setMaxRank(rank)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.rankBtnText, sel && styles.rankBtnTextSel]}>
+                    {getRankDisplay(rank)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
-        {/* Rank Selection with Modern Design */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIconContainer}>
-              <Trophy color="#2563FF" size={18} />
-            </View>
-            <Text style={styles.sectionTitle}>Yêu cầu Rank</Text>
+        {/* ── Players ── */}
+        <SectionLabel icon={<Users color="#2563FF" size={15} strokeWidth={2.5} />} title="Số người cần tìm" />
+        <View style={styles.playerRow}>
+          <TouchableOpacity
+            style={[styles.playerBtn, requiredPlayers <= 1 && styles.playerBtnDisabled]}
+            onPress={decrementPlayers}
+            disabled={requiredPlayers <= 1}
+            activeOpacity={0.7}
+          >
+            <Minus size={20} color={requiredPlayers <= 1 ? '#334155' : '#2563FF'} strokeWidth={2.5} />
+          </TouchableOpacity>
+          <View style={styles.playerValueWrap}>
+            <Text style={styles.playerValue}>{requiredPlayers}</Text>
+            <Text style={styles.playerUnit}>người chơi</Text>
           </View>
-
-          <View style={styles.rankContainer}>
-            <View style={styles.rankSection}>
-              <Text style={styles.rankLabel}>Rank tối thiểu</Text>
-              <View style={styles.rankGrid}>
-                {RANK_LEVELS.map(rank => {
-                  const isSelected = minRank === rank;
-                  const color = getRankColor(rank);
-                  return (
-                    <TouchableOpacity
-                      key={`min-${rank}`}
-                      style={[
-                        styles.rankButton,
-                        isSelected && {
-                          backgroundColor: color,
-                          borderColor: color,
-                          transform: [{ scale: 1.05 }],
-                        },
-                      ]}
-                      onPress={() => setMinRank(rank)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.rankButtonText,
-                          isSelected && styles.rankButtonTextSelected,
-                        ]}
-                      >
-                        {getRankDisplay(rank)}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            <View style={styles.rankDivider} />
-
-            <View style={styles.rankSection}>
-              <Text style={styles.rankLabel}>Rank tối đa</Text>
-              <View style={styles.rankGrid}>
-                {RANK_LEVELS.map(rank => {
-                  const isSelected = maxRank === rank;
-                  const color = getRankColor(rank);
-                  return (
-                    <TouchableOpacity
-                      key={`max-${rank}`}
-                      style={[
-                        styles.rankButton,
-                        isSelected && {
-                          backgroundColor: color,
-                          borderColor: color,
-                          transform: [{ scale: 1.05 }],
-                        },
-                      ]}
-                      onPress={() => setMaxRank(rank)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.rankButtonText,
-                          isSelected && styles.rankButtonTextSelected,
-                        ]}
-                      >
-                        {getRankDisplay(rank)}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          </View>
+          <TouchableOpacity
+            style={[styles.playerBtn, requiredPlayers >= 10 && styles.playerBtnDisabled]}
+            onPress={incrementPlayers}
+            disabled={requiredPlayers >= 10}
+            activeOpacity={0.7}
+          >
+            <Plus size={20} color={requiredPlayers >= 10 ? '#334155' : '#2563FF'} strokeWidth={2.5} />
+          </TouchableOpacity>
         </View>
 
-        {/* Required Players with Modern Counter */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIconContainer}>
-              <Users color="#2563FF" size={18} />
-            </View>
-            <Text style={styles.sectionTitle}>Số người cần tìm</Text>
-          </View>
-
-          <View style={styles.playerCard}>
-            <TouchableOpacity
-              style={[
-                styles.playerButton,
-                requiredPlayers <= 1 && styles.playerButtonDisabled,
-              ]}
-              onPress={decrementPlayers}
-              disabled={requiredPlayers <= 1}
-              activeOpacity={0.7}
-            >
-              <View style={styles.playerButtonInner}>
-                <Minus
-                  size={24}
-                  color={requiredPlayers <= 1 ? '#334155' : '#2563FF'}
-                  strokeWidth={2.5}
-                />
-              </View>
-            </TouchableOpacity>
-
-            <View style={styles.playerDisplay}>
-              <Text style={styles.playerNumber}>{requiredPlayers}</Text>
-              <Text style={styles.playerLabel}>người chơi</Text>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.playerButton,
-                requiredPlayers >= 10 && styles.playerButtonDisabled,
-              ]}
-              onPress={incrementPlayers}
-              disabled={requiredPlayers >= 10}
-              activeOpacity={0.7}
-            >
-              <View style={styles.playerButtonInner}>
-                <Plus
-                  size={24}
-                  color={requiredPlayers >= 10 ? '#334155' : '#2563FF'}
-                  strokeWidth={2.5}
-                />
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Submit Button with Modern Design */}
+        {/* ── Submit ── */}
         <TouchableOpacity
-          style={[
-            styles.submitButton,
-            createZoneMutation.isPending && styles.submitButtonDisabled,
-          ]}
+          style={[styles.submitBtn, createZoneMutation.isPending && styles.submitBtnDisabled]}
           onPress={handleSubmit}
           disabled={createZoneMutation.isPending}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
           {createZoneMutation.isPending ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <>
-              <Sparkles color="#FFFFFF" size={20} />
-              <Text style={styles.submitButtonText}>Tạo Phòng Ngay</Text>
+              <Sparkles color="#FFFFFF" size={18} strokeWidth={2.5} />
+              <Text style={styles.submitText}>Tạo phòng ngay</Text>
             </>
           )}
         </TouchableOpacity>
 
-        <View style={styles.bottomSpacer} />
+        <View style={{ height: 60 }} />
       </ScrollView>
     </View>
   );
 };
+
+/* ─── tiny helper so JSX above stays clean ─── */
+interface SectionLabelProps {
+  icon?: React.ReactNode;
+  title: string;
+  sub?: string;
+  required?: boolean;
+}
+const SectionLabel = ({ icon, title, sub, required }: SectionLabelProps) => (
+  <View style={styles.sectionLabel}>
+    {icon}
+    <Text style={styles.sectionLabelText}>{title}</Text>
+    {required && <Text style={styles.required}>*</Text>}
+    {sub && <Text style={styles.sectionSub}>{sub}</Text>}
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F172A',
   },
-  headerContainer: {
-    position: 'relative',
-    paddingTop: 12,
-  },
-  headerGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#2563FF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
+
+  /* ─── floating back button ─── */
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  headerTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  headerRight: {
-    width: 40,
-  },
-  content: {
-    padding: 20,
-    paddingTop: 24,
-  },
-  section: {
-    marginBottom: 28,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  sectionIconContainer: {
+    position: 'absolute',
+    top: STATUSBAR_HEIGHT + 10,
+    left: 18,
+    zIndex: 10,
     width: 36,
     height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(37,99,255,0.15)',
+    borderRadius: 18,
+    backgroundColor: 'rgba(30,41,59,0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sectionIcon: {
-    fontSize: 18,
+
+  /* ─── scroll body ─── */
+  content: {
+    paddingTop: STATUSBAR_HEIGHT + 64,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 15,
+
+  /* ─── page title block ─── */
+  pageHeader: {
+    marginBottom: 28,
+  },
+  pageTitle: {
+    fontSize: 26,
     fontWeight: '800',
-    color: '#94A3B8',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    color: '#F1F5F9',
+    letterSpacing: -0.5,
   },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
+  pageSubtitle: {
+    fontSize: 13,
+    color: '#475569',
     fontWeight: '500',
+    marginTop: 4,
   },
-  loadingContainer: {
-    padding: 40,
+
+  /* ─── section label ─── */
+  sectionLabel: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+    marginTop: 4,
   },
+  sectionLabelText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  required: {
+    fontSize: 14,
+    color: '#EF4444',
+    fontWeight: '700',
+    lineHeight: 16,
+  },
+  sectionSub: {
+    fontSize: 11,
+    color: '#334155',
+    fontWeight: '500',
+    marginLeft: 2,
+  },
+
+  /* ─── loading ─── */
+  loadingBox: {
+    paddingVertical: 32,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+
+  /* ─── games ─── */
   gamesScroll: {
     marginHorizontal: -20,
-    paddingHorizontal: 20,
+    marginBottom: 24,
   },
   gamesContent: {
-    paddingRight: 20,
-    gap: 12,
+    paddingHorizontal: 20,
+    gap: 10,
   },
   gameCard: {
-    width: 110,
+    width: 96,
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 18,
+    padding: 12,
+    borderRadius: 14,
     backgroundColor: '#1E293B',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    borderColor: 'rgba(255,255,255,0.06)',
   },
   gameCardSelected: {
     borderColor: '#2563FF',
-    borderWidth: 2,
-    backgroundColor: 'rgba(37,99,255,0.12)',
-    shadowColor: '#2563FF',
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 6,
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(37,99,255,0.1)',
   },
-  gameImageContainer: {
+  gameImageWrap: {
     position: 'relative',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   gameIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-  },
-  checkIconOverlay: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 24,
-    height: 24,
+    width: 52,
+    height: 52,
     borderRadius: 12,
-    backgroundColor: '#22C55E',
+  },
+  checkOverlay: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#2563FF',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#0F172A',
-    shadowColor: '#22C55E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
   },
   gameName: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#CBD5E1',
-    textAlign: 'center',
-    lineHeight: 17,
-  },
-  inputLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 10,
-  },
-  labelText: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '600',
     color: '#94A3B8',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    textAlign: 'center',
+    lineHeight: 15,
   },
-  labelRequired: {
-    fontSize: 15,
-    color: '#EF4444',
-    fontWeight: '700',
-  },
-  inputContainer: {
+
+  /* ─── text inputs ─── */
+  inputWrap: {
     position: 'relative',
+    marginBottom: 24,
   },
   input: {
     backgroundColor: '#1E293B',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 14,
-    padding: 16,
-    paddingRight: 60,
-    color: '#F8FAFC',
-    fontSize: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    paddingRight: 52,
+    color: '#F1F5F9',
+    fontSize: 14,
     fontWeight: '500',
   },
   textArea: {
-    minHeight: 120,
+    minHeight: 110,
     textAlignVertical: 'top',
-    paddingTop: 16,
+    paddingTop: 13,
   },
   charCount: {
     position: 'absolute',
-    right: 14,
-    top: 14,
-    fontSize: 11,
-    color: '#475569',
+    right: 12,
+    top: 13,
+    fontSize: 10,
+    color: '#334155',
     fontWeight: '600',
   },
-  tagsContainer: {
+  charCountArea: {
+    top: 'auto',
+    bottom: 10,
+  },
+
+  /* ─── tags ─── */
+  tagsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
+    marginBottom: 24,
   },
   tagChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
     backgroundColor: '#1E293B',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: 'rgba(255,255,255,0.06)',
   },
   tagChipSelected: {
-    backgroundColor: 'rgba(37,99,255,0.2)',
-    borderColor: '#2563FF',
-    borderWidth: 1.5,
-    shadowColor: '#2563FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: 'rgba(37,99,255,0.12)',
+    borderColor: 'rgba(37,99,255,0.6)',
   },
   tagText: {
-    color: '#64748B',
-    fontSize: 13,
-    fontWeight: '700',
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: '600',
   },
   tagTextSelected: {
     color: '#2563FF',
   },
-  rankContainer: {
+
+  /* ─── rank ─── */
+  rankBox: {
     backgroundColor: '#1E293B',
-    borderRadius: 18,
-    padding: 20,
+    borderRadius: 14,
+    padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  rankSection: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   rankLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
-    color: '#64748B',
-    marginBottom: 12,
+    color: '#475569',
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: 1,
+    marginBottom: 10,
   },
-  rankGrid: {
+  rankRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
-  rankButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 10,
+  rankBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  rankButtonText: {
-    fontSize: 13,
+  rankBtnText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#475569',
   },
-  rankButtonTextSelected: {
+  rankBtnTextSel: {
     color: '#FFFFFF',
     fontWeight: '800',
   },
-  rankDivider: {
+  divider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    marginVertical: 4,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    marginVertical: 14,
   },
-  playerCard: {
+
+  /* ─── players counter ─── */
+  playerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#1E293B',
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 4,
+    marginBottom: 28,
   },
-  playerButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(37,99,255,0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  playerBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(37,99,255,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(37,99,255,0.25)',
-  },
-  playerButtonDisabled: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.06)',
-  },
-  playerButtonInner: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  playerDisplay: {
+  playerBtnDisabled: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  playerValueWrap: {
     alignItems: 'center',
   },
-  playerNumber: {
-    fontSize: 52,
+  playerValue: {
+    fontSize: 44,
     fontWeight: '900',
     color: '#2563FF',
     letterSpacing: -2,
+    lineHeight: 48,
   },
-  playerLabel: {
+  playerUnit: {
     fontSize: 11,
-    color: '#64748B',
-    fontWeight: '700',
-    marginTop: 4,
+    color: '#475569',
+    fontWeight: '600',
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: 1,
   },
-  submitButton: {
+
+  /* ─── submit ─── */
+  submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
     backgroundColor: '#2563FF',
-    paddingVertical: 18,
-    borderRadius: 16,
-    marginTop: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
     shadowColor: '#2563FF',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  submitButtonDisabled: {
-    backgroundColor: '#334155',
+  submitBtnDisabled: {
+    backgroundColor: '#1E293B',
     shadowOpacity: 0,
   },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
+  submitText: {
+    fontSize: 15,
+    fontWeight: '700',
     color: '#FFFFFF',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  bottomSpacer: {
-    height: 60,
+    letterSpacing: 0.5,
   },
 });
