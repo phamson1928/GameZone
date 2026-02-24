@@ -281,7 +281,7 @@ model GroupMember {
   userId  String
   role    GroupMemberRole
 
-  group Group @relation(fields: [groupId], references: [id])
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id])
 
   joinedAt DateTime @default(now())
@@ -294,13 +294,12 @@ model GroupMember {
 ////////////////////
 
 model Message {
-  id        String  @id @default(uuid())
-  groupId   String
-  senderId  String
-  content   String
-  isDeleted Boolean @default(false)
+  id       String @id @default(uuid())
+  groupId  String
+  senderId String
+  content  String @db.VarChar(2000)
 
-  group  Group @relation(fields: [groupId], references: [id])
+  group  Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
   sender User  @relation(fields: [senderId], references: [id])
 
   createdAt DateTime @default(now())

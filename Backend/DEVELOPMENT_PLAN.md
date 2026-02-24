@@ -220,6 +220,16 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 - [x] `DELETE /messages/admin/:id` - Force delete message (Admin)
 - [ ] `GET /admin/messages/flagged` - Messages vi phạm (Auto-flagged, Admin)
 
+### 6.5 Storage Optimization ✅ COMPLETED
+
+- [x] `onDelete: Cascade` cho `GroupMember` → `Group` (xóa group → tự xóa members)
+- [x] `onDelete: Cascade` cho `Message` → `Group` (xóa group → tự xóa messages)
+- [x] `dissolveGroup()` và `adminForceDissolve()` → chuyển sang **hard delete** group
+- [x] `deleteMessage()` và `adminDeleteMessage()` → chuyển sang **hard delete** message
+- [x] Giới hạn content 2000 ký tự (`@db.VarChar(2000)` + gateway validation)
+- [x] `MessagesCleanupService` — Cron job tự động xóa messages cũ hơn 30 ngày (mỗi ngày 3:00 AM)
+- [x] `MessagesCleanupService` — Cron job xóa messages của group dissolved (mỗi ngày 3:05 AM)
+
 ---
 
 ## Phase 7: Notifications (Week 10-11)
@@ -296,6 +306,10 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 
 - [x] Database indexing (Zone: title, ownerId, gameId, status, createdAt)
 - [x] Query optimization ($transaction cho create/update, total count cho pagination)
+- [x] **Message retention policy**: Auto-purge messages > 30 ngày (Cron 3:00 AM)
+- [x] **Hard delete**: messages và groups xóa thật, không soft delete → tiết kiệm storage
+- [x] **Cascade delete**: Zone → Group → GroupMember + Message (tự dọn khi giải tán)
+- [x] **Content limit**: Message giới hạn 2000 ký tự (VarChar + gateway validation)
 - [ ] Caching với Redis (optional)
 - [x] Rate limiting (Global: 100 req/min, Auth: 5-10 req/min)
 

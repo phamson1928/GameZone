@@ -33,7 +33,7 @@ export class MessagesService {
       this.prisma.message.findMany({
         where: {
           groupId,
-          isDeleted: false,// Không lấy tin nhắn đã xóa
+          // Hard delete: messages đã xóa không còn trong DB
         },
         skip,
         take: limit,
@@ -46,7 +46,7 @@ export class MessagesService {
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.message.count({
-        where: { groupId, isDeleted: false },
+        where: { groupId },
       }),
     ]);
 
@@ -62,12 +62,15 @@ export class MessagesService {
   }
 
   /**
- * Tạo một tin nhắn mới vào DB.
- * Hàm này được gọi từ ChatGateway (WebSocket), không phải từ REST API.
- */
+   * Tạo một tin nhắn mới vào DB.
+   * Hàm này được gọi từ ChatGateway (WebSocket), không phải từ REST API.
+   */
   async createMessage(senderId: string, groupId: string, content: string) {
+    // Giới hạn độ dài content (backup validation, DTO đã chặn phá́ ở gateway)
+    const trimmed = content.trim().slice(0, 2000);
+
     return this.prisma.message.create({
-      data: { groupId, senderId, content },
+      data: { groupId, senderId, content: trimmed },
       include: {
         sender: {
           select: { id: true, username: true, avatarUrl: true },
@@ -77,9 +80,9 @@ export class MessagesService {
   }
 
   /**
- * Người dùng xóa tin nhắn của chính mình (soft delete).
- * Chỉ người gửi mới được xóa.
- */
+   * Người dùng xóa tin nhắn của chính mình (hard delete).
+   * Chỉ người gửi mới được xóa.
+   */
   async deleteMessage(userId: string, messageId: string) {
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
@@ -93,9 +96,9 @@ export class MessagesService {
       throw new ForbiddenException('Bạn chỉ có thể xoá tin nhắn của mình');
     }
 
-    await this.prisma.message.update({
+    // Hard delete — xóa hẳn khỏi DB để tiết kiệm storage
+    await this.prisma.message.delete({
       where: { id: messageId },
-      data: { isDeleted: true },
     });
 
     return { message: 'Đã xóa tin nhắn' };
@@ -140,7 +143,7 @@ export class MessagesService {
   }
 
   /**
-   * Admin xóa bất kỳ tin nhắn nào (soft delete).
+   * Admin xóa bất kỳ tin nhắn nào (hard delete).
    */
   async adminDeleteMessage(messageId: string) {
     const message = await this.prisma.message.findUnique({
@@ -151,9 +154,9 @@ export class MessagesService {
       throw new NotFoundException('Tin nhắn không tồn tại');
     }
 
-    await this.prisma.message.update({
+    // Hard delete — xóa hẳn khỏi DB
+    await this.prisma.message.delete({
       where: { id: messageId },
-      data: { isDeleted: true },
     });
 
     return { message: 'Admin đã xóa tin nhắn' };

@@ -34,7 +34,7 @@ Client ◀── Response ◀── Server    (server có thể push bất cứ 
 | # | Chủ đề | Ghi chú |
 |---|---|---|
 | 5 | **JWT trong WebSocket** — khác HTTP ở chỗ không có header `Authorization` thông thường, token gửi qua `handshake.auth` | Đọc phần dưới |
-| 6 | **Prisma soft delete** — dùng `isDeleted: true` thay vì xóa thật | Bạn đã biết Prisma, chỉ cần thêm field boolean |
+| 6 | **Hard delete vs Soft delete** — hệ thống hiện tại dùng **hard delete** cho messages để tiết kiệm storage | Xem `messages.service.ts` |
 | 7 | **Database indexing** — tại sao cần `@@index([groupId, createdAt])` cho chat | [Prisma docs - Indexes](https://www.prisma.io/docs/concepts/components/prisma-schema/indexes) |
 
 ---
@@ -109,10 +109,10 @@ npm install @nestjs/websockets @nestjs/platform-socket.io socket.io
 
 | Hàm | Làm gì |
 |---|---|
-| `getGroupMessages(userId, groupId, page, limit)` | Kiểm tra user có trong group không → lấy tin nhắn (bỏ qua isDeleted=true) |
-| `createMessage(senderId, groupId, content)` | INSERT 1 tin nhắn vào DB (được gọi từ Gateway, không phải REST) |
-| `deleteMessage(userId, messageId)` | Chỉ người gửi được xóa → set `isDeleted = true` |
-| `adminDeleteMessage(messageId)` | Admin xóa bất kỳ tin nhắn |
+| `getGroupMessages(userId, groupId, page, limit)` | Kiểm tra user có trong group không → lấy tin nhắn |
+| `createMessage(senderId, groupId, content)` | INSERT 1 tin nhắn vào DB (gọi từ Gateway, không phải REST). Content tối đa 2000 ký tự |
+| `deleteMessage(userId, messageId)` | Chỉ người gửi được xóa → **hard delete** (xóa hẳn khỏi DB) |
+| `adminDeleteMessage(messageId)` | Admin xóa bất kỳ tin nhắn → **hard delete** |
 
 **`messages.controller.ts`** có 4 endpoint:
 

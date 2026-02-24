@@ -9,7 +9,7 @@ import { GroupMemberRole } from '@prisma/client';
 
 @Injectable()
 export class GroupsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /**
    * Tự động tạo Group khi Zone đủ người approved.
@@ -161,7 +161,8 @@ export class GroupsService {
   }
 
   /**
-   * DELETE /groups/:id - Giải tán group (leader only, soft delete)
+   * DELETE /groups/:id - Giải tán group (leader only, hard delete)
+   * Nhờ onDelete: Cascade, xóa group sẽ tự động xóa GroupMember + Message
    */
   async dissolveGroup(userId: string, groupId: string) {
     const group = await this.prisma.group.findUnique({
@@ -176,19 +177,12 @@ export class GroupsService {
       throw new ForbiddenException('Chỉ leader mới được giải tán group');
     }
 
-    // Soft delete group + close zone
-    await this.prisma.$transaction([
-      this.prisma.group.update({
-        where: { id: groupId },
-        data: { isActive: false },
-      }),
-      this.prisma.zone.update({
-        where: { id: group.zoneId },
-        data: { status: 'CLOSED' },
-      }),
-    ]);
+    // Xóa Zone -> Chuỗi Cascade sẽ tự động xóa: Group, GroupMember và Message
+    await this.prisma.zone.delete({
+      where: { id: group.zoneId },
+    });
 
-    return { message: 'Group đã được giải tán' };
+    return { message: 'Nhóm và bài đăng đã được xóa hoàn toàn' };
   }
 
   /**
@@ -359,7 +353,8 @@ export class GroupsService {
   }
 
   /**
-   * DELETE /groups/admin/:id - Force dissolve group (Admin)
+   * DELETE /groups/admin/:id - Force dissolve group (Admin, hard delete)
+   * Nhờ onDelete: Cascade, xóa group sẽ tự động xóa GroupMember + Message
    */
   async adminForceDissolve(groupId: string) {
     const group = await this.prisma.group.findUnique({
@@ -370,18 +365,12 @@ export class GroupsService {
       throw new NotFoundException('Group không tồn tại');
     }
 
-    await this.prisma.$transaction([
-      this.prisma.group.update({
-        where: { id: groupId },
-        data: { isActive: false },
-      }),
-      this.prisma.zone.update({
-        where: { id: group.zoneId },
-        data: { status: 'CLOSED' },
-      }),
-    ]);
+    // Admin xóa Zone -> Dọn dẹp sạch toàn bộ dữ liệu liên quan
+    await this.prisma.zone.delete({
+      where: { id: group.zoneId },
+    });
 
-    return { message: 'Group đã được giải tán bởi admin' };
+    return { message: 'Nhóm đã được admin xóa hoàn toàn khỏi hệ thống' };
   }
 
   /**

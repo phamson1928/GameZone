@@ -136,6 +136,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new WsException('Nội dung tin nhắn không được để trống');
     }
 
+    if (data.content.trim().length > 2000) {
+      throw new WsException('Tin nhắn không được vượt quá 2000 ký tự');
+    }
+
     // Lưu vào DB thông qua MessagesService
     const message = await this.messagesService.createMessage(
       userId,

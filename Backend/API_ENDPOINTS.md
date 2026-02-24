@@ -2043,7 +2043,9 @@ Rời khỏi group (chỉ member, leader phải giải tán thay vì rời).
 
 ### DELETE `/groups/:id`
 
-Giải tán group (chỉ leader). Soft delete group (isActive = false), zone chuyển sang CLOSED.
+Giải tán group (chỉ leader). Xóa hoàn toàn **Zone** — tự động xóa sạch Group, Members và Messages liên quan nhờ cơ chế Cascade.
+
+> ⚠️ **Lưu ý:** Hành động này sẽ **xóa vĩnh viễn** bài đăng (Zone) và toàn bộ lịch sử chat. Không thể hoàn tác.
 
 **Auth Required:** Yes (Leader)
 
@@ -2056,7 +2058,7 @@ Giải tán group (chỉ leader). Soft delete group (isActive = false), zone chu
 
 ```json
 {
-  "message": "Group đã được giải tán"
+  "message": "Nhóm và bài đăng đã được xóa hoàn toàn"
 }
 ```
 
@@ -2234,7 +2236,9 @@ Danh sách tất cả groups (Admin only, pagination).
 
 ### DELETE `/groups/admin/:id`
 
-Force dissolve group (Admin). Soft delete group + đóng zone liên quan.
+Force xóa nhóm (Admin). **Xóa sạch Zone** và toàn bộ dữ liệu liên quan (Group, Members, Messages).
+
+> ⚠️ **Lưu ý:** Hành động này **không thể hoàn tác**.
 
 **Auth Required:** Yes (Admin)
 
@@ -2247,7 +2251,7 @@ Force dissolve group (Admin). Soft delete group + đóng zone liên quan.
 
 ```json
 {
-  "message": "Group đã được giải tán bởi admin"
+  "message": "Nhóm đã được admin xóa hoàn toàn khỏi hệ thống"
 }
 ```
 
@@ -2332,7 +2336,6 @@ Lấy lịch sử tin nhắn của group. Chỉ member mới được xem.
         "groupId": "group-uuid",
         "senderId": "user-uuid",
         "content": "Hello team!",
-        "isDeleted": false,
         "createdAt": "2026-02-23T15:43:52.000Z",
         "sender": {
           "id": "user-uuid",
@@ -2352,11 +2355,13 @@ Lấy lịch sử tin nhắn của group. Chỉ member mới được xem.
 }
 ```
 
+> **Lưu ý:** Response không bao gồm `isDeleted` vì hệ thống dùng **hard delete** — messages đã xóa sẽ không còn trong DB.
+
 ---
 
 ### DELETE `/messages/:id`
 
-Xóa tin nhắn của chính mình (soft delete). Chỉ người gửi mới được xóa.
+Xóa tin nhắn của chính mình (**hard delete**). Chỉ người gửi mới được xóa. Tin nhắn bị xóa vĩnh viễn khỏi database.
 
 **Auth Required:** Yes
 
@@ -2399,7 +2404,9 @@ Rời khỏi phòng của group.
 #### `sendMessage`
 Gửi tin nhắn mới tới group.
 - **Payload:** `{ "groupId": "string", "content": "string" }`
+- **Constraint:** `content` tối đa **2000 ký tự**
 - **Ack:** `{ "success": boolean }`
+- **Error (vượt giới hạn):** WsException `"Tin nhắn không được vượt quá 2000 ký tự"`
 
 #### `typing`
 Thông báo trạng thái đang nhập tin nhắn.
@@ -2429,7 +2436,7 @@ Broadcast trạng thái đang nhập của một thành viên cho những ngư�
 
 ### GET `/messages/admin`
 
-Admin lấy danh sách tất cả messages trong hệ thống (pagination).
+Admin lấy danh sách tất cả messages trong hệ thống (pagination). Chỉ trả về messages còn tồn tại (hệ thống dùng hard delete).
 
 **Auth Required:** Yes (Admin)
 
@@ -2445,7 +2452,7 @@ Admin lấy danh sách tất cả messages trong hệ thống (pagination).
 
 ### DELETE `/messages/admin/:id`
 
-Admin xóa bất kỳ tin nhắn nào (soft delete).
+Admin xóa bất kỳ tin nhắn nào (**hard delete**). Tin nhắn bị xóa vĩnh viễn khỏi database.
 
 **Auth Required:** Yes (Admin)
 
