@@ -70,6 +70,8 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 - [x] Hash password với bcrypt (12 salt rounds)
 - [x] JWT strategy (Passport.js)
 - [x] Rate limiting cho auth endpoints (5-10 req/min)
+- [x] `POST /auth/forgot-password` - Quên mật khẩu (gửi email reset link, hiệu lực 15 phút)
+- [x] `POST /auth/reset-password` - Đặt lại mật khẩu bằng token
 - [ ] Token blacklist (optional)
 
 ### 2.3 User Module
@@ -328,7 +330,7 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 
 | Module                 | Endpoints         |
 | ---------------------- | ----------------- |
-| Auth                   | 8 (incl. Google)  |
+| Auth                   | 10 (incl. Google + forgot/reset password) |
 | Users                  | 4                 |
 | **Admin - Users**      | **6**             |
 | Games                  | 5                 |

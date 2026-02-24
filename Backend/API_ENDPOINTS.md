@@ -297,7 +297,172 @@ curl -s -X POST http://localhost:3000/auth/logout \
 
 ---
 
+### POST `/auth/forgot-password`
+
+Quên mật khẩu — gửi email chứa link đặt lại mật khẩu.
+
+**Auth Required:** No
+
+**Rate Limit:** 5 requests/phút
+
+> ⚠️ **Security Note:** Endpoint luôn trả về `200 OK` dù email có tồn tại hay không, để tránh **email enumeration attack**. Chỉ tài khoản LOCAL (đăng ký bằng email/password) mới nhận được email — tài khoản Google-only sẽ bị bỏ qua silently.
+
+```powershell
+Invoke-RestMethod -Method POST -Uri "http://localhost:3000/auth/forgot-password" `
+  -ContentType "application/json" `
+  -Body '{"email": "user@example.com"}'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| email | string | Yes | Email đã đăng ký tài khoản |
+
+**Response (200 OK — luôn trả về response này):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "If an account with this email exists, a password reset link has been sent."
+  },
+  "timestamp": "2026-02-24T12:30:26.343Z"
+}
+```
+
+**Error Responses:**
+
+**400 - Email không đúng định dạng:**
+
+```json
+{
+  "success": false,
+  "message": ["Invalid email format"],
+  "errorCode": "BAD_REQUEST",
+  "statusCode": 400
+}
+```
+
+**429 - Too Many Requests (rate limit):**
+
+```json
+{
+  "success": false,
+  "message": "ThrottlerException: Too Many Requests",
+  "errorCode": "TOO_MANY_REQUESTS",
+  "statusCode": 429
+}
+```
+
+**Flow chi tiết:**
+1. User nhập email → `POST /auth/forgot-password`
+2. Backend tìm user theo email (không tìm thấy → trả về generic message)
+3. Invalidate tất cả token reset cũ chưa dùng của user
+4. Tạo **secure random token** (32 bytes hex via `crypto.randomBytes`)
+5. Lưu **SHA-256 hash** của token vào DB (bảo mật — raw token không bao giờ lưu DB)
+6. Gửi email chứa link: `FRONTEND_URL/auth/reset-password?token=<raw_token>`
+7. Token hết hạn sau **15 phút**
+
+**Environment Variables cần thiết:**
+| Variable | Description | Example |
+|----------|-------------|---------|
+| MAIL_HOST | SMTP server host | `smtp.gmail.com` |
+| MAIL_PORT | SMTP port | `587` |
+| MAIL_USER | SMTP username/email | `noreply@teamzonevn.com` |
+| MAIL_PASS | SMTP password / App Password | `your_app_password` |
+| MAIL_FROM | Sender name + email | `"TeamZoneVN" <noreply@teamzonevn.com>` |
+| FRONTEND_URL | Frontend URL dùng để build reset link | `http://localhost:3001` |
+
+---
+
+### POST `/auth/reset-password`
+
+Đặt lại mật khẩu bằng token nhận từ email.
+
+**Auth Required:** No
+
+**Rate Limit:** 10 requests/phút
+
+```powershell
+Invoke-RestMethod -Method POST -Uri "http://localhost:3000/auth/reset-password" `
+  -ContentType "application/json" `
+  -Body '{"token": "<token_from_email>", "newPassword": "NewPassword123"}'
+```
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| token | string | Yes | Token nhận từ link trong email |
+| newPassword | string | Yes | Mật khẩu mới (min 6, max 100 ký tự) |
+
+**Response (200 OK — thành công):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Password has been reset successfully. Please log in with your new password."
+  },
+  "timestamp": "2026-02-24T12:35:10.123Z"
+}
+```
+
+**Error Responses:**
+
+**404 - Token không tồn tại:**
+
+```json
+{
+  "success": false,
+  "message": "Invalid or expired reset token",
+  "errorCode": "NOT_FOUND",
+  "statusCode": 404
+}
+```
+
+**400 - Token đã được dùng:**
+
+```json
+{
+  "success": false,
+  "message": "This reset token has already been used",
+  "errorCode": "BAD_REQUEST",
+  "statusCode": 400
+}
+```
+
+**400 - Token đã hết hạn (quá 15 phút):**
+
+```json
+{
+  "success": false,
+  "message": "Reset token has expired. Please request a new one.",
+  "errorCode": "BAD_REQUEST",
+  "statusCode": 400
+}
+```
+
+**400 - Mật khẩu không đủ yêu cầu:**
+
+```json
+{
+  "success": false,
+  "message": ["Password must be at least 6 characters"],
+  "errorCode": "BAD_REQUEST",
+  "statusCode": 400
+}
+```
+
+**Security behaviors:**
+- Token chỉ được sử dụng **1 lần** (đánh dấu `used = true` ngay sau khi dùng)
+- DB chỉ lưu **SHA-256 hash** của token, không lưu raw token
+- Sau khi reset thành công: **tất cả refresh tokens bị revoke** (đăng xuất tất cả thiết bị)
+- Toàn bộ quá trình update password + mark used + revoke tokens thực hiện trong **1 DB transaction**
+
+---
+
 ## 3. Users
+
 
 ### GET `/users/me`
 

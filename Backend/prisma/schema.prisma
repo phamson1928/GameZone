@@ -101,8 +101,9 @@ model User {
   authProvider AuthProvider @default(LOCAL)
   googleId     String?      @unique
 
-  profile       UserProfile?
-  refreshTokens RefreshToken[]
+  profile             UserProfile?
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
 
   gameProfiles  UserGameProfile[]
   zones         Zone[]            @relation("ZoneOwner")
@@ -135,6 +136,18 @@ model RefreshToken {
   revoked   Boolean  @default(false)
 
   user User @relation(fields: [userId], references: [id])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
 }
 
 ////////////////////

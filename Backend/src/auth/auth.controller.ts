@@ -28,6 +28,8 @@ import {
   AuthResponseDto,
   TokensResponseDto,
   GoogleAuthDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
 } from './dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -182,5 +184,69 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Chưa xác thực' })
   async logoutAll(@CurrentUser() user: JwtPayload): Promise<void> {
     await this.authService.logoutAll(user.sub);
+  }
+
+  // ========================
+  // Forgot / Reset Password
+  // ========================
+
+  @Post('forgot-password')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
+  @ApiOperation({
+    summary: 'Quên mật khẩu — gửi link đặt lại qua email',
+    description:
+      'Gửi email chứa link đặt lại mật khẩu (hiệu lực 15 phút). Luôn trả 200 để tránh email enumeration.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Email đặt lại mật khẩu đã được gửi (nếu email tồn tại)',
+    schema: {
+      example: {
+        success: true,
+        data: {
+          message:
+            'If an account with this email exists, a password reset link has been sent.',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 429, description: 'Quá nhiều request' })
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+  ): Promise<{ message: string }> {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('reset-password')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
+  @ApiOperation({
+    summary: 'Đặt lại mật khẩu bằng token',
+    description:
+      'Nhận token từ email và mật khẩu mới. Token chỉ dùng được 1 lần và hết hạn sau 15 phút.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Đặt lại mật khẩu thành công',
+    schema: {
+      example: {
+        success: true,
+        data: {
+          message:
+            'Password has been reset successfully. Please log in with your new password.',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Token không hợp lệ hoặc đã hết hạn' })
+  @ApiResponse({ status: 404, description: 'Token không tồn tại' })
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+  ): Promise<{ message: string }> {
+    return this.authService.resetPassword(dto);
   }
 }

@@ -3,10 +3,13 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import * as nodemailer from 'nodemailer';
 import { OAuth2Client, type TokenPayload } from 'google-auth-library';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -16,6 +19,8 @@ import {
   AuthResponseDto,
   TokensResponseDto,
   GoogleAuthDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
 } from './dto';
 import { JwtPayload } from '../common/interfaces/request.interface';
 
@@ -25,7 +30,9 @@ export class AuthService {
   private readonly ACCESS_TOKEN_EXPIRES = '15m';
   private readonly REFRESH_TOKEN_EXPIRES = '7d';
   private readonly REFRESH_TOKEN_EXPIRES_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+  private readonly RESET_TOKEN_EXPIRES_MS = 15 * 60 * 1000; // 15 minutes
   private readonly googleClient: OAuth2Client;
+  private readonly mailer: nodemailer.Transporter;
 
   constructor(
     private prisma: PrismaService,
@@ -35,6 +42,17 @@ export class AuthService {
     this.googleClient = new OAuth2Client(
       this.configService.get<string>('GOOGLE_CLIENT_ID'),
     );
+
+    // Setup nodemailer transporter (SMTP from env)
+    this.mailer = nodemailer.createTransport({
+      host: this.configService.get<string>('MAIL_HOST') || 'smtp.gmail.com',
+      port: parseInt(this.configService.get<string>('MAIL_PORT') || '587'),
+      secure: false,
+      auth: {
+        user: this.configService.get<string>('MAIL_USER'),
+        pass: this.configService.get<string>('MAIL_PASS'),
+      },
+    });
   }
 
   /**
@@ -206,6 +224,165 @@ export class AuthService {
       },
       data: { revoked: true },
     });
+  }
+
+  /**
+   * Forgot password — generate reset token and send email
+   */
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
+    const { email } = dto;
+
+    // Find user by email — always return success to prevent email enumeration
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user || !user.passwordHash) {
+      // Return generic message for security (don't reveal if email exists or is Google-only)
+      return {
+        message:
+          'If an account with this email exists, a password reset link has been sent.',
+      };
+    }
+
+    // Invalidate any existing unused tokens for this user
+    await this.prisma.passwordResetToken.updateMany({
+      where: { userId: user.id, used: false },
+      data: { used: true },
+    });
+
+    // Generate a secure random token
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
+
+    const expiresAt = new Date(Date.now() + this.RESET_TOKEN_EXPIRES_MS);
+
+    // Store hashed token in DB
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token: tokenHash,
+        expiresAt,
+      },
+    });
+
+    // Build reset link
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+    const resetLink = `${frontendUrl}/auth/reset-password?token=${rawToken}`;
+
+    // Send email (fire & forget — don't block response if email fails)
+    const mailFrom =
+      this.configService.get<string>('MAIL_FROM') ||
+      '"TeamZoneVN" <noreply@teamzonevn.com>';
+
+    this.mailer
+      .sendMail({
+        from: mailFrom,
+        to: user.email,
+        subject: '[TeamZoneVN] Đặt lại mật khẩu',
+        html: this.buildResetEmailHtml(user.username, resetLink),
+      })
+      .catch((err: unknown) => {
+        console.error('[AuthService] Failed to send reset email:', err);
+      });
+
+    return {
+      message:
+        'If an account with this email exists, a password reset link has been sent.',
+    };
+  }
+
+  /**
+   * Reset password — verify token and update password
+   */
+  async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
+    const { token, newPassword } = dto;
+
+    // Hash the incoming raw token to compare with DB
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    const resetRecord = await this.prisma.passwordResetToken.findUnique({
+      where: { token: tokenHash },
+      include: { user: true },
+    });
+
+    if (!resetRecord) {
+      throw new NotFoundException('Invalid or expired reset token');
+    }
+
+    if (resetRecord.used) {
+      throw new BadRequestException('This reset token has already been used');
+    }
+
+    if (resetRecord.expiresAt < new Date()) {
+      throw new BadRequestException('Reset token has expired. Please request a new one.');
+    }
+
+    if (resetRecord.user.status === 'BANNED') {
+      throw new UnauthorizedException('Your account has been banned');
+    }
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+
+    // Update password and mark token as used in transaction
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: resetRecord.userId },
+        data: { passwordHash },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: resetRecord.id },
+        data: { used: true },
+      }),
+      // Revoke all existing refresh tokens for security
+      this.prisma.refreshToken.updateMany({
+        where: { userId: resetRecord.userId, revoked: false },
+        data: { revoked: true },
+      }),
+    ]);
+
+    return { message: 'Password has been reset successfully. Please log in with your new password.' };
+  }
+
+  /**
+   * Build HTML email template for password reset
+   */
+  private buildResetEmailHtml(username: string, resetLink: string): string {
+    return `
+      <!DOCTYPE html>
+      <html lang="vi">
+      <head>
+        <meta charset="UTF-8" />
+        <title>Đặt lại mật khẩu - TeamZoneVN</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; background-color: #0f0f1a; color: #e0e0ff; margin: 0; padding: 20px;">
+        <div style="max-width: 480px; margin: 0 auto; background: #1a1a2e; border-radius: 12px; padding: 32px; border: 1px solid #7c3aed;">
+          <h1 style="color: #a78bfa; margin-bottom: 8px;">🎮 TeamZoneVN</h1>
+          <h2 style="margin-top: 0;">Đặt lại mật khẩu</h2>
+          <p>Xin chào <strong>${username}</strong>,</p>
+          <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
+          <p>Nhấn vào nút bên dưới để đặt mật khẩu mới. Link có hiệu lực trong <strong>15 phút</strong>.</p>
+          <div style="text-align: center; margin: 28px 0;">
+            <a href="${resetLink}"
+               style="background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; text-decoration: none;
+                      padding: 14px 28px; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block;">
+              Đặt lại mật khẩu
+            </a>
+          </div>
+          <p style="font-size: 13px; color: #9ca3af;">Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này. Tài khoản của bạn vẫn an toàn.</p>
+          <p style="font-size: 12px; color: #6b7280;">Hoặc copy link sau vào trình duyệt:<br/><span style="color: #a78bfa; word-break: break-all;">${resetLink}</span></p>
+          <hr style="border-color: #374151; margin: 24px 0;"/>
+          <p style="font-size: 12px; color: #6b7280; text-align: center;">© 2026 TeamZoneVN. Tìm đồng đội, chinh phục thử thách.</p>
+        </div>
+      </body>
+      </html>
+    `;
   }
 
   /**
