@@ -5,10 +5,9 @@ import {
   View,
   TouchableOpacity,
   FlatList,
-  Image,
   Alert,
-  ActivityIndicator,
-} from 'react-native';
+  ActivityIndicator} from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, ChevronRight } from 'lucide-react-native';
@@ -75,7 +74,7 @@ export const AddGameProfileScreen = () => {
       ]}
       onPress={() => setSelectedGame(item)}
     >
-      <Image source={{ uri: item.iconUrl }} style={styles.gameIcon} />
+      <Image source={{ uri: item.iconUrl }} style={styles.gameIcon}  contentFit="cover" transition={500} cachePolicy="disk"/>
       <Text style={styles.gameName} numberOfLines={1}>
         {item.name}
       </Text>

@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   RefreshControl,
   ScrollView,
-  Image,
   Modal,
   Pressable,
   TextInput,
   Animated,
-  Dimensions,
+  Dimensions
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
@@ -31,6 +31,7 @@ import {
   Monitor,
   Smartphone,
   Gamepad,
+  Trophy,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -49,7 +50,7 @@ import { getRankDisplay } from '../utils/rank';
 import { useAuthStore } from '../store/useAuthStore';
 import { STRINGS } from '../constants/strings';
 
-const GAME_CARD_WIDTH = 100;
+const GAME_CARD_WIDTH = 180;
 
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString);
@@ -165,6 +166,18 @@ export const HomeScreen = () => {
     },
   });
 
+  const { data: myJoinRequests } = useQuery({
+    queryKey: ['my-join-requests'],
+    queryFn: async () => {
+      const response = await apiClient.get('/users/me/join-requests');
+      const raw = response.data;
+      if (Array.isArray(raw)) return raw as any[];
+      if (Array.isArray(raw?.data)) return raw.data as any[];
+      return [] as any[];
+    },
+    enabled: !!user,
+  });
+
   const handleNotificationPress = (item: NotificationItem) => {
     const updated = notifications.map(n =>
       n.id === item.id ? { ...n, read: true } : n,
@@ -182,8 +195,9 @@ export const HomeScreen = () => {
     <Modal
       visible={showFilterModal}
       transparent
-      animationType="slide"
+      animationType="fade"
       onRequestClose={() => setShowFilterModal(false)}
+      statusBarTranslucent
     >
       <Pressable
         style={styles.modalOverlay}
@@ -254,14 +268,12 @@ export const HomeScreen = () => {
         }
         activeOpacity={0.8}
       >
-        <View style={[styles.gameCardImageContainer, { shadowColor: accentColor }]}>
-          <Image source={{ uri: game.iconUrl }} style={styles.gameCardImage} />
+        <View style={styles.gameCardImageContainer}>
+          <Image source={{ uri: game.bannerUrl }} style={styles.gameCardImage} contentFit="cover" transition={500} cachePolicy="disk" />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.85)']}
             style={styles.gameCardOverlay}
           />
-          {/* Top highlight line */}
-          <View style={[styles.gameCardTopLine, { backgroundColor: accentColor }]} />
           <View style={styles.gameCardBadge}>
             {game.platforms && game.platforms.length > 0 ? (
               <View style={styles.platformBadges}>
@@ -304,100 +316,95 @@ export const HomeScreen = () => {
   const renderZoneItem = ({ item }: { item: Zone }) => {
     const hasMic = item.tags?.some(t => t.tag?.name?.toLowerCase().includes('mic')) ?? false;
     const statusCfg = getStatusConfig(item.status);
-
-    // Player progress
     const approvedCount = item._count?.joinRequests ?? 0;
     const currentPlayers = approvedCount + 1;
-    const maxPlayers = item.requiredPlayers;
+    const maxPlayers = item.requiredPlayers + 1;
     const progress = Math.min(currentPlayers / (maxPlayers || 1), 1);
+    const otherTags = item.tags?.filter(t => !t.tag?.name?.toLowerCase().includes('mic')).slice(0, 2) || [];
+    const hasPending = Array.isArray(myJoinRequests)
+      ? myJoinRequests.some((r: any) => r.zoneId === item.id && r.status === 'PENDING')
+      : false;
 
     return (
       <TouchableOpacity
         style={styles.zoneCard}
         onPress={() => navigation.navigate('ZoneDetails', { zoneId: item.id })}
-        activeOpacity={0.88}
+        activeOpacity={0.85}
       >
-        {/* Top colored accent line */}
-        <LinearGradient
-          colors={['#2563FF', '#7C3AED']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.zoneCardTopLine}
-        />
-
         <View style={styles.zoneContent}>
-          {/* Row 1: Game tag + Status Badge */}
+          {/* Row 1: Game name + Status badge */}
           <View style={styles.zoneTopRow}>
-            <Text style={styles.zoneGameTag}>{item.game?.name || 'GAME'}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
-              <View style={[styles.statusDot, { backgroundColor: statusCfg.color }]} />
-              <Text style={[styles.statusBadgeText, { color: statusCfg.color }]}>
-                {statusCfg.label}
+            <Text style={styles.zoneGameTag} numberOfLines={1}>{item.game?.name || 'GAME'}</Text>
+            <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+              {hasPending && (
+                <View style={styles.pendingBadge}>
+                  <Text style={styles.pendingBadgeText}>Đã gửi YC</Text>
+                </View>
+              )}
+              <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
+                <View style={[styles.statusDot, { backgroundColor: statusCfg.color }]} />
+                <Text style={[styles.statusBadgeText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Row 2: Zone title */}
+          <Text style={styles.zoneTitle} numberOfLines={1}>{item.title}</Text>
+
+          {/* Row 3: Host + Rank */}
+          <View style={styles.zoneMeta}>
+            <View style={styles.zoneHostRow}>
+              <View style={styles.hostAvatar}>
+                {item.owner.avatarUrl ? (
+                  <Image source={{ uri: item.owner.avatarUrl }} style={styles.hostAvatarImg} contentFit="cover" cachePolicy="disk" />
+                ) : (
+                  <Text style={styles.hostAvatarText}>{item.owner.username.charAt(0).toUpperCase()}</Text>
+                )}
+              </View>
+              <Text style={styles.hostName} numberOfLines={1}>{item.owner.username}</Text>
+            </View>
+            <View style={styles.rankPill}>
+              <Trophy size={10} color="#F59E0B" />
+              <Text style={styles.rankPillText} numberOfLines={1}>
+                {getRankDisplay(item.minRankLevel)} — {getRankDisplay(item.maxRankLevel)}
               </Text>
             </View>
           </View>
 
-          {/* Row 2: Title + Avatar */}
-          <View style={styles.zoneMiddleRow}>
-            <View style={styles.zoneTitleArea}>
-              <Text style={styles.zoneTitle} numberOfLines={1}>{item.title}</Text>
-              <View style={styles.zoneHostRow}>
-                <View style={styles.hostAvatar}>
-                  {item.owner.avatarUrl ? (
-                    <Image source={{ uri: item.owner.avatarUrl }} style={styles.hostAvatarImg} />
-                  ) : (
-                    <Text style={styles.hostAvatarText}>
-                      {item.owner.username.charAt(0).toUpperCase()}
-                    </Text>
-                  )}
+          {/* Row 4: Tags */}
+          {(hasMic || otherTags.length > 0) && (
+            <View style={styles.tagsRow}>
+              {hasMic && (
+                <View style={[styles.tagPill, styles.tagPillMic]}>
+                  <Mic size={9} color="#2563FF" />
+                  <Text style={[styles.tagPillText, { color: '#2563FF' }]}>VOICE</Text>
                 </View>
-                <Text style={styles.hostName} numberOfLines={1}>{item.owner.username}</Text>
-                <View style={styles.dotSep} />
-                <Clock size={11} color={theme.colors.textMuted} />
-                <Text style={styles.zoneTime}>{formatTimeAgo(item.createdAt)}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Row 3: Tags */}
-          <View style={styles.tagsRow}>
-            {hasMic && (
-              <View style={styles.tagPill}>
-                <Mic size={10} color="#2563FF" />
-                <Text style={[styles.tagPillText, { color: '#2563FF' }]}>VOICE ON</Text>
-              </View>
-            )}
-            {item.tags
-              ?.filter(t => !t.tag?.name?.toLowerCase().includes('mic'))
-              .slice(0, 3)
-              .map(t => (
+              )}
+              {otherTags.map(t => (
                 <View key={t.tag.id} style={styles.tagPill}>
                   <Text style={styles.tagPillText}>#{t.tag.name}</Text>
                 </View>
               ))}
-            <View style={[styles.tagPill, { backgroundColor: 'rgba(37,99,255,0.12)' }]}>
-              <Text style={[styles.tagPillText, { color: '#94A3B8' }]}>
-                {getRankDisplay(item.minRankLevel)}
-              </Text>
             </View>
-          </View>
+          )}
 
-          {/* Row 4: Player progress */}
+          {/* Row 5: Player progress */}
           <View style={styles.progressSection}>
-            <View style={styles.progressInfo}>
-              <Users size={12} color={theme.colors.textMuted} />
-              <Text style={styles.progressText}>
-                <Text style={styles.progressCurrent}>{currentPlayers}</Text>
-                <Text style={styles.progressMuted}>/{maxPlayers} players</Text>
-              </Text>
-            </View>
             <View style={styles.progressTrack}>
               <LinearGradient
-                colors={['#2563FF', '#7C3AED']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+                colors={progress >= 1 ? ['#EF4444', '#EF4444'] : ['#2563FF', '#7C3AED']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                 style={[styles.progressFill, { width: `${progress * 100}%` }]}
               />
+            </View>
+            <View style={styles.progressInfo}>
+              <Users size={10} color={theme.colors.textMuted} />
+              <Text style={styles.progressText}>
+                <Text style={styles.progressCurrent}>{currentPlayers}</Text>
+                <Text style={styles.progressMuted}>/{maxPlayers} thành viên</Text>
+              </Text>
+              <Clock size={10} color={theme.colors.textMuted} />
+              <Text style={styles.zoneTime}>{formatTimeAgo(item.createdAt)}</Text>
             </View>
           </View>
         </View>
@@ -480,7 +487,7 @@ export const HomeScreen = () => {
           <View style={styles.userInfo}>
             <View style={styles.userAvatarContainer}>
               {user?.avatarUrl ? (
-                <Image source={{ uri: user.avatarUrl }} style={styles.userAvatar} />
+                <Image source={{ uri: user.avatarUrl }} style={styles.userAvatar} contentFit="cover" transition={500} cachePolicy="disk" />
               ) : (
                 <LinearGradient
                   colors={['#2563FF', '#7C3AED']}
@@ -733,64 +740,67 @@ const styles = StyleSheet.create({
   // Filter Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#1E293B',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: '#0F172A',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     paddingBottom: 40,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.08)',
   },
   modalHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 48,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignSelf: 'center',
     marginTop: 12,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: theme.spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
   },
   modalTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '800',
     color: theme.colors.text,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   modalBody: {
-    padding: theme.spacing.md,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    gap: 12,
   },
   sortOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: 12,
-    marginBottom: 4,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   sortOptionActive: {
-    backgroundColor: 'rgba(37,99,255,0.12)',
+    backgroundColor: 'rgba(37,99,255,0.1)',
+    borderColor: 'rgba(37,99,255,0.3)',
   },
   sortOptionText: {
     fontSize: 15,
     color: theme.colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   sortOptionTextActive: {
     color: theme.colors.primary,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 
   // Categories
@@ -858,17 +868,11 @@ const styles = StyleSheet.create({
   },
   gameCardImageContainer: {
     width: GAME_CARD_WIDTH,
-    height: GAME_CARD_WIDTH * 1.33,
-    borderRadius: 16,
+    height: GAME_CARD_WIDTH * 0.5625, // 16:9 Aspect Ratio
+    borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
     backgroundColor: '#1E293B',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
   },
   gameCardImage: {
     width: '100%',
@@ -880,16 +884,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: '60%',
-  },
-  gameCardTopLine: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    height: '100%',
   },
   gameCardBadge: {
     position: 'absolute',
@@ -943,26 +938,31 @@ const styles = StyleSheet.create({
 
   // Zone Card - New Gaming Dashboard Style
   zoneCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#131C2E',
     marginHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-    borderRadius: 20,
+    marginBottom: theme.spacing.sm,
+    borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 4,
+    borderColor: 'rgba(255,255,255,0.06)',
   },
-  zoneCardTopLine: {
-    height: 2,
-    width: '100%',
+  pendingBadge: {
+    backgroundColor: 'rgba(124,58,237,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(124,58,237,0.35)',
+    borderRadius: 20,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  pendingBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#A78BFA',
   },
   zoneContent: {
-    padding: 16,
-    gap: 12,
+    flex: 1,
+    padding: 14,
+    gap: 8,
   },
   zoneTopRow: {
     flexDirection: 'row',
@@ -971,53 +971,53 @@ const styles = StyleSheet.create({
   },
   zoneGameTag: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '700',
     color: theme.colors.primary,
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
+    flex: 1,
+    marginRight: 8,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 20,
-    gap: 5,
+    gap: 4,
   },
   statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
   statusBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  zoneMiddleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  zoneTitleArea: {
-    flex: 1,
-    gap: 6,
-  },
   zoneTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: theme.colors.text,
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
+  },
+  zoneMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   zoneHostRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flex: 1,
+    marginRight: 8,
   },
   hostAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1029,14 +1029,30 @@ const styles = StyleSheet.create({
   },
   hostAvatarText: {
     color: '#FFFFFF',
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '800',
   },
   hostName: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: theme.colors.textSecondary,
-    maxWidth: 80,
+  },
+  rankPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(245,158,11,0.10)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.2)',
+    flexShrink: 0,
+  },
+  rankPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#F59E0B',
   },
   dotSep: {
     width: 3,
@@ -1045,7 +1061,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.textMuted,
   },
   zoneTime: {
-    fontSize: 11,
+    fontSize: 10,
     color: theme.colors.textMuted,
     fontWeight: '500',
   },
@@ -1054,21 +1070,25 @@ const styles = StyleSheet.create({
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 5,
   },
   tagPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    gap: 3,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.07)',
+  },
+  tagPillMic: {
+    backgroundColor: 'rgba(37,99,255,0.10)',
+    borderColor: 'rgba(37,99,255,0.2)',
   },
   tagPillText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: theme.colors.textSecondary,
     textTransform: 'uppercase',
@@ -1077,33 +1097,36 @@ const styles = StyleSheet.create({
 
   // Progress section
   progressSection: {
-    gap: 6,
-  },
-  progressInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  progressText: {
-    fontSize: 12,
-  },
-  progressCurrent: {
-    color: theme.colors.text,
-    fontWeight: '800',
-  },
-  progressMuted: {
-    color: theme.colors.textMuted,
-    fontWeight: '500',
+    gap: 5,
   },
   progressTrack: {
-    height: 5,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 3,
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 2,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 2,
+  },
+  progressInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  progressText: {
+    fontSize: 11,
+    flex: 1,
+  },
+  progressCurrent: {
+    color: theme.colors.text,
+    fontWeight: '800',
+    fontSize: 11,
+  },
+  progressMuted: {
+    color: theme.colors.textMuted,
+    fontWeight: '500',
+    fontSize: 11,
   },
 
   // Empty State

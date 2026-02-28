@@ -5,18 +5,20 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  Image,
   Alert,
   ActivityIndicator,
   TextInput,
   StatusBar,
   Platform,
+  Modal
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import {
   ArrowLeft,
   Check,
+  X,
   Plus,
   Minus,
   Sparkles,
@@ -24,6 +26,7 @@ import {
   Trophy,
   Gamepad2,
   Tag,
+  AlertCircle
 } from 'lucide-react-native';
 import { apiClient } from '../api/client';
 import { Game, RankLevel, Tag as TagType } from '../types';
@@ -48,11 +51,30 @@ export const CreateZoneScreen = () => {
   const [requiredPlayers, setRequiredPlayers] = useState(2);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
+  // State quản lý custom alert modal
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'error' | 'success' | 'info';
+    onConfirm?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+  });
+
+  const showAlert = (title: string, message: string, type: 'error' | 'success' | 'info' = 'error', onConfirm?: () => void) => {
+    setAlertConfig({ visible: true, title, message, type, onConfirm });
+  };
+  const hideAlert = () => setAlertConfig(prev => ({ ...prev, visible: false }));
+
   const toggleTag = (tagId: string) => {
     setSelectedTagIds(prev => {
       if (prev.includes(tagId)) return prev.filter(t => t !== tagId);
       if (prev.length >= 3) {
-        Alert.alert('Giới hạn', 'Chỉ được chọn tối đa 3 thẻ');
+        showAlert('Giới hạn', 'Chỉ được chọn tối đa 3 thẻ tính cách', 'error');
         return prev;
       }
       return [...prev, tagId];
@@ -96,36 +118,41 @@ export const CreateZoneScreen = () => {
       const response = await apiClient.post('/zones', data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['zones'] });
       queryClient.invalidateQueries({ queryKey: ['myZones'] });
-      Alert.alert('Thành công', 'Đã tạo phòng thành công!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      showAlert('Thành công', 'Đã tạo phòng thành công!', 'success', () => {
+        const newZoneId = data.data?.id || data.id;
+        if (newZoneId) {
+          (navigation as any).navigate('ZoneDetails', { zoneId: newZoneId });
+        } else {
+          (navigation as any).navigate('MainTabs');
+        }
+      });
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Không thể tạo phòng';
-      Alert.alert('Lỗi', Array.isArray(message) ? message[0] : message);
+      showAlert('Lỗi', Array.isArray(message) ? message[0] : message, 'error');
     },
   });
 
   const handleSubmit = () => {
     if (!selectedGameId) {
-      Alert.alert('Lỗi', 'Vui lòng chọn game');
+      showAlert('Thiếu thông tin', 'Vui lòng chọn game', 'error');
       return;
     }
     if (!title.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tiêu đề');
+      showAlert('Thiếu thông tin', 'Vui lòng nhập tiêu đề', 'error');
       return;
     }
     if (!description.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập mô tả');
+      showAlert('Thiếu thông tin', 'Vui lòng nhập mô tả chi tiết', 'error');
       return;
     }
 
     const players = requiredPlayers;
     if (players < 1 || players > 10) {
-      Alert.alert('Lỗi', 'Số người cần từ 1-10');
+      showAlert('Lỗi', 'Số người cần từ 1-10', 'error');
       return;
     }
 
@@ -186,7 +213,7 @@ export const CreateZoneScreen = () => {
                 activeOpacity={0.75}
               >
                 <View style={styles.gameImageWrap}>
-                  <Image source={{ uri: game.iconUrl }} style={styles.gameIcon} />
+                  <Image source={{ uri: game.iconUrl }} style={styles.gameIcon} contentFit="cover" transition={500} cachePolicy="disk" />
                   {selectedGameId === game.id && (
                     <View style={styles.checkOverlay}>
                       <Check color="#FFF" size={12} strokeWidth={3} />
@@ -261,7 +288,7 @@ export const CreateZoneScreen = () => {
         </View>
 
         {/* ── Rank ── */}
-        <SectionLabel icon={<Trophy color="#2563FF" size={15} strokeWidth={2.5} />} title="Yêu cầu rank" />
+        <SectionLabel icon={<Trophy color="#2563FF" size={15} strokeWidth={2.5} />} title="Trình độ" />
         <View style={styles.rankBox}>
           <Text style={styles.rankLabel}>Tối thiểu</Text>
           <View style={styles.rankRow}>
@@ -348,6 +375,34 @@ export const CreateZoneScreen = () => {
 
         <View style={{ height: 60 }} />
       </ScrollView>
+
+      {/* Modal Custom Alert */}
+      <Modal visible={alertConfig.visible} transparent animationType="fade" onRequestClose={hideAlert}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.alertBox}>
+            <View style={[styles.alertIconBox, {
+              backgroundColor: alertConfig.type === 'error' ? 'rgba(239,68,68,0.1)' :
+                alertConfig.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(37,99,255,0.1)'
+            }]}>
+              {alertConfig.type === 'error' ? <X size={24} color="#EF4444" /> :
+                alertConfig.type === 'success' ? <Check size={24} color="#22C55E" /> :
+                  <AlertCircle size={24} color="#2563FF" />}
+            </View>
+            <Text style={styles.alertTitle}>{alertConfig.title}</Text>
+            <Text style={styles.alertMessage}>{alertConfig.message}</Text>
+            <TouchableOpacity
+              style={[styles.alertBtn, alertConfig.type === 'error' ? styles.alertBtnError : styles.alertBtnSuccess]}
+              onPress={() => {
+                hideAlert();
+                if (alertConfig.onConfirm) alertConfig.onConfirm();
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.alertBtnText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -682,5 +737,63 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.5,
+  },
+
+  /* ─── Modals ─── */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  alertBox: {
+    backgroundColor: '#0F172A',
+    width: '100%',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  alertIconBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  alertTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFF',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  alertMessage: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  alertBtn: {
+    width: '100%',
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  alertBtnError: {
+    backgroundColor: '#EF4444',
+  },
+  alertBtnSuccess: {
+    backgroundColor: '#2563FF',
+  },
+  alertBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFF',
   },
 });

@@ -6,11 +6,11 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  Image,
   ActivityIndicator,
   StatusBar,
-  Animated,
+  Animated
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
@@ -105,7 +105,7 @@ export const TeamZoneVNsScreen = () => {
     <View style={styles.heroContainer}>
       <View style={styles.heroImageContainer}>
         {game?.bannerUrl ? (
-          <Image source={{ uri: game.bannerUrl }} style={styles.heroImage} resizeMode="cover" />
+          <Image source={{ uri: game.bannerUrl }} style={styles.heroImage} contentFit="cover" transition={500} cachePolicy="disk" />
         ) : (
           <LinearGradient colors={['#1a1f3a', '#0F172A']} style={styles.heroImage} />
         )}
@@ -124,7 +124,7 @@ export const TeamZoneVNsScreen = () => {
 
         <View style={styles.heroTitleContainer}>
           {game?.iconUrl && (
-            <Image source={{ uri: game.iconUrl }} style={styles.heroGameIcon} />
+            <Image source={{ uri: game.iconUrl }} style={styles.heroGameIcon} contentFit="cover" transition={500} cachePolicy="disk" />
           )}
           <Text style={styles.heroTitle}>{game?.name || gameName}</Text>
           <View style={styles.heroSubRow}>
@@ -150,7 +150,7 @@ export const TeamZoneVNsScreen = () => {
     const borderColor = getBorderColorById(item.id);
     const approvedCount = item._count?.joinRequests ?? 0;
     const currentPlayers = approvedCount + 1;
-    const maxPlayers = item.requiredPlayers;
+    const maxPlayers = item.requiredPlayers + 1;
     const progress = Math.min(currentPlayers / (maxPlayers || 1), 1);
 
     const micTag = item.tags?.find(t => t.tag?.name?.toLowerCase().includes('mic'));
@@ -177,15 +177,12 @@ export const TeamZoneVNsScreen = () => {
         onPress={() => navigation.navigate('ZoneDetails', { zoneId: item.id })}
         activeOpacity={0.88}
       >
-        {/* Accent left border */}
-        <View style={[styles.accentBorder, { backgroundColor: borderColor }]} />
-
         <View style={styles.cardBody}>
           {/* Header: Owner + Status */}
           <View style={styles.cardHeader}>
             <View style={styles.ownerRow}>
               {ownerAvatar ? (
-                <Image source={{ uri: ownerAvatar }} style={styles.ownerAvatar} />
+                <Image source={{ uri: ownerAvatar }} style={styles.ownerAvatar} contentFit="cover" transition={500} cachePolicy="disk" />
               ) : (
                 <View style={[styles.ownerAvatar, { backgroundColor: borderColor + '40' }]}>
                   <Text style={[styles.ownerInitial, { color: borderColor }]}>{ownerInitial}</Text>
@@ -254,7 +251,7 @@ export const TeamZoneVNsScreen = () => {
             <View style={styles.rankBadge}>
               <Trophy size={11} color="#F59E0B" />
               <Text style={styles.rankText}>
-                {getRankDisplay(item.minRankLevel)}
+                {getRankDisplay(item.minRankLevel)} - {getRankDisplay(item.maxRankLevel)}
               </Text>
             </View>
           </View>
@@ -457,7 +454,6 @@ const styles = StyleSheet.create({
 
   // Zone Card
   zoneCard: {
-    flexDirection: 'row',
     backgroundColor: '#1E293B',
     marginHorizontal: theme.spacing.lg,
     marginBottom: 12,
@@ -465,15 +461,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  accentBorder: {
-    width: 3,
-    height: '100%',
   },
   cardBody: {
     flex: 1,

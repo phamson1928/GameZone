@@ -106,3 +106,60 @@ export interface PaginatedResponse<T> {
     totalPages: number;
   };
 }
+
+export type GroupMemberRole = 'LEADER' | 'MEMBER';
+
+export interface GroupMember {
+  groupId: string;
+  userId: string;
+  role: GroupMemberRole;
+  joinedAt: string;
+  user: {
+    id: string;
+    username: string;
+    avatarUrl?: string | null;
+  };
+}
+
+export interface Group {
+  id: string;
+  zoneId: string;
+  leaderId: string;
+  gameId: string;
+  isActive: boolean;
+  createdAt: string;
+  zone: {
+    id: string;
+    title: string;
+    description?: string;
+    status: ZoneStatus;
+    minRankLevel?: RankLevel;
+    maxRankLevel?: RankLevel;
+  };
+  game: {
+    id: string;
+    name: string;
+    iconUrl: string;
+  };
+  leader: {
+    id: string;
+    username: string;
+    avatarUrl?: string | null;
+  };
+  members?: GroupMember[];
+  _count?: {
+    members: number;
+  };
+}
+
+export interface Message {
+  id: string;
+  groupId: string;
+  content: string;
+  createdAt: string;
+  sender: {
+    id: string;
+    username: string;
+    avatarUrl?: string | null;
+  };
+}

@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import React, { useState, useRef } from 'react';
 import {
     StyleSheet,
@@ -11,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Users, Crosshair, Trophy, ChevronRight } from 'lucide-react-native';
+import { Users, Crosshair, Trophy, ChevronRight, Gamepad2, MessageSquare, Bot } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { Button } from '../components/Button';
@@ -19,24 +20,35 @@ import { Button } from '../components/Button';
 const ONBOARDING_DATA = [
     {
         id: '1',
-        title: 'KẾT NỐI ĐỈNH CAO',
-        description: 'Khám phá hàng ngàn game thủ cùng trình độ. Không còn nỗi lo "leo rank" đơn độc.',
-        icon: Users,
+        title: 'TÌM KIẾM ĐỒNG ĐỘI',
+        description: 'Kết nối hàng nghìn game thủ cùng nhịp đập. Không còn nỗi lo "leo rank" đơn độc.',
+        icon: Gamepad2,
         colors: ['#2563FF', '#1E40AF'],
+        accent: '#3B82F6',
     },
     {
         id: '2',
-        title: 'THIẾT LẬP CHIẾN TUYẾN',
-        description: 'Tạo Zone riêng, quy định mức Rank và vai trò. Xây dựng đội hình hoàng kim của riêng bạn.',
+        title: 'CHIẾN THUẬT RÕ RÀNG',
+        description: 'Tạo vùng chiến sự (Zone), thiết lập yêu cầu trình độ, và định hình đội hình trong mơ của bạn.',
         icon: Crosshair,
         colors: ['#7C3AED', '#4C1D95'],
+        accent: '#8B5CF6',
     },
     {
         id: '3',
-        title: 'CHINH PHỤC VINH QUANG',
-        description: 'Trò chuyện, phối hợp và phá đảo mọi bảng xếp hạng cùng những người đồng đội mới.',
+        title: 'TRÒ CHUYỆN REAL-TIME',
+        description: 'Lên kế hoạch tác chiến ngay lập tức với hệ thống chat nhóm tốc độ bàn thờ.',
+        icon: MessageSquare,
+        colors: ['#E11D48', '#881337'],
+        accent: '#F43F5E',
+    },
+    {
+        id: '4',
+        title: 'CHINH PHỤC ĐỈNH CAO',
+        description: 'Xóa bỏ mọi giới hạn, kề vai sát cánh cùng những người anh em mới để đạt chuỗi thắng bất bại.',
         icon: Trophy,
         colors: ['#F59E0B', '#B45309'],
+        accent: '#FBBF24',
     },
 ];
 
@@ -78,18 +90,26 @@ export const OnboardingScreen = ({ navigation }: any) => {
         return (
             <View style={[styles.slide, { width }]}>
                 <View style={styles.imageContainer}>
-                    <LinearGradient
-                        colors={item.colors as any}
-                        style={styles.iconBg}
-                    >
-                        <Icon size={width * 0.3} color="#FFFFFF" strokeWidth={1.5} />
-                    </LinearGradient>
-                    {/* Subtle glow effect behind icon */}
-                    <View style={[styles.glow, { backgroundColor: item.colors[0] }]} />
+                    {/* MASCOT PLACEHOLDER */}
+                    <View style={styles.mascotPlaceholderBox}>
+                        <LinearGradient
+                            colors={item.colors as any}
+                            style={styles.mascotGradientBg}
+                        />
+                        <View style={[styles.mascotBackGlow, { backgroundColor: item.accent }]} />
+
+                        {/* Hình ảnh Mascot có thể thế vào đây bằng <Image  contentFit="cover" transition={500} cachePolicy="disk"/> */}
+                        <Bot size={80} color="#FFFFFF" style={styles.mascotFallbackIcon} />
+
+                        <View style={styles.mascotFloatIcon}>
+                            <Icon size={32} color={item.accent} />
+                        </View>
+                        <Text style={styles.mascotHintText}>[ Mascot Image Here ]</Text>
+                    </View>
                 </View>
 
                 <View style={styles.textContainer}>
-                    <Text style={styles.title}>{item.title}</Text>
+                    <Text style={[styles.title, { textShadowColor: item.accent }]}>{item.title}</Text>
                     <Text style={styles.description}>{item.description}</Text>
                 </View>
             </View>
@@ -104,13 +124,18 @@ export const OnboardingScreen = ({ navigation }: any) => {
             />
 
             <SafeAreaView style={styles.safeArea}>
-                <TouchableOpacity
-                    style={styles.skipButton}
-                    onPress={finishOnboarding}
-                    activeOpacity={0.7}
-                >
-                    <Text style={styles.skipText}>Bỏ qua</Text>
-                </TouchableOpacity>
+                <View style={styles.headerRow}>
+                    <View style={styles.logoPlaceholder}>
+                        <Text style={styles.logoText}>TeamZoneVN</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.skipButton}
+                        onPress={finishOnboarding}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={styles.skipText}>BỎ QUA</Text>
+                    </TouchableOpacity>
+                </View>
 
                 <FlatList
                     data={ONBOARDING_DATA}
@@ -175,17 +200,39 @@ const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
     },
-    skipButton: {
-        position: 'absolute',
-        top: Platform.OS === 'ios' ? 60 : 40,
-        right: 24,
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+        marginTop: Platform.OS === 'ios' ? 10 : 20,
         zIndex: 10,
-        padding: 8,
+    },
+    logoPlaceholder: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    logoText: {
+        color: '#E2E8F0',
+        fontWeight: 'bold',
+        fontSize: 14,
+        letterSpacing: 1,
+    },
+    skipButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 20,
     },
     skipText: {
-        color: '#64748B',
-        fontSize: 14,
-        fontWeight: '600',
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '700',
+        letterSpacing: 0.5,
     },
     slide: {
         flex: 1,
@@ -194,38 +241,73 @@ const styles = StyleSheet.create({
         padding: 24,
     },
     imageContainer: {
-        flex: 0.6,
+        flex: 0.65,
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
     },
-    iconBg: {
-        width: 200,
-        height: 200,
-        borderRadius: 100,
+    mascotPlaceholderBox: {
+        width: 250,
+        height: 320,
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 2,
     },
-    glow: {
+    mascotGradientBg: {
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: 30,
+        opacity: 0.8,
+        transform: [{ rotate: '-3deg' }],
+    },
+    mascotBackGlow: {
         position: 'absolute',
         width: 220,
-        height: 220,
-        borderRadius: 110,
-        opacity: 0.1,
-        zIndex: 1,
+        height: 280,
+        borderRadius: 30,
+        opacity: 0.4,
+        transform: [{ rotate: '5deg' }],
+        filter: [{ blur: 20 }] as any, // Only works nicely on some platforms, acceptable fallback
+    },
+    mascotFallbackIcon: {
+        marginBottom: 20,
+        opacity: 0.9,
+    },
+    mascotFloatIcon: {
+        position: 'absolute',
+        bottom: -15,
+        right: -15,
+        backgroundColor: '#1E293B',
+        padding: 16,
+        borderRadius: 25,
+        borderWidth: 2,
+        borderColor: '#0F172A',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 5,
+    },
+    mascotHintText: {
+        position: 'absolute',
+        bottom: 20,
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: 12,
+        fontWeight: '600',
+        letterSpacing: 1,
     },
     textContainer: {
-        flex: 0.3,
+        flex: 0.35,
         alignItems: 'center',
+        paddingTop: 10,
     },
     title: {
-        fontSize: 24,
-        fontWeight: '800',
+        fontSize: 26,
+        fontWeight: '900',
         color: '#FFFFFF',
         textAlign: 'center',
         marginBottom: 16,
-        letterSpacing: 1,
+        letterSpacing: 1.5,
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
     },
     description: {
         fontSize: 15,
@@ -233,10 +315,11 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 24,
         paddingHorizontal: 20,
+        fontWeight: '500',
     },
     footer: {
         paddingHorizontal: 24,
-        paddingBottom: 40,
+        paddingBottom: Platform.OS === 'ios' ? 20 : 40,
     },
     pagination: {
         flexDirection: 'row',
@@ -245,12 +328,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     dot: {
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: theme.colors.primary,
-        marginHorizontal: 4,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#FFFFFF',
+        marginHorizontal: 5,
     },
     nextButton: {
         width: '100%',
+        height: 56,
+        borderRadius: 28,
+        elevation: 5,
+        shadowColor: '#2563FF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
     },
 });

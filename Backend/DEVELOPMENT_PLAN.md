@@ -255,6 +255,10 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 - [ ] Push notification qua WebSocket
 - [ ] Badge count unread
 
+### 7.4 Notification Storage Optimization
+
+- [ ] `NotificationsCleanupService` — Cron job tự động xoá notifications cũ (ví dụ: đã đọc & > 90 ngày) mỗi ngày lúc 3:10 AM
+
 ---
 
 ## Phase 8: Report & Moderation (Week 11-12)

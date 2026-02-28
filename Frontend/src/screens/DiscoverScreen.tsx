@@ -4,13 +4,13 @@ import {
   Text,
   View,
   FlatList,
-  Image,
   TouchableOpacity,
   ActivityIndicator,
   Platform as RNPlatform,
   Dimensions,
-  ScrollView,
+  ScrollView
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
@@ -82,7 +82,7 @@ export const DiscoverScreen = () => {
         activeOpacity={0.9}
       >
         <View style={styles.posterCard}>
-          <Image source={{ uri: item.bannerUrl }} style={styles.posterImage} resizeMode="cover" />
+          <Image source={{ uri: item.bannerUrl }} style={styles.posterImage} contentFit="cover" transition={500} cachePolicy="disk" />
           <LinearGradient
             colors={['transparent', 'transparent', 'rgba(0,0,0,0.8)']}
             style={styles.gradientOverlay}
@@ -141,6 +141,7 @@ export const DiscoverScreen = () => {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.filterScroll}
+                keyboardShouldPersistTaps="handled"
               >
                 {FILTER_OPTIONS.map((option) => {
                   const Icon = option.icon;

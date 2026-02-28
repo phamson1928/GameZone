@@ -29,6 +29,7 @@ import { EditProfileScreen } from '../screens/EditProfileScreen';
 import { AddGameProfileScreen } from '../screens/AddGameProfileScreen';
 import { TeamZoneVNsScreen } from '../screens/TeamZoneVNsScreen';
 import { MyZonesScreen } from '../screens/MyZonesScreen';
+import { ChatRoomScreen } from '../screens/ChatRoomScreen';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -43,6 +44,7 @@ export type RootStackParamList = {
   TeamZoneVNs: { gameId: string; gameName: string };
   MyZones: undefined;
   Notifications: undefined;
+  ChatRoom: { groupId: string; groupName: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -209,6 +211,7 @@ const MainNavigator = () => (
     <Stack.Screen name="TeamZoneVNs" component={TeamZoneVNsScreen} />
     <Stack.Screen name="MyZones" component={MyZonesScreen} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
+    <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
   </Stack.Navigator>
 );
 

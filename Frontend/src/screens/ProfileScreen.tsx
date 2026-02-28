@@ -3,12 +3,11 @@ import {
   StyleSheet,
   Text,
   View,
-  Image,
   ScrollView,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
-} from 'react-native';
+  ActivityIndicator} from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Edit2, Trash2, Gamepad2, Users, Star, Trophy, MapPin, Settings, LogOut, Zap } from 'lucide-react-native';
@@ -83,7 +82,7 @@ export const ProfileScreen = () => {
           <View style={styles.avatarSection}>
             <View style={styles.avatarWrapper}>
               {user?.avatarUrl ? (
-                <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+                <Image source={{ uri: user.avatarUrl }} style={styles.avatar}  contentFit="cover" transition={500} cachePolicy="disk"/>
               ) : (
                 <LinearGradient colors={['#2563FF', '#7C3AED']} style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarInitial}>
@@ -160,7 +159,7 @@ export const ProfileScreen = () => {
                 <Image
                   source={{ uri: profile.game.iconUrl }}
                   style={styles.gameProfileIcon}
-                />
+                 contentFit="cover" transition={500} cachePolicy="disk"/>
                 <View style={styles.gameProfileInfo}>
                   <Text style={styles.gameProfileName}>{profile.game.name}</Text>
                   <View style={[styles.rankPill, { backgroundColor: (RANK_COLORS[profile.rankLevel] || borderColor) + '20' }]}>

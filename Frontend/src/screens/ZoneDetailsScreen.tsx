@@ -1,17 +1,19 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   ScrollView,
   TouchableOpacity,
-  Image,
   Alert,
   ActivityIndicator,
   Animated,
   Platform,
+  Modal,
+  Pressable
 } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import {
   ArrowLeft,
@@ -25,6 +27,8 @@ import {
   Smartphone,
   MessageCircle,
   Hash,
+  Check,
+  X,
 } from 'lucide-react-native';
 import { Container } from '../components/Container';
 import { Button } from '../components/Button';
@@ -33,6 +37,7 @@ import { theme } from '../theme';
 import { Zone } from '../types';
 import { RootStackParamList } from '../navigation';
 import { getRankDisplay } from '../utils/rank';
+import { useAuthStore } from '../store/useAuthStore';
 
 type ZoneDetailsRouteProp = RouteProp<RootStackParamList, 'ZoneDetails'>;
 
@@ -93,6 +98,27 @@ export const ZoneDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<ZoneDetailsRouteProp>();
   const { zoneId } = route.params;
+  const queryClient = useQueryClient();
+  const currentUser = useAuthStore(state => state.user);
+
+  const [modalConfig, setModalConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'info' | 'success' | 'error' | 'confirm';
+    onConfirm?: () => void;
+    confirmText?: string;
+  }>({ visible: false, title: '', message: '', type: 'info' });
+
+  const hideModal = () => setModalConfig(prev => ({ ...prev, visible: false }));
+
+  const showAlert = (title: string, message: string, type: 'info' | 'success' | 'error' = 'info') => {
+    setModalConfig({ visible: true, title, message, type });
+  };
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, confirmText = 'Xác nhận') => {
+    setModalConfig({ visible: true, title, message, type: 'confirm', onConfirm, confirmText });
+  };
 
   const {
     data: zone,
@@ -106,14 +132,94 @@ export const ZoneDetailsScreen = () => {
     },
   });
 
+  const isOwner = currentUser?.id === zone?.ownerId;
+
+  const { data: rawJoinRequests, refetch: refetchRequests } = useQuery({
+    queryKey: ['zone-requests', zoneId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/zones/${zoneId}/requests`);
+      const raw = response.data;
+      if (Array.isArray(raw)) return raw;
+      if (Array.isArray(raw?.data)) return raw.data;
+      return [];
+    },
+    enabled: !!currentUser && isOwner,
+  });
+
+  const { data: myJoinRequests } = useQuery({
+    queryKey: ['my-join-requests'],
+    queryFn: async () => {
+      const response = await apiClient.get('/users/me/join-requests');
+      // Backend wraps all responses in { data: ..., success: true }
+      const raw = response.data;
+      if (Array.isArray(raw)) return raw;
+      if (Array.isArray(raw?.data)) return raw.data;
+      return [];
+    },
+    enabled: !!currentUser && !isOwner,
+  });
+
+  // Luôn đảm bảo là array dù API trả về bất kỳ dạng nào
+  const joinRequests: { id: string; status: string; user: { id: string; username: string; avatarUrl?: string | null } }[] =
+    Array.isArray(rawJoinRequests) ? rawJoinRequests : [];
+
+  const pendingRequests = joinRequests.filter(r => r.status === 'PENDING');
+
+  const hasPendingRequest = Array.isArray(myJoinRequests)
+    ? myJoinRequests.some((r: any) => r.zoneId === zoneId && r.status === 'PENDING')
+    : false;
+
+  const reviewMutation = useMutation({
+    mutationFn: async ({ requestId, action }: { requestId: string; action: 'APPROVED' | 'REJECTED' }) => {
+      await apiClient.patch(`/zones/${zoneId}/requests/${requestId}`, { action });
+    },
+    onSuccess: (_, { action }) => {
+      queryClient.invalidateQueries({ queryKey: ['zone-requests', zoneId] });
+      queryClient.invalidateQueries({ queryKey: ['zone', zoneId] });
+      hideModal();
+      setTimeout(() => {
+        showAlert('Thành công', action === 'APPROVED' ? 'Đã chấp nhận yêu cầu!' : 'Đã từ chối yêu cầu.', 'success');
+      }, 300);
+    },
+    onError: () => {
+      hideModal();
+      setTimeout(() => showAlert('Lỗi', 'Không thể xử lý yêu cầu.', 'error'), 300);
+    },
+  });
+
+  const handleReview = (requestId: string, action: 'APPROVED' | 'REJECTED') => {
+    const label = action === 'APPROVED' ? 'chấp nhận' : 'từ chối';
+    showConfirm('Xác nhận', `Bạn muốn ${label} yêu cầu này?`, () => {
+      reviewMutation.mutate({ requestId, action });
+    }, label.charAt(0).toUpperCase() + label.slice(1));
+  };
+
   const handleRequestJoin = () => {
-    Alert.alert('Gửi yêu cầu', 'Bạn muốn tham gia phòng này?', [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Gửi yêu cầu',
-        onPress: () => Alert.alert('Thành công', 'Đã gửi yêu cầu tham gia!'),
-      },
-    ]);
+    if (hasPendingRequest) {
+      showConfirm('Hủy yêu cầu', 'Bạn muốn hủy yêu cầu tham gia phòng này?', async () => {
+        try {
+          await apiClient.delete(`/zones/${zoneId}/join`);
+          hideModal();
+          queryClient.invalidateQueries({ queryKey: ['my-join-requests'] });
+          setTimeout(() => showAlert('Thành công', 'Đã hủy yêu cầu tham gia!', 'success'), 300);
+        } catch (e: any) {
+          hideModal();
+          setTimeout(() => showAlert('Lỗi', e.response?.data?.message || 'Không thể hủy yêu cầu.', 'error'), 300);
+        }
+      }, 'Hủy yêu cầu');
+    } else {
+      showConfirm('Gửi yêu cầu', 'Bạn muốn tham gia phòng này?', async () => {
+        try {
+          await apiClient.post(`/zones/${zoneId}/join`);
+          hideModal();
+          queryClient.invalidateQueries({ queryKey: ['my-join-requests'] });
+          setTimeout(() => showAlert('Thành công', 'Đã gửi yêu cầu tham gia!', 'success'), 300);
+        } catch (e: any) {
+          hideModal();
+          setTimeout(() => showAlert('Lỗi', e.response?.data?.message || 'Không thể gửi yêu cầu.', 'error'), 300);
+        }
+      }, 'Gửi yêu cầu');
+    }
   };
 
   if (isLoading) {
@@ -141,7 +247,13 @@ export const ZoneDetailsScreen = () => {
     <Container>
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              (navigation as any).navigate('MainTabs');
+            }
+          }}
           style={styles.backButton}
         >
           <ArrowLeft color={theme.colors.text} size={24} />
@@ -203,7 +315,7 @@ export const ZoneDetailsScreen = () => {
               <Image
                 source={{ uri: zone.game.iconUrl }}
                 style={styles.gameIcon}
-              />
+                contentFit="cover" transition={500} cachePolicy="disk" />
             </View>
             <View style={styles.gameInfo}>
               <Text style={styles.gameLabel}>Game</Text>
@@ -237,21 +349,17 @@ export const ZoneDetailsScreen = () => {
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <View
-            style={[styles.statCard, { borderLeftColor: theme.colors.accent }]}
-          >
+          <View style={styles.statCard}>
             <View style={styles.statIconBg}>
               <Users color={theme.colors.accent} size={20} />
             </View>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.statValue}>{zone.requiredPlayers}</Text>
-              <Text style={styles.statLabel}>Cần thêm</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>Cần thêm</Text>
             </View>
           </View>
 
-          <View
-            style={[styles.statCard, { borderLeftColor: theme.colors.primary }]}
-          >
+          <View style={styles.statCard}>
             <View
               style={[
                 styles.statIconBg,
@@ -260,11 +368,11 @@ export const ZoneDetailsScreen = () => {
             >
               <Trophy color={theme.colors.primary} size={20} />
             </View>
-            <View>
-              <Text style={styles.statValue}>
-                {getRankDisplay(zone.minRankLevel)}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.statValue} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>
+                {getRankDisplay(zone.minRankLevel)} - {getRankDisplay(zone.maxRankLevel)}
               </Text>
-              <Text style={styles.statLabel}>Rank tối thiểu</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>Yêu cầu Trình</Text>
             </View>
           </View>
         </View>
@@ -280,7 +388,7 @@ export const ZoneDetailsScreen = () => {
                   <Image
                     source={{ uri: zone.owner.avatarUrl }}
                     style={styles.participantAvatar}
-                  />
+                    contentFit="cover" transition={500} cachePolicy="disk" />
                 ) : (
                   <View
                     style={[styles.participantAvatar, styles.placeholderAvatar]}
@@ -299,7 +407,7 @@ export const ZoneDetailsScreen = () => {
               {Array.from({ length: Math.min(zone.requiredPlayers, 3) }).map(
                 (_, i) => (
                   <View
-                    key={i}
+                    key={`empty-slot-${i}`}
                     style={[styles.participantAvatar, styles.emptySlot]}
                   >
                     <User
@@ -382,7 +490,7 @@ export const ZoneDetailsScreen = () => {
               <Image
                 source={{ uri: zone.owner.avatarUrl }}
                 style={styles.ownerAvatar}
-              />
+                contentFit="cover" transition={500} cachePolicy="disk" />
             ) : (
               <View style={styles.ownerAvatarPlaceholder}>
                 <User color={theme.colors.text} size={24} />
@@ -403,22 +511,113 @@ export const ZoneDetailsScreen = () => {
           </View>
         </View>
 
+        {/* Join Requests Section — Owner only */}
+        {isOwner && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              Yêu cầu tham gia{pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ''}
+            </Text>
+            {pendingRequests.length === 0 ? (
+              <View style={styles.emptyRequestsBox}>
+                <Users color={theme.colors.textMuted} size={28} style={{ opacity: 0.5 }} />
+                <Text style={styles.emptyRequestsText}>Chưa có yêu cầu nào đang chờ</Text>
+              </View>
+            ) : (
+              <View style={styles.requestsList}>
+                {pendingRequests.map(req => (
+                  <View key={req.id} style={styles.requestCard}>
+                    <View style={styles.requestUserRow}>
+                      {req.user.avatarUrl ? (
+                        <Image source={{ uri: req.user.avatarUrl }} style={styles.requestAvatar} contentFit="cover" cachePolicy="disk" />
+                      ) : (
+                        <View style={[styles.requestAvatar, styles.requestAvatarPlaceholder]}>
+                          <Text style={styles.requestAvatarLetter}>{req.user.username?.[0]?.toUpperCase() ?? '?'}</Text>
+                        </View>
+                      )}
+                      <Text style={styles.requestUsername}>{req.user.username}</Text>
+                    </View>
+                    <View style={styles.requestActions}>
+                      <TouchableOpacity
+                        style={[styles.requestBtn, styles.rejectBtn]}
+                        onPress={() => handleReview(req.id, 'REJECTED')}
+                        disabled={reviewMutation.isPending}
+                      >
+                        <X size={16} color="#EF4444" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.requestBtn, styles.approveBtn]}
+                        onPress={() => handleReview(req.id, 'APPROVED')}
+                        disabled={reviewMutation.isPending}
+                      >
+                        <Check size={16} color="#22C55E" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Glass Footer */}
-      {zone.status === 'OPEN' && (
+      {zone.status === 'OPEN' && !isOwner && (
         <View style={styles.footer}>
           <View style={styles.glassBackground} />
           <TouchableOpacity
-            style={styles.actionButton}
+            style={[styles.actionButton, hasPendingRequest && styles.actionButtonPending]}
             onPress={handleRequestJoin}
             activeOpacity={0.9}
           >
-            <Text style={styles.actionButtonText}>Gửi yêu cầu tham gia</Text>
+            <Text style={[styles.actionButtonText, hasPendingRequest && styles.actionButtonTextPending]}>
+              {hasPendingRequest ? 'Hủy yêu cầu tham gia' : 'Gửi yêu cầu tham gia'}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Custom Alert/Confirm Modal */}
+      <Modal
+        visible={modalConfig.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={hideModal}
+        statusBarTranslucent
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.alertBox}>
+            <View style={[styles.alertIconBox, { backgroundColor: modalConfig.type === 'error' ? 'rgba(239,68,68,0.1)' : modalConfig.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(37,99,255,0.1)' }]}>
+              {modalConfig.type === 'error' ? (
+                <X size={24} color="#EF4444" />
+              ) : modalConfig.type === 'success' ? (
+                <Check size={24} color="#22C55E" />
+              ) : (
+                <MessageCircle size={24} color="#2563FF" />
+              )}
+            </View>
+            <Text style={styles.alertTitle}>{modalConfig.title}</Text>
+            <Text style={styles.alertMessage}>{modalConfig.message}</Text>
+            <View style={styles.alertActions}>
+              {modalConfig.type === 'confirm' ? (
+                <>
+                  <TouchableOpacity style={[styles.alertButton, styles.alertCancelButton]} onPress={hideModal} activeOpacity={0.8}>
+                    <Text style={[styles.alertButtonText, { color: theme.colors.textSecondary }]}>Hủy bỏ</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.alertButton, styles.alertConfirmButton]} onPress={modalConfig.onConfirm} activeOpacity={0.8}>
+                    <Text style={[styles.alertButtonText, { color: '#FFF' }]}>{modalConfig.confirmText}</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity style={[styles.alertButton, styles.alertConfirmButton]} onPress={hideModal} activeOpacity={0.8}>
+                  <Text style={[styles.alertButtonText, { color: '#FFF' }]}>Đóng</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Container>
   );
 };
@@ -597,7 +796,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E293B',
     borderRadius: 16,
     padding: theme.spacing.md,
-    borderLeftWidth: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -605,12 +803,8 @@ const styles = StyleSheet.create({
     elevation: 4,
     flexDirection: 'row',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.04)',
-    borderRightColor: 'rgba(255,255,255,0.04)',
-    borderBottomColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.04)',
   },
   statIconBg: {
     width: 40,
@@ -849,10 +1043,164 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
+    color: '#FFF',
+    fontSize: 16,
     fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: 0.5,
+  },
+  actionButtonPending: {
+    backgroundColor: 'rgba(239,68,68,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.3)',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  actionButtonTextPending: {
+    color: '#EF4444',
+  },
+  // Join Requests
+  emptyRequestsBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  emptyRequestsText: {
+    fontSize: 14,
+    color: theme.colors.textMuted,
+    fontWeight: '500',
+  },
+  requestsList: {
+    gap: 10,
+  },
+  requestCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#1E293B',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  requestUserRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  requestAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  requestAvatarPlaceholder: {
+    backgroundColor: 'rgba(37,99,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  requestAvatarLetter: {
+    color: theme.colors.primary,
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  requestUsername: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  requestActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  requestBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rejectBtn: {
+    backgroundColor: 'rgba(239,68,68,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.25)',
+  },
+  approveBtn: {
+    backgroundColor: 'rgba(34,197,94,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(34,197,94,0.25)',
+  },
+
+  // Custom Alert
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  alertBox: {
+    backgroundColor: '#0F172A',
+    width: '100%',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  alertIconBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  alertTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFF',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  alertMessage: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  alertActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  alertButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  alertCancelButton: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  alertConfirmButton: {
+    backgroundColor: theme.colors.primary,
+  },
+  alertButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

@@ -8,10 +8,10 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  Image,
   StatusBar,
-  Animated,
+  Animated
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -246,7 +246,7 @@ export const MyZonesScreen = () => {
                   <Image
                     source={{ uri: item.game.iconUrl }}
                     style={styles.gameIcon}
-                  />
+                    contentFit="cover" transition={500} cachePolicy="disk" />
                 </View>
               ) : (
                 <View
@@ -314,7 +314,7 @@ export const MyZonesScreen = () => {
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Rank</Text>
                 <Text style={styles.infoValue}>
-                  {getRankDisplay(item.minRankLevel)}
+                  {getRankDisplay(item.minRankLevel)} - {getRankDisplay(item.maxRankLevel)}
                 </Text>
               </View>
             </View>
@@ -368,7 +368,7 @@ export const MyZonesScreen = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <ArrowLeft color="#1E293B" size={24} strokeWidth={2.5} />
+          <ArrowLeft color={theme.colors.text} size={24} strokeWidth={2.5} />
         </TouchableOpacity>
 
         <View style={styles.headerTextContainer}>

@@ -1,359 +1,288 @@
-import { PrismaClient, Platform } from '@prisma/client';
+import { PrismaClient, Platform, RankLevel, GroupMemberRole, ZoneStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('🌱 Starting Super Demo Seeding...');
 
-  // 0. Clean up existing data
-  console.log('🧹 Cleaning up existing data...');
+  // 0. Clean up existing data - BỎ QUA data của tài khoản Google thật
+  const MY_USER_ID = 'b7c957ce-ba9a-4732-a9ae-609f6f832ff1';
+  console.log('🧹 Cleaning up existing data (keeping Google account data)...');
 
-  // Delete in correct order to respect foreign keys
   await prisma.message.deleteMany();
   await prisma.groupMember.deleteMany();
   await prisma.group.deleteMany();
-  await prisma.zoneJoinRequest.deleteMany();
+  await prisma.zoneJoinRequest.deleteMany({ where: { userId: { not: MY_USER_ID } } });
   await prisma.zoneContactMethod.deleteMany();
   await prisma.zoneTagRelation.deleteMany();
-  await prisma.zone.deleteMany();
-  await prisma.userGameProfile.deleteMany();
+  await prisma.zone.deleteMany({ where: { ownerId: { not: MY_USER_ID } } });
+  await prisma.userGameProfile.deleteMany({ where: { userId: { not: MY_USER_ID } } });
   await prisma.game.deleteMany();
-
-  // Optional: delete users if you want a full reset, but upsert handles existing ones fine
+  await prisma.userProfile.deleteMany({ where: { userId: { not: MY_USER_ID } } });
+  await prisma.refreshToken.deleteMany({ where: { userId: { not: MY_USER_ID } } });
+  await prisma.passwordResetToken.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.report.deleteMany();
   // await prisma.user.deleteMany();
 
   console.log('✅ Cleaned up existing data');
 
-  // 1. Create Admin User
-  const adminPassword = await bcrypt.hash('Admin123456', 12);
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@teamzonevn.com' },
-    update: {},
-    create: {
-      email: 'admin@teamzonevn.com',
-      username: 'admin',
-      passwordHash: adminPassword,
-      role: 'ADMIN',
-      status: 'ACTIVE',
-      profile: {
-        create: {
-          bio: 'TeamZoneVN Administrator',
-          playStyle: 'Competitive',
-          timezone: 'Asia/Ho_Chi_Minh',
+  // 1. Create Users
+  console.log('👥 Creating users...');
+  const passwordHash = await bcrypt.hash('User123456', 12);
+  const users: any = {};
+
+  // Tìm tài khoản Google hiện có - KHÔNG tạo mới, chỉ dùng lại
+  const myUser = await prisma.user.findFirst({ where: { id: MY_USER_ID } });
+  if (!myUser) {
+    throw new Error(`❌ Không tìm thấy user ${MY_USER_ID}. Hãy đăng nhập bằng Google trước rồi chạy seed lại!`);
+  }
+  users['TestUser_Seed'] = myUser;
+  console.log(`✅ Found existing Google account: ${myUser.username} (${myUser.email})`);
+
+  const userData = [
+    { email: 'admin@teamzonevn.com', username: 'Admin_Master', role: 'ADMIN', bio: 'Hệ thống TeamZoneVN', style: 'Competitive' },
+    { email: 'son.pham@example.com', username: 'SonGoku_VN', role: 'USER', bio: 'Main Mid, tìm team leo Rank Cao Thủ', style: 'Aggressive' },
+    { email: 'linh.nguyen@example.com', username: 'Linh_Xinh_Genshin', role: 'USER', bio: 'Chỉ thích đi ngắm cảnh và đánh Boss', style: 'Casual' },
+    { email: 'tuan.tran@example.com', username: 'Tuan_Fps_God', role: 'USER', bio: 'Bắn mọi thể loại FPS', style: 'Competitive' },
+    { email: 'huong.le@example.com', username: 'Huong_Support', role: 'USER', bio: 'Main SP, không toxic, chơi vui là chính', style: 'Supportive' },
+    { email: 'duy.nguyen@example.com', username: 'Duy_Solo_Top', role: 'USER', bio: 'Thử thách 100 ngày leo rank', style: 'Hardcore' },
+  ];
+
+  for (const u of userData) {
+    users[u.username] = await prisma.user.upsert({
+      where: { email: u.email },
+      update: {},
+      create: {
+        email: u.email,
+        username: u.username,
+        passwordHash,
+        role: u.role as any,
+        profile: {
+          create: {
+            bio: u.bio,
+            playStyle: u.style,
+            timezone: 'Asia/Ho_Chi_Minh',
+          },
         },
       },
-    },
-  });
-  console.log('✅ Created admin user:', admin.email);
+    });
+  }
+  console.log(`✅ Created/found ${userData.length + 1} users`);
 
-  // 2. Create Regular Users
-  const user1Password = await bcrypt.hash('User123456', 12);
-  const user1 = await prisma.user.upsert({
-    where: { email: 'user1@example.com' },
-    update: {},
-    create: {
-      email: 'user1@example.com',
-      username: 'ProGamer2024',
-      passwordHash: user1Password,
-      role: 'USER',
-      status: 'ACTIVE',
-      profile: {
-        create: {
-          bio: 'Passionate gamer looking for teammates',
-          playStyle: 'Aggressive',
-          timezone: 'Asia/Ho_Chi_Minh',
+  // 2. Create Games
+  console.log('🎮 Creating games...');
+  const STORAGE_BASE_URL = 'https://hrvxrxnkbcqrftagzuso.supabase.co/storage/v1/object/public/game-assets';
+
+  const gameData = [
+    { name: 'Valorant', slug: 'valorant', platforms: [Platform.PC] },
+    { name: 'League of Legends', slug: 'lienminh', platforms: [Platform.PC] },
+    { name: 'Genshin Impact', slug: 'genshin', platforms: [Platform.PC, Platform.MOBILE] },
+    { name: 'Wild Rift', slug: 'tocchien', platforms: [Platform.MOBILE] },
+    { name: 'PUBG Mobile', slug: 'pubg-mobile', platforms: [Platform.MOBILE] },
+    { name: 'CS2', slug: 'cs2', platforms: [Platform.PC] },
+    { name: 'FC ONLINE 4', slug: 'fconline', platforms: [Platform.PC, Platform.CONSOLE] },
+    { name: 'Teamfight Tactics', slug: 'dautruongchanli', platforms: [Platform.PC, Platform.MOBILE] },
+    { name: 'Free Fire', slug: 'freefire', platforms: [Platform.MOBILE] },
+    { name: 'Arena of Valor', slug: 'lienquan', platforms: [Platform.MOBILE] },
+  ];
+
+  const games: any = {};
+  for (const g of gameData) {
+    games[g.name] = await prisma.game.create({
+      data: {
+        name: g.name,
+        isActive: true,
+        platforms: g.platforms,
+        // Sử dụng slug để khớp với tên file bạn đã upload
+        iconUrl: `${STORAGE_BASE_URL}/icons/${g.slug}.png`,
+        bannerUrl: `${STORAGE_BASE_URL}/banners/${g.slug}-banner.jpg`,
+      },
+    });
+  }
+  console.log(`✅ Created ${gameData.length} games with your custom images`);
+
+  // 3. User Game Profiles
+  console.log('📊 Creating game profiles...');
+  await prisma.userGameProfile.createMany({
+    data: [
+      { userId: users['SonGoku_VN'].id, gameId: games['Valorant'].id, rankLevel: RankLevel.ADVANCED },
+      { userId: users['SonGoku_VN'].id, gameId: games['League of Legends'].id, rankLevel: RankLevel.PRO },
+      { userId: users['Linh_Xinh_Genshin'].id, gameId: games['Genshin Impact'].id, rankLevel: RankLevel.INTERMEDIATE },
+      { userId: users['Tuan_Fps_God'].id, gameId: games['Valorant'].id, rankLevel: RankLevel.PRO },
+      { userId: users['Tuan_Fps_God'].id, gameId: games['CS2'].id, rankLevel: RankLevel.ADVANCED },
+      { userId: users['Huong_Support'].id, gameId: games['Wild Rift'].id, rankLevel: RankLevel.INTERMEDIATE },
+      { userId: users['Huong_Support'].id, gameId: games['Arena of Valor'].id, rankLevel: RankLevel.ADVANCED },
+      { userId: users['Duy_Solo_Top'].id, gameId: games['League of Legends'].id, rankLevel: RankLevel.ADVANCED },
+      { userId: users['Duy_Solo_Top'].id, gameId: games['Free Fire'].id, rankLevel: RankLevel.INTERMEDIATE },
+    ]
+  });
+
+  // 4. Create Zones
+  console.log('🌐 Creating zones...');
+  const zoneData = [
+    {
+      owner: 'SonGoku_VN', game: 'Valorant', title: 'Leo Rank Ascendant/Immortal',
+      desc: 'Cần Duelist hoặc Sentinel cứng, có mic Discord giao tiếp tốt. Chơi nghiêm túc không toxic.',
+      min: RankLevel.ADVANCED, max: RankLevel.PRO, players: 2,
+      tags: ['Leo Rank', 'Có Mic', 'Hardcore'],
+      contacts: [{ type: 'DISCORD', value: 'SonGoku#1234' }]
+    },
+    {
+      owner: 'Linh_Xinh_Genshin', game: 'Genshin Impact', title: 'Farm Thánh Di Vật - Chill',
+      desc: 'Cần tìm bạn đi coop farm bí cảnh, mình hụt damage quá. Newbie friendly!',
+      min: RankLevel.BEGINNER, max: RankLevel.ADVANCED, players: 3,
+      tags: ['Chill', 'Người Mới', 'Vui Vẻ'],
+      contacts: [{ type: 'INGAME', value: '812345678' }]
+    },
+    {
+      owner: 'Tuan_Fps_God', game: 'CS2', title: 'Premier Mode 15k+ Elo',
+      desc: 'Tìm 3 ông bắn Premier, hiểu map, smoke chuẩn. Vào việc luôn.',
+      min: RankLevel.ADVANCED, max: RankLevel.PRO, players: 3,
+      tags: ['Leo Rank', 'Pro', 'Có Mic'],
+      contacts: [{ type: 'DISCORD', value: 'TuanFPS#9999' }]
+    },
+    {
+      owner: 'Huong_Support', game: 'Wild Rift', title: 'Tìm AD leo rank Vàng',
+      desc: 'Mình main Seraphine/Lulu, tìm AD bắn chắc tay. Chơi buổi tối hàng ngày nhé.',
+      min: RankLevel.BEGINNER, max: RankLevel.INTERMEDIATE, players: 1,
+      tags: ['Duo', 'Vui Vẻ', 'Chơi Đêm'],
+      contacts: [{ type: 'INGAME', value: 'HuongCute#WR' }]
+    },
+    {
+      owner: 'Huong_Support', game: 'Arena of Valor', title: 'Leo Rank Cao Thủ - Cần Rừng',
+      desc: 'Đang ở rank Tinh Anh, tìm rừng cứng gánh team leo Cao Thủ. Ko toxic nhé.',
+      min: RankLevel.INTERMEDIATE, max: RankLevel.ADVANCED, players: 1,
+      tags: ['Leo Rank', 'Có Mic', 'Vui Vẻ'],
+      contacts: [{ type: 'INGAME', value: 'HuongSupport' }]
+    },
+    {
+      owner: 'Duy_Solo_Top', game: 'League of Legends', title: 'Custom 5vs5 - Net Cỏ',
+      desc: 'Team đang thiếu 1 người đi rừng để làm kèo custom với hội bạn. Ai rảnh vào giao lưu!',
+      min: RankLevel.INTERMEDIATE, max: RankLevel.ADVANCED, players: 1,
+      tags: ['Giao Lưu', 'Custom', 'Có Mic'],
+      contacts: [{ type: 'DISCORD', value: 'DuyTop#111' }]
+    },
+    {
+      owner: 'Duy_Solo_Top', game: 'Free Fire', title: 'Squad Sinh Tồn - Tối Nay',
+      desc: 'Tìm 2 ông bắn Squad sinh tồn vui vẻ, mình bắn giải trí thôi.',
+      min: RankLevel.BEGINNER, max: RankLevel.INTERMEDIATE, players: 2,
+      tags: ['Vui Vẻ', 'Chill'],
+      contacts: [{ type: 'INGAME', value: 'DuyFF' }]
+    },
+    {
+      owner: 'SonGoku_VN', game: 'League of Legends', title: 'Clash Weekend - Tìm Team',
+      desc: 'Cần tìm team cho giải Clash cuối tuần này. Mình đánh được mọi lane nhưng tốt nhất là Mid.',
+      min: RankLevel.ADVANCED, max: RankLevel.PRO, players: 4,
+      tags: ['Tournament', 'Leo Rank', 'Hardcore'],
+      contacts: [{ type: 'DISCORD', value: 'SonGoku#1234' }]
+    },
+    {
+      owner: 'Tuan_Fps_God', game: 'Valorant', title: 'Squad 5 bắn Unrated vui vẻ',
+      desc: 'Bắn khuya cho vui, không quan trọng thắng thua, chủ yếu chém gió.',
+      min: RankLevel.BEGINNER, max: RankLevel.PRO, players: 4,
+      tags: ['Vui Vẻ', 'Chill', 'Chơi Đêm'],
+      contacts: [{ type: 'DISCORD', value: 'TuanFPS#9999' }]
+    }
+  ];
+
+  const createdZones: any[] = [];
+  for (const z of zoneData) {
+    const zone = await prisma.zone.create({
+      data: {
+        ownerId: users[z.owner].id,
+        gameId: games[z.game].id,
+        title: z.title,
+        description: z.desc,
+        minRankLevel: z.min,
+        maxRankLevel: z.max,
+        requiredPlayers: z.players,
+        status: ZoneStatus.OPEN,
+        tags: {
+          create: z.tags.map(t => ({
+            tag: {
+              connectOrCreate: {
+                where: { name: t },
+                create: { name: t }
+              }
+            }
+          }))
         },
-      },
-    },
-  });
-  console.log('✅ Created user:', user1.email);
+        contacts: {
+          create: z.contacts.map(c => ({ type: c.type as any, value: c.value }))
+        }
+      }
+    });
+    createdZones.push(zone);
+  }
+  console.log(`✅ Created ${zoneData.length} zones`);
 
-  const user2Password = await bcrypt.hash('User123456', 12);
-  const user2 = await prisma.user.upsert({
-    where: { email: 'user2@example.com' },
-    update: {},
-    create: {
-      email: 'user2@example.com',
-      username: 'CasualPlayer',
-      passwordHash: user2Password,
-      role: 'USER',
-      status: 'ACTIVE',
-      profile: {
-        create: {
-          bio: 'Just here to have fun!',
-          playStyle: 'Casual',
-          timezone: 'Asia/Bangkok',
-        },
-      },
-    },
-  });
-  console.log('✅ Created user:', user2.email);
+  // 5. Create Groups & Messages
+  console.log('💬 Creating groups and demo messages...');
 
-  // 3. Create Games
-  const valorant = await prisma.game.create({
+  // Group 1: For the Valorant hard rank zone
+  const group1 = await prisma.group.create({
     data: {
-      name: 'Valorant',
-      iconUrl: 'https://i.imgur.com/xQJ9K3k.png',
-      bannerUrl: 'https://i.imgur.com/yN9tZ2L.jpg',
-      isActive: true,
-      platforms: [Platform.PC],
-    },
-  });
-  console.log('✅ Created game:', valorant.name);
-
-  const lol = await prisma.game.create({
-    data: {
-      name: 'League of Legends',
-      iconUrl: 'https://i.imgur.com/dJU5A4y.png',
-      bannerUrl: 'https://i.imgur.com/kL3mN7P.jpg',
-      isActive: true,
-      platforms: [Platform.PC],
-    },
-  });
-  console.log('✅ Created game:', lol.name);
-
-  const genshin = await prisma.game.create({
-    data: {
-      name: 'Genshin Impact',
-      iconUrl: 'https://i.imgur.com/vX8yQ2w.png',
-      bannerUrl: 'https://i.imgur.com/tR5sP9K.jpg',
-      isActive: true,
-      platforms: [Platform.PC, Platform.MOBILE, Platform.CONSOLE],
-    },
-  });
-  console.log('✅ Created game:', genshin.name);
-
-  const codm = await prisma.game.create({
-    data: {
-      name: 'Call of Duty Mobile',
-      iconUrl: 'https://i.imgur.com/aB3cD4e.png',
-      bannerUrl: 'https://i.imgur.com/fG5hI6j.jpg',
-      isActive: true,
-      platforms: [Platform.MOBILE],
-    },
-  });
-  console.log('✅ Created game:', codm.name);
-
-  const fifa = await prisma.game.create({
-    data: {
-      name: 'FIFA 24',
-      iconUrl: 'https://i.imgur.com/kL7mN8o.png',
-      bannerUrl: 'https://i.imgur.com/pQ9rS1t.jpg',
-      isActive: true,
-      platforms: [Platform.PC, Platform.CONSOLE],
-    },
-  });
-  console.log('✅ Created game:', fifa.name);
-
-  // 4. Create User Game Profiles
-  await prisma.userGameProfile.create({
-    data: {
-      userId: user1.id,
-      gameId: valorant.id,
-      rankLevel: 'ADVANCED',
-    },
-  });
-
-  await prisma.userGameProfile.create({
-    data: {
-      userId: user1.id,
-      gameId: lol.id,
-      rankLevel: 'INTERMEDIATE',
-    },
-  });
-
-  await prisma.userGameProfile.create({
-    data: {
-      userId: user2.id,
-      gameId: genshin.id,
-      rankLevel: 'BEGINNER',
-    },
-  });
-
-  await prisma.userGameProfile.create({
-    data: {
-      userId: user2.id,
-      gameId: codm.id,
-      rankLevel: 'INTERMEDIATE',
-    },
-  });
-  console.log('✅ Created user game profiles');
-
-  // 5. Create Zones
-  const zone1 = await prisma.zone.create({
-    data: {
-      gameId: valorant.id,
-      ownerId: user1.id,
-      title: 'Tìm đồng đội Rank Diamond+',
-      description:
-        'Cần 2 người chơi rank từ Diamond trở lên. Có mic, chơi nghiêm túc.',
-      minRankLevel: 'ADVANCED',
-      maxRankLevel: 'PRO',
-      requiredPlayers: 2,
-      status: 'OPEN',
-      tags: {
+      zoneId: createdZones[0].id,
+      leaderId: users['SonGoku_VN'].id,
+      gameId: games['Valorant'].id,
+      members: {
         create: [
-          {
-            tag: {
-              connectOrCreate: {
-                where: { name: 'Có Mic' },
-                create: { name: 'Có Mic' },
-              },
-            },
-          },
-          {
-            tag: {
-              connectOrCreate: {
-                where: { name: 'Leo Rank' },
-                create: { name: 'Leo Rank' },
-              },
-            },
-          },
-        ],
-      },
-      contacts: {
-        create: [
-          { type: 'DISCORD', value: 'ProGamer#1234' },
-          { type: 'INGAME', value: 'ProGamer2024' },
-        ],
-      },
-    },
+          { userId: users['SonGoku_VN'].id, role: GroupMemberRole.LEADER },
+          { userId: users['Tuan_Fps_God'].id, role: GroupMemberRole.MEMBER },
+          { userId: users['TestUser_Seed'].id, role: GroupMemberRole.MEMBER },
+        ]
+      }
+    }
   });
-  console.log('✅ Created zone:', zone1.title);
 
-  const zone2 = await prisma.zone.create({
+  await prisma.message.createMany({
+    data: [
+      { groupId: group1.id, senderId: users['SonGoku_VN'].id, content: 'Chào ông, bắn Valorant không?' },
+      { groupId: group1.id, senderId: users['Tuan_Fps_God'].id, content: 'Có ông ơi, đợi tôi mở máy tí.' },
+      { groupId: group1.id, senderId: users['TestUser_Seed'].id, content: 'Cho tui chơi cùng với nhé!' },
+      { groupId: group1.id, senderId: users['SonGoku_VN'].id, content: 'Ok, call Discord nhé SonGoku#1234' },
+    ]
+  });
+
+  // Group 2: For Genshin Impact chill
+  const group2 = await prisma.group.create({
     data: {
-      gameId: lol.id,
-      ownerId: user1.id,
-      title: 'Leo Rank Vàng - Cần Support',
-      description:
-        'Đang leo rank Vàng, cần 1 support main. Chơi vui vẻ, không toxic.',
-      minRankLevel: 'BEGINNER',
-      maxRankLevel: 'INTERMEDIATE',
-      requiredPlayers: 1,
-      status: 'OPEN',
-      tags: {
+      zoneId: createdZones[1].id,
+      leaderId: users['Linh_Xinh_Genshin'].id,
+      gameId: games['Genshin Impact'].id,
+      members: {
         create: [
-          {
-            tag: {
-              connectOrCreate: {
-                where: { name: 'Vui Vẻ' },
-                create: { name: 'Vui Vẻ' },
-              },
-            },
-          },
-          {
-            tag: {
-              connectOrCreate: {
-                where: { name: 'Leo Rank' },
-                create: { name: 'Leo Rank' },
-              },
-            },
-          },
-        ],
-      },
-      contacts: {
-        create: [{ type: 'DISCORD', value: 'ProGamer#1234' }],
-      },
-    },
+          { userId: users['Linh_Xinh_Genshin'].id, role: GroupMemberRole.LEADER },
+          { userId: users['Huong_Support'].id, role: GroupMemberRole.MEMBER },
+          { userId: users['TestUser_Seed'].id, role: GroupMemberRole.MEMBER },
+        ]
+      }
+    }
   });
-  console.log('✅ Created zone:', zone2.title);
 
-  const zone3 = await prisma.zone.create({
-    data: {
-      gameId: genshin.id,
-      ownerId: user2.id,
-      title: 'Coop Boss World Level 8',
-      description:
-        'Tìm người chơi cùng đánh boss world level 8. Newbie friendly!',
-      minRankLevel: 'BEGINNER',
-      maxRankLevel: 'ADVANCED',
-      requiredPlayers: 3,
-      status: 'OPEN',
-      tags: {
-        create: [
-          {
-            tag: {
-              connectOrCreate: {
-                where: { name: 'Người Mới' },
-                create: { name: 'Người Mới' },
-              },
-            },
-          },
-          {
-            tag: {
-              connectOrCreate: {
-                where: { name: 'Chill' },
-                create: { name: 'Chill' },
-              },
-            },
-          },
-        ],
-      },
-      contacts: {
-        create: [
-          { type: 'INGAME', value: 'CasualPlayer' },
-          { type: 'OTHER', value: 'Telegram: @casual_player' },
-        ],
-      },
-    },
+  await prisma.message.createMany({
+    data: [
+      { groupId: group2.id, senderId: users['Linh_Xinh_Genshin'].id, content: 'Mọi người rảnh tối nay đi boss tuần không?' },
+      { groupId: group2.id, senderId: users['Huong_Support'].id, content: 'Tầm 8h được không ạ? Em vào support cho.' },
+      { groupId: group2.id, senderId: users['TestUser_Seed'].id, content: 'Cho tui vào kéo boss cho :v' },
+      { groupId: group2.id, senderId: users['Linh_Xinh_Genshin'].id, content: 'Duyệt luôn!' },
+    ]
   });
-  console.log('✅ Created zone:', zone3.title);
 
-  const zone4 = await prisma.zone.create({
-    data: {
-      gameId: codm.id,
-      ownerId: user2.id,
-      title: 'Battle Royale Squad',
-      description:
-        'Chơi Battle Royale chill, không cần skill cao. Just for fun!',
-      minRankLevel: 'BEGINNER',
-      maxRankLevel: 'INTERMEDIATE',
-      requiredPlayers: 2,
-      status: 'OPEN',
-      tags: {
-        create: [
-          {
-            tag: {
-              connectOrCreate: {
-                where: { name: 'Vui Vẻ' },
-                create: { name: 'Vui Vẻ' },
-              },
-            },
-          },
-          {
-            tag: {
-              connectOrCreate: {
-                where: { name: 'Chill' },
-                create: { name: 'Chill' },
-              },
-            },
-          },
-        ],
-      },
-      contacts: {
-        create: [{ type: 'INGAME', value: 'CasualPlayer123' }],
-      },
-    },
-  });
-  console.log('✅ Created zone:', zone4.title);
+  console.log('✅ Created groups and sample messages');
 
-  console.log('\n🎉 Seeding completed successfully!');
-  console.log('\n📋 Summary:');
-  console.log('   - 3 Users (1 Admin, 2 Regular)');
-  console.log('   - 5 Games (with platforms)');
-  console.log('   - 4 User Game Profiles');
-  console.log('   - 4 Zones (with tags and contacts)');
-  console.log('\n🔐 Login credentials:');
-  console.log('   Admin: admin@teamzonevn.com / Admin123456');
-  console.log('   User1: user1@example.com / User123456');
-  console.log('   User2: user2@example.com / User123456');
+  console.log('\n🚀 SEEDING COMPLETED SUCCESSFULLY!');
+  console.log('-----------------------------------');
+  console.log('Danh sách tài khoản test (Mật khẩu: User123456):');
+  userData.forEach(u => console.log(`- ${u.username}: ${u.email}`));
+  console.log('-----------------------------------');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error seeding database:', e);
+    console.error('❌ Seeding failed:', e);
     process.exit(1);
   })
   .finally(async () => {
