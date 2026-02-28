@@ -21,5 +21,6 @@ import { PrismaModule } from '../prisma/prisma.module';
     PrismaModule,
   ],
   providers: [ChatGateway, WsJwtGuard],
+  exports: [ChatGateway],
 })
-export class ChatModule { }
+export class ChatModule {}

@@ -6,10 +6,15 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GroupMemberRole } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '@prisma/client';
 
 @Injectable()
 export class GroupsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   /**
    * Tự động tạo Group khi Zone đủ người approved.
@@ -17,7 +22,7 @@ export class GroupsService {
    * Returns Group nếu tạo thành công, null nếu chưa đủ điều kiện.
    */
   async createGroupFromZone(zoneId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    const group = await this.prisma.$transaction(async (tx) => {
       const zone = await tx.zone.findUnique({
         where: { id: zoneId },
         include: {
@@ -26,14 +31,12 @@ export class GroupsService {
         },
       });
 
-      // Guard: zone không tồn tại, đã có group, hoặc chưa đủ người
       if (!zone || zone.group) return null;
 
       const approvedCount = zone.joinRequests.length;
       if (approvedCount < zone.requiredPlayers) return null;
 
-      // Tạo Group + Members (owner = LEADER, approved users = MEMBER)
-      const group = await tx.group.create({
+      const groupCreated = await tx.group.create({
         data: {
           zoneId: zone.id,
           leaderId: zone.ownerId,
@@ -52,14 +55,26 @@ export class GroupsService {
         },
       });
 
-      // Chuyển Zone → FULL
       await tx.zone.update({
         where: { id: zoneId },
         data: { status: 'FULL' },
       });
 
-      return group;
+      return groupCreated;
     });
+
+    if (group) {
+      const memberIds = await this.prisma.groupMember
+        .findMany({ where: { groupId: group.id }, select: { userId: true } })
+        .then((rows) => rows.map((r) => r.userId));
+      await this.notificationsService.createMany(memberIds, {
+        type: NotificationType.GROUP_FORMED,
+        title: 'Group đã tạo',
+        data: { groupId: group.id, zoneId },
+      });
+    }
+
+    return group;
   }
 
   /**
@@ -157,6 +172,12 @@ export class GroupsService {
       where: { groupId_userId: { groupId, userId } },
     });
 
+    await this.notificationsService.create(group.leaderId, {
+      type: NotificationType.MEMBER_LEFT,
+      title: 'Có thành viên rời group',
+      data: { groupId },
+    });
+
     return { message: 'Đã rời khỏi group' };
   }
 
@@ -242,6 +263,12 @@ export class GroupsService {
 
     await this.prisma.groupMember.delete({
       where: { groupId_userId: { groupId, userId: targetUserId } },
+    });
+
+    await this.notificationsService.create(group.leaderId, {
+      type: NotificationType.MEMBER_LEFT,
+      title: 'Có thành viên rời group',
+      data: { groupId },
     });
 
     return { message: 'Đã kick member khỏi group' };

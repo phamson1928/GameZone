@@ -1,26 +1,91 @@
-import { Injectable } from '@nestjs/common';
-import { CreateNotificationDto } from './dto/create-notification.dto.js';
-import { UpdateNotificationDto } from './dto/update-notification.dto.js';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { CreateNotificationDto } from './dto/create-notification.dto';
+import { PrismaService } from '../prisma/prisma.service';
+import { ChatGateway } from '../chat/chat.gateway';
 
 @Injectable()
 export class NotificationsService {
-  create(_createNotificationDto: CreateNotificationDto): string {
-    return 'This action adds a new notification';
+  constructor(
+    private prisma: PrismaService,
+    private chatGateway: ChatGateway,
+  ) {}
+
+  async getUnreadCount(userId: string): Promise<number> {
+    return this.prisma.notification.count({
+      where: { userId, isRead: false },
+    });
   }
 
-  findAll(): string {
-    return `This action returns all notifications`;
+  async create(userId: string, createNotificationDto: CreateNotificationDto) {
+    const notification = await this.prisma.notification.create({
+      data: {
+        ...createNotificationDto,
+        userId,
+      },
+    });
+    const unreadCount = await this.getUnreadCount(userId);
+    this.chatGateway.emitNotificationToUser(userId, { notification, unreadCount });
+    return notification;
   }
 
-  findOne(id: number): string {
-    return `This action returns a #${id} notification`;
+  async createMany(userIds: string[], createNotificationDto: CreateNotificationDto) {
+    const results: unknown[] = [];
+    for (const userId of userIds) {
+      const notification = await this.prisma.notification.create({
+        data: { ...createNotificationDto, userId },
+      });
+      results.push(notification);
+      const unreadCount = await this.getUnreadCount(userId);
+      this.chatGateway.emitNotificationToUser(userId, { notification, unreadCount });
+    }
+    return { count: results.length };
   }
 
-  update(id: number, _updateNotificationDto: UpdateNotificationDto): string {
-    return `This action updates a #${id} notification`;
+  async findForUser(page: number, limit: number, userId: string) {
+    const skip = (page - 1) * limit;
+    const [items, total, unreadCount] = await Promise.all([
+      this.prisma.notification.findMany({
+        where: { userId },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.notification.count({ where: { userId } }),
+      this.getUnreadCount(userId),
+    ]);
+    return { items, total, unreadCount, meta: { page, limit } };
   }
 
-  remove(id: number): string {
-    return `This action removes a #${id} notification`;
+  async markRead(userId: string, id: string) {
+    const notification = await this.prisma.notification.findFirst({
+      where: { id, userId },
+    });
+    if (!notification) {
+      throw new BadRequestException('Thông báo không tồn tại');
+    }
+    return this.prisma.notification.update({
+      where: { id },
+      data: { isRead: true },
+    });
+  }
+
+  async markAllRead(userId: string) {
+    const result = await this.prisma.notification.updateMany({
+      where: { userId },
+      data: { isRead: true },
+    });
+    return { count: result.count };
+  }
+
+  async delete(userId: string, id: string) {
+    const notification = await this.prisma.notification.findFirst({
+      where: { id, userId },
+    });
+    if (!notification) {
+      throw new BadRequestException('Thông báo không tồn tại');
+    }
+    return this.prisma.notification.delete({
+      where: { id },
+    });
   }
 }

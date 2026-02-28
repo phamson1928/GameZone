@@ -6,12 +6,15 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GroupsService } from '../groups/groups.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '@prisma/client';
 
 @Injectable()
 export class JoinRequestsService {
   constructor(
     private prisma: PrismaService,
     private groupsService: GroupsService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async sendJoinRequest(userId: string, zoneId: string) {
@@ -54,12 +57,17 @@ export class JoinRequestsService {
       return { message: 'Bạn đã được tự động chấp nhận vào zone' };
     }
 
-    await this.prisma.zoneJoinRequest.create({
+    const request = await this.prisma.zoneJoinRequest.create({
       data: {
         userId,
         zoneId,
         status: 'PENDING',
       },
+    });
+    await this.notificationsService.create(checkZone.ownerId, {
+      type: NotificationType.JOIN_REQUEST,
+      title: 'Có request mới',
+      data: { zoneId, requestId: request.id },
     });
     return { message: 'Yêu cầu tham gia đã được gửi' };
   }
@@ -119,10 +127,20 @@ export class JoinRequestsService {
       data: { status: action },
     });
 
-    // Auto-create group nếu zone đã đủ người approved
+    let groupId: string | undefined;
     if (action === 'APPROVED') {
-      await this.groupsService.createGroupFromZone(request.zoneId);
+      const group = await this.groupsService.createGroupFromZone(request.zoneId);
+      groupId = group?.id;
     }
+
+    await this.notificationsService.create(request.userId, {
+      type:
+        action === 'APPROVED'
+          ? NotificationType.REQUEST_APPROVED
+          : NotificationType.REQUEST_REJECTED,
+      title: action === 'APPROVED' ? 'Request đã được chấp nhận' : 'Request đã bị từ chối',
+      data: { zoneId: request.zoneId, requestId, groupId, status: action },
+    });
 
     return {
       message: `Yêu cầu đã được ${action === 'APPROVED' ? 'phê duyệt' : 'từ chối'}`,

@@ -6,25 +6,25 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting Super Demo Seeding...');
 
-  // 0. Clean up existing data - BỎ QUA data của tài khoản Google thật
+  // 0. Clean up existing data
   const MY_USER_ID = 'b7c957ce-ba9a-4732-a9ae-609f6f832ff1';
-  console.log('🧹 Cleaning up existing data (keeping Google account data)...');
+  const myUserExists = await prisma.user.findFirst({ where: { id: MY_USER_ID } }).then(Boolean);
+  console.log(myUserExists ? '🧹 Cleaning up existing data (keeping Google account data)...' : '🧹 Cleaning up existing data (fresh DB)...');
 
   await prisma.message.deleteMany();
   await prisma.groupMember.deleteMany();
   await prisma.group.deleteMany();
-  await prisma.zoneJoinRequest.deleteMany({ where: { userId: { not: MY_USER_ID } } });
+  await prisma.zoneJoinRequest.deleteMany({ where: myUserExists ? { userId: { not: MY_USER_ID } } : {} });
   await prisma.zoneContactMethod.deleteMany();
   await prisma.zoneTagRelation.deleteMany();
-  await prisma.zone.deleteMany({ where: { ownerId: { not: MY_USER_ID } } });
-  await prisma.userGameProfile.deleteMany({ where: { userId: { not: MY_USER_ID } } });
+  await prisma.zone.deleteMany({ where: myUserExists ? { ownerId: { not: MY_USER_ID } } : {} });
+  await prisma.userGameProfile.deleteMany({ where: myUserExists ? { userId: { not: MY_USER_ID } } : {} });
   await prisma.game.deleteMany();
-  await prisma.userProfile.deleteMany({ where: { userId: { not: MY_USER_ID } } });
-  await prisma.refreshToken.deleteMany({ where: { userId: { not: MY_USER_ID } } });
+  await prisma.userProfile.deleteMany({ where: myUserExists ? { userId: { not: MY_USER_ID } } : {} });
+  await prisma.refreshToken.deleteMany({ where: myUserExists ? { userId: { not: MY_USER_ID } } : {} });
   await prisma.passwordResetToken.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.report.deleteMany();
-  // await prisma.user.deleteMany();
 
   console.log('✅ Cleaned up existing data');
 
@@ -33,15 +33,9 @@ async function main() {
   const passwordHash = await bcrypt.hash('User123456', 12);
   const users: any = {};
 
-  // Tìm tài khoản Google hiện có - KHÔNG tạo mới, chỉ dùng lại
   const myUser = await prisma.user.findFirst({ where: { id: MY_USER_ID } });
-  if (!myUser) {
-    throw new Error(`❌ Không tìm thấy user ${MY_USER_ID}. Hãy đăng nhập bằng Google trước rồi chạy seed lại!`);
-  }
-  users['TestUser_Seed'] = myUser;
-  console.log(`✅ Found existing Google account: ${myUser.username} (${myUser.email})`);
-
   const userData = [
+    { email: 'test-demo@teamzonevn.com', username: 'TestUser_Seed', role: 'USER', bio: 'Tài khoản demo (dùng khi chưa đăng nhập Google)', style: 'Casual' },
     { email: 'admin@teamzonevn.com', username: 'Admin_Master', role: 'ADMIN', bio: 'Hệ thống TeamZoneVN', style: 'Competitive' },
     { email: 'son.pham@example.com', username: 'SonGoku_VN', role: 'USER', bio: 'Main Mid, tìm team leo Rank Cao Thủ', style: 'Aggressive' },
     { email: 'linh.nguyen@example.com', username: 'Linh_Xinh_Genshin', role: 'USER', bio: 'Chỉ thích đi ngắm cảnh và đánh Boss', style: 'Casual' },
@@ -69,7 +63,13 @@ async function main() {
       },
     });
   }
-  console.log(`✅ Created/found ${userData.length + 1} users`);
+  if (myUser) {
+    users['TestUser_Seed'] = myUser;
+    console.log(`✅ Found existing Google account: ${myUser.username} (${myUser.email})`);
+  } else {
+    console.log(`✅ Created demo TestUser_Seed (chưa có Google login)`);
+  }
+  console.log(`✅ Created/found ${userData.length} users`);
 
   // 2. Create Games
   console.log('🎮 Creating games...');

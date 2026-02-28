@@ -70,8 +70,12 @@ Response GET: `{ items, total, unreadCount }`.
 ### Bước 4: Realtime (WebSocket)
 
 - Dùng lại `chat.gateway` (đã có auth + room).
-- Emit 1 event: `notification:new` — payload = `{ notification, unreadCount }`.
-- Gọi emit trong `NotificationsService.create()` / `createMany()` sau khi lưu DB.
+- **Luồng:**
+  1. Client connect → gửi `joinRoom` với `{ groupId }` → server cho join cả `group:${groupId}` và `user:${userId}` (dùng chung handler `joinRoom`).
+  2. Khi `NotificationsService.create()` / `createMany()` lưu DB xong → gọi `chatGateway.emitNotificationToUser(userId, { notification, unreadCount })`.
+  3. Server emit `notification:new` tới room `user:${userId}`.
+  4. Client lắng nghe: `socket.on('notification:new', ({ notification, unreadCount }) => { ... })`.
+- **Lưu ý:** User chỉ nhận notification realtime sau khi đã mở ít nhất 1 group chat (đã emit `joinRoom`). Nếu cần nhận ngay khi connect (chưa mở chat) thì thêm event `joinUserRoom` riêng.
 
 ---
 
@@ -90,11 +94,11 @@ Inject `NotificationsService` vào: Zone (join flow), Groups (form/dissolve/leav
 
 ## 3. Checklist ngắn gọn
 
-- [ ] Thêm enum + model Notification, chạy migration
-- [ ] Viết NotificationsService + controller (4 endpoints)
-- [ ] Emit `notification:new` qua gateway
-- [ ] Gắn create/createMany vào: join request, approve/reject, group formed, member left
-- [ ] Viết `NotificationsCleanupService` (cron mỗi ngày xóa notifications đã đọc quá 90 ngày dựa trên `createdAt`)
+- [x] Thêm enum + model Notification, chạy migration
+- [x] Viết NotificationsService + controller (4 endpoints)
+- [x] Emit `notification:new` qua gateway
+- [x] Gắn create/createMany vào: join request, approve/reject, group formed, member left
+- [x] Viết `NotificationsCleanupService` (cron mỗi ngày 3:10 AM xóa notifications đã đọc quá 90 ngày)
 
 ---
 

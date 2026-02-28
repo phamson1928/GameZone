@@ -2430,9 +2430,188 @@ Gửi tới các thành viên trong room khi có tin nhắn mới.
 Broadcast trạng thái đang nhập của một thành viên cho những người khác.
 - **Payload:** `{ "userId": "uuid", "username": "string", "isTyping": boolean }`
 
+#### `notification:new` (Phase 7)
+Gửi tới user khi có thông báo mới. User phải đã join ít nhất 1 room (`joinRoom`) để nhận — server tự join `user:${userId}`.
+- **Payload:** `{ "notification": { id, type, title, data?, isRead, createdAt }, "unreadCount": number }`
+- **Notification types:** `JOIN_REQUEST`, `REQUEST_APPROVED`, `REQUEST_REJECTED`, `GROUP_FORMED`, `MEMBER_LEFT`
+
 ---
 
-## 16. Message Management (Admin)
+## 16. Notifications (Phase 7)
+
+Module thông báo cho user: danh sách, đánh dấu đọc, xóa. Realtime qua WebSocket (event `notification:new` kèm `unreadCount`).
+
+### GET `/notifications`
+
+Lấy danh sách thông báo của user hiện tại (pagination). Trả về `items`, `total`, `unreadCount`.
+
+**Auth Required:** Yes
+
+**Query Parameters:**
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| page | number | 1 | Trang hiện tại |
+| limit | number | 10 | Số thông báo mỗi trang |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": "notification-uuid",
+        "userId": "user-uuid",
+        "type": "JOIN_REQUEST",
+        "title": "Có request mới",
+        "data": { "zoneId": "zone-uuid", "requestId": "request-uuid" },
+        "isRead": false,
+        "createdAt": "2026-03-01T10:00:00.000Z"
+      }
+    ],
+    "total": 25,
+    "unreadCount": 3,
+    "meta": { "page": 1, "limit": 10 }
+  },
+  "timestamp": "2026-03-01T10:00:00.000Z"
+}
+```
+
+**NotificationType enum:** `JOIN_REQUEST`, `REQUEST_APPROVED`, `REQUEST_REJECTED`, `GROUP_FORMED`, `MEMBER_LEFT`, `NEW_MESSAGE` (chưa dùng).
+
+**Data object** (tùy type): `zoneId`, `requestId`, `groupId`, `status` (APPROVED/REJECTED) — dùng để navigate.
+
+---
+
+### PATCH `/notifications/:id/read`
+
+Đánh dấu 1 thông báo đã đọc. Chỉ được đánh dấu thông báo của chính mình.
+
+**Auth Required:** Yes
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Notification ID |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "notification-uuid",
+    "userId": "user-uuid",
+    "type": "REQUEST_APPROVED",
+    "title": "Request đã được chấp nhận",
+    "data": { "zoneId": "zone-uuid", "groupId": "group-uuid" },
+    "isRead": true,
+    "createdAt": "2026-03-01T09:00:00.000Z"
+  },
+  "timestamp": "2026-03-01T10:00:00.000Z"
+}
+```
+
+**Error (400):** `"Thông báo không tồn tại"` — khi id không thuộc về user hoặc không tồn tại.
+
+---
+
+### PATCH `/notifications/read-all`
+
+Đánh dấu tất cả thông báo của user đã đọc.
+
+**Auth Required:** Yes
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": { "count": 15 },
+  "timestamp": "2026-03-01T10:00:00.000Z"
+}
+```
+
+---
+
+### DELETE `/notifications/:id`
+
+Xóa 1 thông báo. Chỉ được xóa thông báo của chính mình.
+
+**Auth Required:** Yes
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | Notification ID |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "notification-uuid",
+    "userId": "user-uuid",
+    "type": "GROUP_FORMED",
+    "title": "Group đã tạo",
+    "data": { "groupId": "group-uuid", "zoneId": "zone-uuid" },
+    "isRead": true,
+    "createdAt": "2026-03-01T08:00:00.000Z"
+  },
+  "timestamp": "2026-03-01T10:00:00.000Z"
+}
+```
+
+**Error (400):** `"Thông báo không tồn tại"`.
+
+---
+
+### Khi nào tạo Notification (Business Logic)
+
+| Sự kiện | Type | Người nhận | Data |
+|---------|------|------------|------|
+| User gửi join request | `JOIN_REQUEST` | Chủ zone (ownerId) | `{ zoneId, requestId }` |
+| Owner approve request | `REQUEST_APPROVED` | Người gửi request | `{ zoneId, requestId, groupId?, status }` |
+| Owner reject request | `REQUEST_REJECTED` | Người gửi request | `{ zoneId, requestId, status }` |
+| Zone đủ người → tạo group | `GROUP_FORMED` | Tất cả members | `{ groupId, zoneId }` |
+| Member rời group | `MEMBER_LEFT` | Leader | `{ groupId }` |
+| Member bị kick | `MEMBER_LEFT` | Leader | `{ groupId }` |
+
+---
+
+### Realtime (WebSocket)
+
+User nhận notification realtime qua event `notification:new` khi đã join room (gửi `joinRoom` với `groupId`). Server tự join user vào `user:${userId}`.
+
+**Server emit:** `notification:new`
+
+```json
+{
+  "notification": {
+    "id": "uuid",
+    "type": "JOIN_REQUEST",
+    "title": "Có request mới",
+    "data": { "zoneId": "zone-uuid", "requestId": "request-uuid" },
+    "isRead": false,
+    "createdAt": "2026-03-01T10:00:00.000Z"
+  },
+  "unreadCount": 4
+}
+```
+
+**Lưu ý:** User chỉ nhận realtime sau khi đã mở ít nhất 1 group chat (đã emit `joinRoom`).
+
+---
+
+### NotificationsCleanupService
+
+Cron job chạy mỗi ngày **3:10 AM** — xóa notifications đã đọc (`isRead: true`) và cũ hơn **90 ngày**.
+
+---
+
+## 17. Message Management (Admin)
 
 ### GET `/messages/admin`
 
@@ -2475,7 +2654,7 @@ Admin xóa bất kỳ tin nhắn nào (**hard delete**). Tin nhắn bị xóa v�
 
 ---
 
-## 17. Error Responses
+## 18. Error Responses
 
 ### 401 Unauthorized
 
@@ -2541,7 +2720,7 @@ Khi resource không tồn tại.
 
 ---
 
-## 18. Enums Reference
+## 19. Enums Reference
 
 ### RankLevel
 
@@ -2604,13 +2783,23 @@ LOCAL
 GOOGLE
 ```
 
----
+### NotificationType
+
+```
+JOIN_REQUEST      // Ai đó gửi request join zone
+REQUEST_APPROVED  // Request được chấp nhận
+REQUEST_REJECTED  // Request bị từ chối
+GROUP_FORMED      // Group đã tạo
+MEMBER_LEFT       // Ai đó rời group
+NEW_MESSAGE       // Tin nhắn mới (chưa dùng — Phase 7 bỏ qua)
+```
 
 ---
 
-## 19. Modules chưa implement đầy đủ
+---
+
+## 20. Modules chưa implement đầy đủ
 
 Các modules sau chỉ có boilerplate, cần implement thêm:
 
-- `/notifications` - Thông báo
 - `/reports` - Báo cáo vi phạm

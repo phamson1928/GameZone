@@ -5,8 +5,8 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../decorators/roles.decorator.js';
-import { RequestWithUser } from '../interfaces/request.interface.js';
+import { ROLES_KEY } from '../decorators/roles.decorator';
+import { RequestWithUser } from '../interfaces/request.interface';
 
 /**
  * Roles Guard - checks if user has required role(s)

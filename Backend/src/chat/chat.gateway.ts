@@ -86,6 +86,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Cho socket join vào room của group
     const roomName = `group:${data.groupId}`;
     await client.join(roomName);
+    // Đồng thời join room user để nhận notification realtime
+    await client.join(`user:${userId}`);
 
     console.log(`[Chat] User ${userId} joined room ${roomName}`);
 
@@ -187,5 +189,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       username: user.username,
       isTyping: data.isTyping,
     });
+  }
+
+  /**
+   * Gọi từ NotificationsService khi tạo notification mới.
+   * Emit tới đúng user (room `user:${userId}`).
+   */
+  emitNotificationToUser(userId: string, payload: { notification: unknown; unreadCount: number }) {
+    this.server.to(`user:${userId}`).emit('notification:new', payload);
   }
 }

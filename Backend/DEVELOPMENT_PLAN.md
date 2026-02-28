@@ -232,32 +232,33 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 
 ---
 
-## Phase 7: Notifications (Week 10-11)
+## Phase 7: Notifications (Week 10-11) ✅ COMPLETED
 
 ### 7.1 Notification System
 
-- [ ] `GET /notifications` - Danh sách notifications
-- [ ] `PATCH /notifications/:id/read` - Đánh dấu đã đọc
-- [ ] `PATCH /notifications/read-all` - Đọc tất cả
-- [ ] `DELETE /notifications/:id` - Xóa notification
+- [x] `GET /notifications` - Danh sách notifications (pagination: page, limit, response: items, total, unreadCount)
+- [x] `PATCH /notifications/:id/read` - Đánh dấu 1 thông báo đã đọc
+- [x] `PATCH /notifications/read-all` - Đánh dấu tất cả đã đọc
+- [x] `DELETE /notifications/:id` - Xóa 1 notification (chỉ của chính user)
 
 ### 7.2 Notification Types
 
-- [ ] `JOIN_REQUEST` - Có người muốn join zone
-- [ ] `REQUEST_APPROVED` - Request được chấp nhận
-- [ ] `REQUEST_REJECTED` - Request bị từ chối
-- [ ] `GROUP_FORMED` - Group được tạo
-- [ ] `NEW_MESSAGE` - Tin nhắn mới (optional)
-- [ ] `MEMBER_LEFT` - Thành viên rời group
+- [x] `JOIN_REQUEST` - Có người muốn join zone → gửi cho chủ zone
+- [x] `REQUEST_APPROVED` - Request được chấp nhận → gửi cho người gửi request
+- [x] `REQUEST_REJECTED` - Request bị từ chối → gửi cho người gửi request
+- [x] `GROUP_FORMED` - Group được tạo → gửi cho tất cả members
+- [ ] `NEW_MESSAGE` - Tin nhắn mới (bỏ qua Phase 7 — dễ spam, làm sau)
+- [x] `MEMBER_LEFT` - Thành viên rời group / bị kick → gửi cho leader
 
 ### 7.3 Real-time Notifications
 
-- [ ] Push notification qua WebSocket
-- [ ] Badge count unread
+- [x] Push notification qua WebSocket — event `notification:new` tới room `user:${userId}`
+- [x] Badge count unread — payload `{ notification, unreadCount }` khi emit
+- [x] Client join `user:${userId}` khi gửi `joinRoom` với `groupId` (dùng chung handler)
 
 ### 7.4 Notification Storage Optimization
 
-- [ ] `NotificationsCleanupService` — Cron job tự động xoá notifications cũ (ví dụ: đã đọc & > 90 ngày) mỗi ngày lúc 3:10 AM
+- [x] `NotificationsCleanupService` — Cron job tự động xóa notifications đã đọc & cũ hơn 90 ngày (mỗi ngày 3:10 AM)
 
 ---
 
@@ -311,6 +312,7 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 - [x] Database indexing (Zone: title, ownerId, gameId, status, createdAt)
 - [x] Query optimization ($transaction cho create/update, total count cho pagination)
 - [x] **Message retention policy**: Auto-purge messages > 30 ngày (Cron 3:00 AM)
+- [x] **Notification cleanup**: Auto-purge notifications đã đọc > 90 ngày (Cron 3:10 AM)
 - [x] **Hard delete**: messages và groups xóa thật, không soft delete → tiết kiệm storage
 - [x] **Cascade delete**: Zone → Group → GroupMember + Message (tự dọn khi giải tán)
 - [x] **Content limit**: Message giới hạn 2000 ký tự (VarChar + gateway validation)

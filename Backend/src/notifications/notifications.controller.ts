@@ -1,12 +1,11 @@
 import {
   Controller,
   Get,
-  Post,
-  Body,
   Patch,
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,44 +15,52 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
-import { CreateNotificationDto } from './dto/create-notification.dto';
-import { UpdateNotificationDto } from './dto/update-notification.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Notifications')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
 @Controller('notifications')
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) { }
-
-  @Post()
-  @ApiOperation({ summary: 'Tạo thông báo mới' })
-  @ApiResponse({ status: 201, description: 'Created' })
-  create(@Body() createNotificationDto: CreateNotificationDto) {
-    return this.notificationsService.create(createNotificationDto);
-  }
+  constructor(private readonly notificationsService: NotificationsService) {}
 
   @Get()
-  findAll() {
-    return this.notificationsService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.notificationsService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateNotificationDto: UpdateNotificationDto,
+  @ApiOperation({ summary: 'Danh sách thông báo (pagination + unreadCount)' })
+  @ApiResponse({ status: 200, description: 'Success' })
+  async findAll(
+    @Query() pagination: PaginationDto,
+    @CurrentUser('sub') userId: string,
   ) {
-    return this.notificationsService.update(+id, updateNotificationDto);
+    const page = Number(pagination.page) || 1;
+    const limit = Number(pagination.limit) || 10;
+    return this.notificationsService.findForUser(page, limit, userId);
+  }
+
+  @Patch('read-all')
+  @ApiOperation({ summary: 'Đánh dấu tất cả đã đọc' })
+  @ApiResponse({ status: 200, description: 'Success' })
+  markAllRead(@CurrentUser('sub') userId: string) {
+    return this.notificationsService.markAllRead(userId);
+  }
+
+  @Patch(':id/read')
+  @ApiOperation({ summary: 'Đánh dấu 1 thông báo đã đọc' })
+  @ApiResponse({ status: 200, description: 'Success' })
+  @ApiParam({ name: 'id', description: 'ID thông báo' })
+  markRead(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.notificationsService.markRead(userId, id);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.notificationsService.remove(+id);
+  @ApiOperation({ summary: 'Xóa 1 thông báo' })
+  @ApiResponse({ status: 200, description: 'Success' })
+  @ApiParam({ name: 'id', description: 'ID thông báo' })
+  delete(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    return this.notificationsService.delete(userId, id);
   }
 }
