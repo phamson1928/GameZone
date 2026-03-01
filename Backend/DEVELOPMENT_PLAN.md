@@ -272,42 +272,106 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 
 ### 8.2 Moderation Actions
 
-- [ ] Ban user (linked to 2.4)
-- [ ] Close zone (linked to 4.5)
-- [ ] Delete group (linked to 5.4)
-- [ ] View report history
-- [ ] `GET /admin/reports/stats` - Thống kê reports (Admin)
+> **Note:** Các action đã có sẵn trong các phase trước.
 
-### 8.3 Admin Dashboard Statistics
+- [x] Ban user — `PATCH /users/:id/ban` (Phase 2.4)
+- [x] Close zone — `PATCH /zones/admin/:id/close` (Phase 4.5)
+- [x] Delete group — `DELETE /groups/admin/:id` (Phase 5.4)
+- [ ] View report history — `GET /reports` (Admin list)
+- [ ] Report stats gộp trong `GET /dashboard/stats`
 
-- [ ] `GET /admin/dashboard/stats` - Tổng quan dashboard (Admin)
+### 8.3 Dashboard Module (Admin Statistics)
+
+> **Note:** Module `dashboard` riêng cho thống kê trang Admin. Route prefix: `/dashboard`. Query `?period=7d|30d` cho charts.
+
+**Stats (Phase 8):**
+- [ ] `GET /dashboard/stats` - Tổng quan dashboard (Admin)
   - Total users (active/banned)
   - Total zones (open/closed)
   - Total groups (active/dissolved)
   - Total reports (open/resolved)
   - New users today/this week
   - Active users today/this week
-- [ ] `GET /admin/dashboard/charts/users` - Biểu đồ tăng trưởng users (Admin)
-- [ ] `GET /admin/dashboard/charts/zones` - Biểu đồ zones theo game (Admin)
-- [ ] `GET /admin/dashboard/charts/activity` - Biểu đồ hoạt động theo giờ (Admin)
 
-### 8.4 Audit Logs (Admin)
+**Charts MVP (Phase 8):**
+- [ ] `GET /dashboard/charts/users` - Tăng trưởng users theo ngày
+- [ ] `GET /dashboard/charts/zones` - Zones theo game (phân bố)
+- [ ] `GET /dashboard/charts/activity` - Hoạt động theo giờ
 
-- [ ] `GET /admin/audit-logs` - Lịch sử admin actions (Admin)
-- [ ] `POST /admin/audit-logs` - Tự động log mỗi admin action
-- [ ] Log actions: BAN_USER, UNBAN_USER, DELETE_ZONE, DELETE_GROUP, RESOLVE_REPORT
+**Charts Production (Phase 10):**
+- [ ] `GET /dashboard/charts/reports` - Xu hướng reports (open vs resolved)
+- [ ] `GET /dashboard/charts/engagement` - Zones/Groups tạo mới theo ngày
+- [ ] `GET /dashboard/charts/top-games` - Top games (zones, groups count)
+- [ ] `GET /dashboard/charts/peak-hours` - Giờ cao điểm (zones, join requests)
+- [ ] `GET /dashboard/charts/moderation` - Moderation workload (cần Report.resolvedAt)
 
 ---
 
-## Phase 9: Testing & Optimization (Week 12-14)
+## Phase 9: Social & Discovery (Week 12-14)
 
-### 9.1 Testing
+> **Mục đích:** Mở rộng trải nghiệm multi-user — Friend List, Zone Invite, Quick Match, Suggested Zones, Top User theo Like.
+
+### 9.1 Friend List
+
+- [ ] Schema: `Friendship` (userId, friendId, status: PENDING | ACCEPTED)
+- [ ] `POST /friends/request/:userId` - Gửi lời mời kết bạn
+- [ ] `PATCH /friends/request/:id` - Chấp nhận / Từ chối (Accept/Decline)
+- [ ] `GET /friends` - Danh sách bạn bè (pagination)
+- [ ] `GET /friends/requests` - Lời mời đang chờ (incoming)
+- [ ] `DELETE /friends/:userId` - Hủy kết bạn / Hủy lời mời
+
+### 9.2 Zone Invite (Mời bạn vào Zone)
+
+- [ ] Schema: `ZoneInvite` (zoneId, inviterId, inviteeId, status: PENDING | ACCEPTED | DECLINED)
+- [ ] `POST /zones/:id/invite` - Mời bạn bè vào zone (chọn từ friend list, owner only)
+- [ ] `PATCH /zones/:id/invites/:inviteId` - Chấp nhận / Từ chối lời mời (invitee)
+- [ ] `GET /users/me/zone-invites` - Danh sách lời mời zone đang chờ
+- [ ] Notification type: `ZONE_INVITE` — gửi khi owner mời bạn vào zone
+- [ ] Logic: Invitee chấp nhận → auto-approve join request (hoặc add trực tiếp nếu zone còn slot)
+
+### 9.3 Quick Match (Ghép nhanh)
+
+- [ ] Schema: `QuickMatchQueue` (userId, gameId, rankLevel, requiredPlayers, createdAt) — hoặc dùng Redis
+- [ ] `POST /quick-match` - Vào hàng đợi (gameId, rankLevel, requiredPlayers)
+- [ ] `DELETE /quick-match` - Rời hàng đợi
+- [ ] Logic match: Ghép users cùng game, rank tương thích (Silver–Gold–Plat), đủ requiredPlayers
+- [ ] Khi match: Tự động tạo Zone + Group, gửi notification cho tất cả
+- [ ] Timeout: Sau X phút (config) chưa match → thông báo, cho phép retry
+
+### 9.4 Suggested Zones (Gợi ý Zone)
+
+- [ ] `GET /zones/suggested` - Danh sách zone gợi ý cho user hiện tại
+- [ ] Logic gợi ý: Theo game (UserGameProfile), rank tương thích, zone mới, tags phổ biến
+- [ ] Loại trừ: Zone user đã join/reject, zone FULL/CLOSED
+- [ ] Có thể merge vào `GET /zones` với query `?suggested=true` hoặc endpoint riêng
+
+### 9.5 Top User (User Like / Leaderboard)
+
+- [ ] Schema: `UserLike` (userId, likerId) — userId = người được like, likerId = người like (unique)
+- [ ] `POST /users/:id/like` - Like user (1 user chỉ like 1 user 1 lần)
+- [ ] `DELETE /users/:id/like` - Bỏ like
+- [ ] `GET /leaderboard/users` - Top user theo số like (query: ?period=week|month|all, ?gameId=)
+- [ ] `GET /users/:id` - Bổ sung field `likeCount`, `isLikedByMe` (nếu có auth)
+
+---
+
+## Phase 10: Testing & Optimization (Week 14-16)
+
+### 10.0 Dashboard Charts Production (bổ sung Phase 8)
+
+- [ ] `GET /dashboard/charts/reports` - Xu hướng reports
+- [ ] `GET /dashboard/charts/engagement` - Engagement (zones, groups theo ngày)
+- [ ] `GET /dashboard/charts/top-games` - Top games
+- [ ] `GET /dashboard/charts/peak-hours` - Peak hours
+- [ ] `GET /dashboard/charts/moderation` - Moderation workload
+
+### 10.1 Testing
 
 - [ ] Unit tests cho services
 - [ ] E2E tests cho API endpoints
 - [ ] WebSocket tests
 
-### 9.2 Performance
+### 10.2 Performance
 
 - [x] Database indexing (Zone: title, ownerId, gameId, status, createdAt)
 - [x] Query optimization ($transaction cho create/update, total count cho pagination)
@@ -316,10 +380,10 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 - [x] **Hard delete**: messages và groups xóa thật, không soft delete → tiết kiệm storage
 - [x] **Cascade delete**: Zone → Group → GroupMember + Message (tự dọn khi giải tán)
 - [x] **Content limit**: Message giới hạn 2000 ký tự (VarChar + gateway validation)
-- [ ] Caching với Redis (optional)
+- [ ] Caching với Redis (Đã dời sang Phase 11)
 - [x] Rate limiting (Global: 100 req/min, Auth: 5-10 req/min)
 
-### 9.3 Security
+### 10.3 Security
 
 - [x] Input validation (class-validator)
 - [x] SQL injection prevention (Prisma handles)
@@ -328,21 +392,45 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 
 ---
 
-## Phase 10: Deployment (Week 14-15)
+## Phase 11: Deployment (Week 16-17)
 
-### 10.1 Production Setup
+### 11.1 Production Setup
 
 - [ ] Production Dockerfile
 - [ ] CI/CD pipeline
 - [ ] Environment configuration
 - [ ] Database migrations
 
-### 10.2 Monitoring
+### 11.2 Monitoring
 
 - [ ] Logging (Winston/Pino)
 - [ ] Health checks
 - [ ] Error tracking (Sentry)
 - [ ] Performance monitoring
+
+---
+
+## Phase 12: Scaling & Redis Integration (Future)
+
+*(Thực hiện khi hệ thống đạt khoảng 5,000 - 10,000 Active Users)*
+
+### 12.1 Setup & Infrastructure
+- [ ] Setup Redis server (Docker hoặc Managed Service)
+- [ ] Tích hợp `ioredis` và `@nestjs/cache-manager` vào NestJS
+
+### 12.2 Performance Caching
+- [ ] Cache danh sách tĩnh ít thay đổi (Games, Tags) để giảm tải truy vấn DB.
+- [ ] Cấu hình cơ chế Cache Invalidation khi Admin cập nhật Games/Tags.
+- [ ] Cache Public Profile của User.
+
+### 12.3 Real-time & Socket Optimization
+- [ ] Tích hợp Redis Adapter cho Socket.IO để hỗ trợ scale đa server (Load Balancing).
+- [ ] Lưu trạng thái Online/Offline (Presence) của User trên Redis.
+- [ ] [Optional] Dùng Redis Pub/Sub hoặc Queue để xử lý lượng tin nhắn lớn.
+
+### 12.4 Security & Session
+- [ ] Lưu trữ và quản lý Rate Limiting (`ThrottlerModule`) tập trung bằng Redis.
+- [ ] Lưu trữ ngắn hạn OTP / mã xác nhận cấp lại mật khẩu kèm cơ chế TTL tự hủy.
 
 ---
 
@@ -366,10 +454,13 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 | **Admin - Messages**   | **3**             |
 | Notifications          | 4                 |
 | Reports                | 3                 |
-| **Admin - Reports**    | **1**             |
-| **Admin - Dashboard**  | **4**             |
-| **Admin - Audit Logs** | **2**             |
-| **Total**              | **~71 endpoints** |
+| **Dashboard**          | **9** (1 stats + 8 charts, Admin) |
+| **Friends (Phase 9)**  | **6**             |
+| **Zone Invites (Phase 9)** | **4**         |
+| **Quick Match (Phase 9)** | **3**          |
+| **Suggested Zones (Phase 9)** | **1**      |
+| **Leaderboard (Phase 9)** | **4**          |
+| **Total**              | **~95 endpoints** |
 
 ---
 
@@ -398,6 +489,10 @@ src/
 ├── messages/
 ├── notifications/
 ├── reports/
+├── dashboard/          ← Module riêng cho thống kê Admin
+├── friends/            ← Phase 9: Friend List
+├── zone-invites/       ← Phase 9: Zone Invite (có thể gộp vào zones/)
+├── quick-match/        ← Phase 9: Quick Match
 └── gateways/
     └── chat.gateway.ts
 ```
@@ -410,7 +505,8 @@ src/
 | ----------------- | --------------------------------------------------------------- |
 | P0 (Must have)    | Auth, Users, Games, Zones, Join Requests, Groups                |
 | P1 (Should have)  | Chat, Notifications, **Admin User Management, Admin Dashboard** |
-| P2 (Nice to have) | Reports, Advanced filters, Caching, **Admin Audit Logs**        |
+| P2 (Nice to have) | Reports, Advanced filters, Caching                             |
+| P3 (Phase 9)      | **Friend List**, **Zone Invite**, **Quick Match**, **Suggested Zones**, **Top User (Like)** |
 
 ---
 
@@ -441,18 +537,12 @@ src/
 - Force delete messages
 - View auto-flagged content
 
-### Dashboard & Analytics (Phase 8.3)
+### Dashboard (Phase 8.3 + 10.0)
 
-- Real-time statistics
-- User growth charts
-- Zone distribution by game
-- Activity heatmaps
-
-### Audit Logs (Phase 8.4)
-
-- Track all admin actions
-- Filter by admin/action type
-- Export audit trail
+- Module riêng: `dashboard/`
+- `GET /dashboard/stats` — Tổng quan (users, zones, groups, reports)
+- **Charts MVP:** users, zones, activity
+- **Charts Production:** reports, engagement, top-games, peak-hours, moderation
 
 ---
 
