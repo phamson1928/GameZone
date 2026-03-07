@@ -16,6 +16,9 @@
       "package": "com.teamzonevn.app",
       "googleServicesFile": "./google-services.json"
     },
-    "web": {}
+    "web": {},
+    "plugins": [
+      "@react-native-google-signin/google-signin"
+    ]
   }
 }

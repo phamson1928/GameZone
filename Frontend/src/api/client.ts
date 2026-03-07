@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 
-const BASE_URL = 'http://192.168.1.47:3000'; // Đã cập nhật theo IP LAN hiện tại của bạn
+const BASE_URL = 'http://192.168.1.2:3000'; // Đã cập nhật theo IP LAN hiện tại của bạn: 192.168.1.3
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,

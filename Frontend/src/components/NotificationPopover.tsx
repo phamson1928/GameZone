@@ -8,24 +8,31 @@ import {
   FlatList,
   Dimensions
 } from 'react-native';
-import { Users, Settings, Info, X, BellOff } from 'lucide-react-native';
+import { Users, Settings, Info, X, BellOff, CheckCircle2, XCircle, LogOut, UserPlus } from 'lucide-react-native';
 import { COLORS } from '../theme/colors';
+import { NotificationItem } from '../types';
 
-// Types for notification data
-export interface NotificationItem {
-  id: string;
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-  type: 'info' | 'invite' | 'system';
-}
+const formatTimeAgo = (dateString: string) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return 'Vừa xong';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} phút trước`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+  const days = Math.floor(hours / 24);
+  return `${days} ngày trước`;
+};
 
 interface NotificationPopoverProps {
   visible: boolean;
   onClose: () => void;
   notifications: NotificationItem[];
   onPressItem?: (item: NotificationItem) => void;
+  onMarkAllRead?: () => void;
 }
 
 const { width } = Dimensions.get('window');
@@ -34,41 +41,68 @@ export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   visible,
   onClose,
   notifications,
-  onPressItem
+  onPressItem,
+  onMarkAllRead
 }) => {
 
   const renderItem = ({ item }: { item: NotificationItem }) => {
     let IconComponent = Info;
-    if (item.type === 'invite') IconComponent = Users;
-    if (item.type === 'system') IconComponent = Settings;
+    let iconColor = COLORS.primary;
+    let bgColor = COLORS.primary + '25';
+
+    switch (item.type) {
+      case 'JOIN_REQUEST':
+        IconComponent = UserPlus;
+        break;
+      case 'REQUEST_APPROVED':
+        IconComponent = CheckCircle2;
+        iconColor = '#22C55E';
+        bgColor = 'rgba(34,197,94,0.15)';
+        break;
+      case 'REQUEST_REJECTED':
+        IconComponent = XCircle;
+        iconColor = '#EF4444';
+        bgColor = 'rgba(239,68,68,0.15)';
+        break;
+      case 'GROUP_FORMED':
+        IconComponent = Users;
+        break;
+      case 'MEMBER_LEFT':
+        IconComponent = LogOut;
+        iconColor = '#F59E0B';
+        bgColor = 'rgba(245,158,11,0.15)';
+        break;
+    }
 
     return (
       <TouchableOpacity
         style={[
           styles.notificationItem,
-          !item.read && styles.unreadItem
+          !item.isRead && styles.unreadItem
         ]}
         onPress={() => onPressItem && onPressItem(item)}
       >
         <View style={[
           styles.iconContainer,
-          { backgroundColor: item.read ? 'rgba(255,255,255,0.06)' : COLORS.primary + '25' }
+          { backgroundColor: item.isRead ? 'rgba(255,255,255,0.06)' : bgColor }
         ]}>
           <IconComponent
             size={20}
-            color={item.read ? COLORS.textMuted : COLORS.primary}
+            color={item.isRead ? COLORS.textMuted : iconColor}
           />
         </View>
         <View style={styles.textContainer}>
-          <Text style={[styles.title, !item.read && styles.unreadText]} numberOfLines={1}>
+          <Text style={[styles.title, !item.isRead && styles.unreadText]} numberOfLines={1}>
             {item.title}
           </Text>
-          <Text style={styles.message} numberOfLines={2}>
-            {item.message}
-          </Text>
-          <Text style={styles.time}>{item.time}</Text>
+          {item.data?.message && (
+            <Text style={styles.message} numberOfLines={2}>
+              {item.data.message}
+            </Text>
+          )}
+          <Text style={styles.time}>{formatTimeAgo(item.createdAt)}</Text>
         </View>
-        {!item.read && <View style={styles.dot} />}
+        {!item.isRead && <View style={styles.dot} />}
       </TouchableOpacity>
     );
   };
@@ -112,7 +146,7 @@ export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
             </View>
           )}
 
-          <TouchableOpacity style={styles.footer} onPress={onClose}>
+          <TouchableOpacity style={styles.footer} onPress={onMarkAllRead || onClose}>
             <Text style={styles.footerText}>Đánh dấu tất cả đã đọc</Text>
           </TouchableOpacity>
         </View>

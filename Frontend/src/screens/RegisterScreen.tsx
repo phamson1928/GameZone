@@ -9,7 +9,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+
 import { Gamepad2 } from 'lucide-react-native';
 import { Container } from '../components/Container';
 import { Input } from '../components/Input';
@@ -100,12 +100,9 @@ export const RegisterScreen = ({ navigation }: any) => {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <View style={styles.logoContainer}>
-              <LinearGradient
-                colors={['#2563FF', '#7C3AED']}
-                style={styles.logoIconBg}
-              >
-                <Gamepad2 size={24} color="#FFFFFF" />
-              </LinearGradient>
+              <View style={styles.logoIconBg}>
+                <Gamepad2 size={28} color={theme.colors.primary} />
+              </View>
             </View>
             <Text style={styles.logoText}>TeamZoneVN</Text>
             <Text style={styles.tagline}>MỜI BẠN - CHIẾN GAME</Text>
@@ -160,6 +157,7 @@ export const RegisterScreen = ({ navigation }: any) => {
               title={STRINGS.REGISTER_BUTTON}
               onPress={handleRegister}
               loading={loading}
+              variant="solid"
               style={styles.registerButton}
               size="md"
             />
@@ -191,9 +189,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   logoIconBg: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: 'rgba(37, 99, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },

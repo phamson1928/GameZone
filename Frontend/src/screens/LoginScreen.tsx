@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Gamepad2 } from 'lucide-react-native';
 import { Svg, Path, G } from 'react-native-svg';
 import { Container } from '../components/Container';
@@ -133,12 +132,9 @@ export const LoginScreen = ({ navigation }: Props) => {
           {/* Hero Section */}
           <View style={styles.hero}>
             <View style={styles.logoContainer}>
-              <LinearGradient
-                colors={['#2563FF', '#7C3AED']}
-                style={styles.logoIconBg}
-              >
-                <Gamepad2 size={28} color="#FFFFFF" />
-              </LinearGradient>
+              <View style={styles.logoIconBg}>
+                <Gamepad2 size={32} color={theme.colors.primary} />
+              </View>
             </View>
             <Text style={styles.logoText}>TeamZoneVN</Text>
             <View style={styles.taglineRow}>
@@ -178,6 +174,7 @@ export const LoginScreen = ({ navigation }: Props) => {
               title={STRINGS.LOGIN_BUTTON}
               onPress={handleLogin}
               loading={loading}
+              variant="solid"
               style={styles.loginButton}
               size="md"
             />
@@ -224,9 +221,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   logoIconBg: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: 'rgba(37, 99, 255, 0.1)', // Subtle primary blue
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },

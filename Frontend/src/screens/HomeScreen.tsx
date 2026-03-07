@@ -10,13 +10,14 @@ import {
   Modal,
   Pressable,
   TextInput,
+  InteractionManager,
   Animated,
   Dimensions
 } from 'react-native';
 import { Image } from 'expo-image';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Bell,
   Users,
@@ -38,13 +39,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Container } from '../components/Container';
 import { apiClient } from '../api/client';
 import { theme, getBorderColorById } from '../theme';
-import { Zone, Game, Platform } from '../types';
+import { Zone, Game, Platform, NotificationItem } from '../types';
 import { Button } from '../components/Button';
 import { Input, InputRef } from '../components/Input';
 import { RootStackParamList } from '../navigation';
 import {
   NotificationPopover,
-  NotificationItem,
 } from '../components/NotificationPopover';
 import { getRankDisplay } from '../utils/rank';
 import { useAuthStore } from '../store/useAuthStore';
@@ -68,34 +68,6 @@ const formatTimeAgo = (dateString: string) => {
 
 type HomeNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-// Mock data for notifications
-const MOCK_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: '1',
-    title: 'New Zone Request',
-    message: 'DragonSlayer requested to join your "FPS Pro" zone.',
-    time: '2m ago',
-    read: false,
-    type: 'invite',
-  },
-  {
-    id: '2',
-    title: 'System Update',
-    message: 'TeamZoneVN mobile app is now live with a fresh new look!',
-    time: '1h ago',
-    read: false,
-    type: 'system',
-  },
-  {
-    id: '3',
-    title: 'Rank Up!',
-    message: 'Congratulations! You reached Gold tier in Valorant.',
-    time: '1d ago',
-    read: true,
-    type: 'info',
-  },
-];
-
 const CATEGORIES = [
   { label: 'Tất cả', value: 'ALL' },
   { label: 'PC', value: 'PC' },
@@ -112,12 +84,167 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'players_desc', label: 'Nhiều người nhất' },
 ];
 
+const GameCardComponent = React.memo(({ game, onPress }: { game: Game, onPress: () => void }) => {
+  const accentColor = getBorderColorById(game.id);
+
+  const getPlatformIcon = (platform: string) => {
+    switch (platform) {
+      case 'PC': return <Monitor size={10} color="#FFFFFF" />;
+      case 'CONSOLE': return <Gamepad size={10} color="#FFFFFF" />;
+      case 'MOBILE': return <Smartphone size={10} color="#FFFFFF" />;
+      default: return null;
+    }
+  };
+
+  return (
+    <TouchableOpacity
+      style={styles.gameCardContainer}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={styles.gameCardImageContainer}>
+        <Image source={{ uri: game.bannerUrl }} style={styles.gameCardImage} contentFit="cover" transition={500} cachePolicy="disk" />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.85)']}
+          style={styles.gameCardOverlay}
+        />
+        <View style={styles.gameCardBadge}>
+          {game.platforms && game.platforms.length > 0 ? (
+            <View style={styles.platformBadges}>
+              {game.platforms.slice(0, 2).map((platform, idx) => (
+                <View key={idx} style={styles.platformIcon}>
+                  {getPlatformIcon(platform)}
+                </View>
+              ))}
+              {game.platforms.length > 2 && (
+                <Text style={styles.gameCardBadgeText}>+{game.platforms.length - 2}</Text>
+              )}
+            </View>
+          ) : (
+            <Text style={styles.gameCardBadgeText}>GAME</Text>
+          )}
+        </View>
+      </View>
+
+      <View style={styles.gameCardInfo}>
+        <Text style={styles.gameCardName} numberOfLines={1}>
+          {game.name}
+        </Text>
+        <Text style={[styles.gameCardCount, { color: accentColor }]}>
+          {game._count?.zones || 0} zones
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+const getStatusConfig = (status: string) => {
+  switch (status) {
+    case 'OPEN': return { color: '#22C55E', label: 'OPEN', bg: 'rgba(34,197,94,0.15)' };
+    case 'FULL': return { color: '#EF4444', label: 'FULL', bg: 'rgba(239,68,68,0.15)' };
+    case 'STARTING': return { color: '#F59E0B', label: 'STARTING', bg: 'rgba(245,158,11,0.15)' };
+    default: return { color: '#64748B', label: 'CLOSED', bg: 'rgba(100,116,139,0.15)' };
+  }
+};
+
+const ZoneCardComponent = React.memo(({ item, hasPending, onPress }: { item: Zone, hasPending: boolean, onPress: () => void }) => {
+  const hasMic = item.tags?.some(t => t.tag?.name?.toLowerCase().includes('mic')) ?? false;
+  const statusCfg = getStatusConfig(item.status);
+  const approvedCount = item._count?.joinRequests ?? 0;
+  const currentPlayers = approvedCount + 1;
+  const maxPlayers = item.requiredPlayers + 1;
+  const progress = Math.min(currentPlayers / (maxPlayers || 1), 1);
+  const otherTags = item.tags?.filter(t => !t.tag?.name?.toLowerCase().includes('mic')).slice(0, 2) || [];
+  const gameColor = getBorderColorById(item.game?.id || 'default');
+
+  return (
+    <TouchableOpacity
+      style={styles.zoneCard}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <View style={styles.zoneContent}>
+        <View style={styles.zoneTopRow}>
+          <Text style={[styles.zoneGameTag, { color: gameColor }]} numberOfLines={1}>{item.game?.name || 'GAME'}</Text>
+          <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+            {hasPending && (
+              <View style={styles.pendingBadge}>
+                <Text style={styles.pendingBadgeText}>Đã gửi YC</Text>
+              </View>
+            )}
+            <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusCfg.color }]} />
+              <Text style={[styles.statusBadgeText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
+            </View>
+          </View>
+        </View>
+
+        <Text style={styles.zoneTitle} numberOfLines={1}>{item.title}</Text>
+
+        <View style={styles.zoneMeta}>
+          <View style={styles.zoneHostRow}>
+            <View style={styles.hostAvatar}>
+              {item.owner.avatarUrl ? (
+                <Image source={{ uri: item.owner.avatarUrl }} style={styles.hostAvatarImg} contentFit="cover" cachePolicy="disk" />
+              ) : (
+                <Text style={styles.hostAvatarText}>{item.owner.username.charAt(0).toUpperCase()}</Text>
+              )}
+            </View>
+            <Text style={styles.hostName} numberOfLines={1}>{item.owner.username}</Text>
+          </View>
+          <View style={styles.rankPill}>
+            <Trophy size={10} color="#F59E0B" />
+            <Text style={styles.rankPillText} numberOfLines={1}>
+              {getRankDisplay(item.minRankLevel)} — {getRankDisplay(item.maxRankLevel)}
+            </Text>
+          </View>
+        </View>
+
+        {(hasMic || otherTags.length > 0) && (
+          <View style={styles.tagsRow}>
+            {hasMic && (
+              <View style={[styles.tagPill, styles.tagPillMic]}>
+                <Mic size={9} color="#2563FF" />
+                <Text style={[styles.tagPillText, { color: '#2563FF' }]}>VOICE</Text>
+              </View>
+            )}
+            {otherTags.map(t => (
+              <View key={t.tag.id} style={styles.tagPill}>
+                <Text style={styles.tagPillText}>#{t.tag.name}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.progressSection}>
+          <View style={styles.progressTrack}>
+            <LinearGradient
+              colors={progress >= 1 ? ['#EF4444', '#EF4444'] : ['#2563FF', '#7C3AED']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={[styles.progressFill, { width: `${progress * 100}%` }]}
+            />
+          </View>
+          <View style={styles.progressInfo}>
+            <Users size={10} color={theme.colors.textMuted} />
+            <Text style={styles.progressText}>
+              <Text style={styles.progressCurrent}>{currentPlayers}</Text>
+              <Text style={styles.progressMuted}>/{maxPlayers} thành viên</Text>
+            </Text>
+            <Clock size={10} color={theme.colors.textMuted} />
+            <Text style={styles.zoneTime}>{formatTimeAgo(item.createdAt)}</Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
 export const HomeScreen = () => {
   const navigation = useNavigation<HomeNavigationProp>();
   const tabNavigation = useNavigation<any>();
+  const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(MOCK_NOTIFICATIONS);
   const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0].value);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
@@ -178,17 +305,58 @@ export const HomeScreen = () => {
     enabled: !!user,
   });
 
+  const filteredZones = zones || [];
+
+  const { data: notifData, refetch: refetchNotifications } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/notifications?page=1&limit=20');
+      return data.data || data;
+    },
+    enabled: !!user,
+  });
+
+  const notifications = useMemo(() => notifData?.items || [], [notifData]);
+  const unreadCount = useMemo(() => notifData?.unreadCount || 0, [notifData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        refetchNotifications();
+      }
+    }, [user, refetchNotifications])
+  );
+
+  const markReadMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.patch(`/notifications/${id}/read`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      await apiClient.patch(`/notifications/read-all`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+  });
+
   const handleNotificationPress = (item: NotificationItem) => {
-    const updated = notifications.map(n =>
-      n.id === item.id ? { ...n, read: true } : n,
-    );
-    setNotifications(updated);
+    if (!item.isRead) {
+      markReadMutation.mutate(item.id);
+    }
+    // Optionally navigate based on item.type, e.g., to zone or group details
     setShowNotifications(false);
   };
 
-  const filteredZones = zones || [];
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const handleMarkAllRead = () => {
+    markAllReadMutation.mutate();
+    setShowNotifications(false);
+  };
 
   // Filter Modal
   const renderFilterModal = () => (
@@ -244,173 +412,25 @@ export const HomeScreen = () => {
     </Modal>
   );
 
-  const renderGameCard = useCallback((game: Game) => {
-    const accentColor = getBorderColorById(game.id);
+  const keyExtractorZone = useCallback((item: Zone) => item.id, []);
 
-    const getPlatformIcon = (platform: string) => {
-      switch (platform) {
-        case 'PC': return <Monitor size={10} color="#FFFFFF" />;
-        case 'CONSOLE': return <Gamepad size={10} color="#FFFFFF" />;
-        case 'MOBILE': return <Smartphone size={10} color="#FFFFFF" />;
-        default: return null;
-      }
-    };
-
-    return (
-      <TouchableOpacity
-        key={game.id}
-        style={styles.gameCardContainer}
-        onPress={() =>
-          navigation.navigate('TeamZoneVNs', {
-            gameId: game.id,
-            gameName: game.name,
-          })
-        }
-        activeOpacity={0.8}
-      >
-        <View style={styles.gameCardImageContainer}>
-          <Image source={{ uri: game.bannerUrl }} style={styles.gameCardImage} contentFit="cover" transition={500} cachePolicy="disk" />
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.85)']}
-            style={styles.gameCardOverlay}
-          />
-          <View style={styles.gameCardBadge}>
-            {game.platforms && game.platforms.length > 0 ? (
-              <View style={styles.platformBadges}>
-                {game.platforms.slice(0, 2).map((platform, idx) => (
-                  <View key={idx} style={styles.platformIcon}>
-                    {getPlatformIcon(platform)}
-                  </View>
-                ))}
-                {game.platforms.length > 2 && (
-                  <Text style={styles.gameCardBadgeText}>+{game.platforms.length - 2}</Text>
-                )}
-              </View>
-            ) : (
-              <Text style={styles.gameCardBadgeText}>GAME</Text>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.gameCardInfo}>
-          <Text style={styles.gameCardName} numberOfLines={1}>
-            {game.name}
-          </Text>
-          <Text style={[styles.gameCardCount, { color: accentColor }]}>
-            {game._count?.zones || 0} zones
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  }, [navigation]);
-
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'OPEN': return { color: '#22C55E', label: 'OPEN', bg: 'rgba(34,197,94,0.15)' };
-      case 'FULL': return { color: '#EF4444', label: 'FULL', bg: 'rgba(239,68,68,0.15)' };
-      case 'STARTING': return { color: '#F59E0B', label: 'STARTING', bg: 'rgba(245,158,11,0.15)' };
-      default: return { color: '#64748B', label: 'CLOSED', bg: 'rgba(100,116,139,0.15)' };
-    }
-  };
-
-  const renderZoneItem = ({ item }: { item: Zone }) => {
-    const hasMic = item.tags?.some(t => t.tag?.name?.toLowerCase().includes('mic')) ?? false;
-    const statusCfg = getStatusConfig(item.status);
-    const approvedCount = item._count?.joinRequests ?? 0;
-    const currentPlayers = approvedCount + 1;
-    const maxPlayers = item.requiredPlayers + 1;
-    const progress = Math.min(currentPlayers / (maxPlayers || 1), 1);
-    const otherTags = item.tags?.filter(t => !t.tag?.name?.toLowerCase().includes('mic')).slice(0, 2) || [];
+  const renderZoneItem = useCallback(({ item }: { item: Zone }) => {
     const hasPending = Array.isArray(myJoinRequests)
       ? myJoinRequests.some((r: any) => r.zoneId === item.id && r.status === 'PENDING')
       : false;
 
     return (
-      <TouchableOpacity
-        style={styles.zoneCard}
-        onPress={() => navigation.navigate('ZoneDetails', { zoneId: item.id })}
-        activeOpacity={0.85}
-      >
-        <View style={styles.zoneContent}>
-          {/* Row 1: Game name + Status badge */}
-          <View style={styles.zoneTopRow}>
-            <Text style={styles.zoneGameTag} numberOfLines={1}>{item.game?.name || 'GAME'}</Text>
-            <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-              {hasPending && (
-                <View style={styles.pendingBadge}>
-                  <Text style={styles.pendingBadgeText}>Đã gửi YC</Text>
-                </View>
-              )}
-              <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
-                <View style={[styles.statusDot, { backgroundColor: statusCfg.color }]} />
-                <Text style={[styles.statusBadgeText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Row 2: Zone title */}
-          <Text style={styles.zoneTitle} numberOfLines={1}>{item.title}</Text>
-
-          {/* Row 3: Host + Rank */}
-          <View style={styles.zoneMeta}>
-            <View style={styles.zoneHostRow}>
-              <View style={styles.hostAvatar}>
-                {item.owner.avatarUrl ? (
-                  <Image source={{ uri: item.owner.avatarUrl }} style={styles.hostAvatarImg} contentFit="cover" cachePolicy="disk" />
-                ) : (
-                  <Text style={styles.hostAvatarText}>{item.owner.username.charAt(0).toUpperCase()}</Text>
-                )}
-              </View>
-              <Text style={styles.hostName} numberOfLines={1}>{item.owner.username}</Text>
-            </View>
-            <View style={styles.rankPill}>
-              <Trophy size={10} color="#F59E0B" />
-              <Text style={styles.rankPillText} numberOfLines={1}>
-                {getRankDisplay(item.minRankLevel)} — {getRankDisplay(item.maxRankLevel)}
-              </Text>
-            </View>
-          </View>
-
-          {/* Row 4: Tags */}
-          {(hasMic || otherTags.length > 0) && (
-            <View style={styles.tagsRow}>
-              {hasMic && (
-                <View style={[styles.tagPill, styles.tagPillMic]}>
-                  <Mic size={9} color="#2563FF" />
-                  <Text style={[styles.tagPillText, { color: '#2563FF' }]}>VOICE</Text>
-                </View>
-              )}
-              {otherTags.map(t => (
-                <View key={t.tag.id} style={styles.tagPill}>
-                  <Text style={styles.tagPillText}>#{t.tag.name}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Row 5: Player progress */}
-          <View style={styles.progressSection}>
-            <View style={styles.progressTrack}>
-              <LinearGradient
-                colors={progress >= 1 ? ['#EF4444', '#EF4444'] : ['#2563FF', '#7C3AED']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={[styles.progressFill, { width: `${progress * 100}%` }]}
-              />
-            </View>
-            <View style={styles.progressInfo}>
-              <Users size={10} color={theme.colors.textMuted} />
-              <Text style={styles.progressText}>
-                <Text style={styles.progressCurrent}>{currentPlayers}</Text>
-                <Text style={styles.progressMuted}>/{maxPlayers} thành viên</Text>
-              </Text>
-              <Clock size={10} color={theme.colors.textMuted} />
-              <Text style={styles.zoneTime}>{formatTimeAgo(item.createdAt)}</Text>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
+      <ZoneCardComponent
+        item={item}
+        hasPending={hasPending}
+        onPress={() => {
+          InteractionManager.runAfterInteractions(() => {
+            navigation.navigate('ZoneDetails', { zoneId: item.id });
+          });
+        }}
+      />
     );
-  };
+  }, [navigation, myJoinRequests]);
 
   const renderHeader = useCallback(
     () => (
@@ -456,7 +476,20 @@ export const HomeScreen = () => {
                 <Text style={styles.loadingText}>Đang tải...</Text>
               </View>
             ) : filteredGames && filteredGames.length > 0 ? (
-              filteredGames.map(game => renderGameCard(game))
+              filteredGames.map(game => (
+                <GameCardComponent
+                  key={game.id}
+                  game={game}
+                  onPress={() => {
+                    InteractionManager.runAfterInteractions(() => {
+                      navigation.navigate('TeamZoneVNs', {
+                        gameId: game.id,
+                        gameName: game.name,
+                      });
+                    });
+                  }}
+                />
+              ))
             ) : (
               <View style={styles.gamesLoadingPlaceholder}>
                 <Text style={styles.loadingText}>Không có game nào</Text>
@@ -473,7 +506,7 @@ export const HomeScreen = () => {
         </View>
       </View>
     ),
-    [selectedCategory, filteredGames, gamesLoading, renderGameCard, tabNavigation],
+    [selectedCategory, filteredGames, gamesLoading, navigation, tabNavigation],
   );
 
   return (
@@ -548,11 +581,14 @@ export const HomeScreen = () => {
       <FlatList
         data={filteredZones}
         renderItem={renderZoneItem}
-        keyExtractor={item => item.id}
+        keyExtractor={keyExtractorZone}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="always"
-        removeClippedSubviews={false}
+        removeClippedSubviews={true}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={5}
         keyboardDismissMode="on-drag"
         refreshControl={
           <RefreshControl
@@ -580,6 +616,7 @@ export const HomeScreen = () => {
         onClose={() => setShowNotifications(false)}
         notifications={notifications}
         onPressItem={handleNotificationPress}
+        onMarkAllRead={handleMarkAllRead}
       />
     </Container>
   );
@@ -961,8 +998,8 @@ const styles = StyleSheet.create({
   },
   zoneContent: {
     flex: 1,
-    padding: 14,
-    gap: 8,
+    padding: 16,
+    gap: 12,
   },
   zoneTopRow: {
     flexDirection: 'row',
@@ -970,9 +1007,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   zoneGameTag: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: theme.colors.primary,
+    fontSize: 11,
+    fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     flex: 1,
@@ -997,10 +1033,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   zoneTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
     color: theme.colors.text,
     letterSpacing: -0.2,
+    lineHeight: 22,
   },
   zoneMeta: {
     flexDirection: 'row',

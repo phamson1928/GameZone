@@ -163,3 +163,15 @@ export interface Message {
     avatarUrl?: string | null;
   };
 }
+
+export type NotificationType = 'JOIN_REQUEST' | 'REQUEST_APPROVED' | 'REQUEST_REJECTED' | 'GROUP_FORMED' | 'MEMBER_LEFT';
+
+export interface NotificationItem {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  data?: any;
+  isRead: boolean;
+  createdAt: string;
+}

@@ -7,6 +7,7 @@ import {
   ViewStyle,
   TextStyle,
   Platform,
+  View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../theme';
@@ -16,7 +17,7 @@ interface ButtonProps {
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'pill';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'pill' | 'solid';
   size?: 'sm' | 'md' | 'lg';
   active?: boolean;
   style?: ViewStyle;
@@ -46,6 +47,8 @@ export const Button: React.FC<ButtonProps> = ({
     return theme.gradients.primary;
   };
 
+  const isSolid = variant === 'solid';
+
   const getButtonHeight = () => {
     if (isPill) return size === 'sm' ? 36 : 40;
 
@@ -68,17 +71,16 @@ export const Button: React.FC<ButtonProps> = ({
 
   const getBorderRadius = () => {
     if (isPill) return 9999;
-    if (variant === 'primary' || variant === 'secondary') return 10; // Slightly more rounded but not overly so
+    if (variant === 'primary' || variant === 'secondary' || isSolid) return 10;
     return theme.borderRadius.md;
   };
 
-  // Fixed "ugly black shadow" by using more subtle values and matching shadowColor better
-  const shadowStyle = (variant === 'primary' && !disabled) ? {
+  const shadowStyle = ((variant === 'primary' || isSolid) && !disabled) ? {
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 3, // Reduced from 6
+    elevation: 3,
   } : {};
 
   const getPillStyle = () => {
@@ -177,6 +179,30 @@ export const Button: React.FC<ButtonProps> = ({
         ]}
       >
         {renderContent()}
+      </TouchableOpacity>
+    );
+  }
+
+  if (isSolid) {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={disabled || loading}
+        activeOpacity={0.8}
+        style={[
+          styles.container,
+          {
+            height: getButtonHeight(),
+            borderRadius: getBorderRadius(),
+            backgroundColor: disabled ? '#1E293B' : theme.colors.primary,
+          },
+          shadowStyle,
+          style,
+        ]}
+      >
+        <View style={[styles.gradient, { borderRadius: getBorderRadius() }]}>
+          {renderContent()}
+        </View>
       </TouchableOpacity>
     );
   }
