@@ -35,6 +35,7 @@ import { FriendsScreen } from '../screens/FriendsScreen';
 import { PublicProfileScreen } from '../screens/PublicProfileScreen';
 import { QuickMatchScreen } from '../screens/QuickMatchScreen';
 import { InviteFriendsScreen } from '../screens/InviteFriendsScreen';
+import { BlockedUsersScreen } from '../screens/BlockedUsersScreen';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -55,6 +56,7 @@ export type RootStackParamList = {
   PublicProfile: { userId: string };
   QuickMatch: undefined;
   InviteFriends: { zoneId: string };
+  BlockedUsers: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -227,6 +229,7 @@ const MainNavigator = () => (
     <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
     <Stack.Screen name="QuickMatch" component={QuickMatchScreen} />
     <Stack.Screen name="InviteFriends" component={InviteFriendsScreen} />
+    <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
   </Stack.Navigator>
 );
 

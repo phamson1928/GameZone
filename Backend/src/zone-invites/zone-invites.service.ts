@@ -38,6 +38,19 @@ export class ZoneInvitesService {
             throw new BadRequestException('Bạn không thể mời chính mình');
         }
 
+        // Kiểm tra chặn (Blocking)
+        const block = await this.prisma.userBlock.findFirst({
+            where: {
+                OR: [
+                    { blockerId: inviterId, blockedId: inviteeId },
+                    { blockerId: inviteeId, blockedId: inviterId },
+                ],
+            },
+        });
+        if (block) {
+            throw new BadRequestException('Không thể thực hiện hành động này do bị chặn');
+        }
+
         // Kiểm tra invitee có trong friend list không
         const friendship = await this.prisma.friendship.findFirst({
             where: {

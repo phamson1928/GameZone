@@ -27,6 +27,19 @@ export class FriendsService {
             throw new NotFoundException('Người dùng không tồn tại');
         }
 
+        // Kiểm tra chặn (Blocking)
+        const block = await this.prisma.userBlock.findFirst({
+            where: {
+                OR: [
+                    { blockerId: senderId, blockedId: receiverId },
+                    { blockerId: receiverId, blockedId: senderId },
+                ],
+            },
+        });
+        if (block) {
+            throw new BadRequestException('Không thể thực hiện hành động này do bị chặn');
+        }
+
         // Kiểm tra quan hệ hiện tại
         const existing = await this.prisma.friendship.findFirst({
             where: {

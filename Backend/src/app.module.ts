@@ -24,6 +24,7 @@ import { FriendsModule } from './friends/friends.module';
 import { ZoneInvitesModule } from './zone-invites/zone-invites.module';
 import { QuickMatchModule } from './quick-match/quick-match.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { BlocksModule } from './blocks/blocks.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     ZoneInvitesModule,
     QuickMatchModule,
     LeaderboardModule,
+    BlocksModule,
   ],
   controllers: [AppController],
   providers: [

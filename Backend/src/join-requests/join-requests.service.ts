@@ -15,7 +15,7 @@ export class JoinRequestsService {
     private prisma: PrismaService,
     private groupsService: GroupsService,
     private notificationsService: NotificationsService,
-  ) {}
+  ) { }
 
   async sendJoinRequest(userId: string, zoneId: string) {
     const checkZone = await this.prisma.zone.findUnique({
@@ -32,6 +32,20 @@ export class JoinRequestsService {
         'Bạn không thể gửi yêu cầu tham gia zone của chính mình',
       );
     }
+
+    // Kiểm tra chặn (Blocking)
+    const block = await this.prisma.userBlock.findFirst({
+      where: {
+        OR: [
+          { blockerId: checkZone.ownerId, blockedId: userId },
+          { blockerId: userId, blockedId: checkZone.ownerId },
+        ],
+      },
+    });
+    if (block) {
+      throw new BadRequestException('Không thể gửi yêu cầu tham gia do bị chặn');
+    }
+
     const existingRequest = await this.prisma.zoneJoinRequest.findFirst({
       where: {
         userId,

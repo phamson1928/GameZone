@@ -358,6 +358,25 @@ export class UsersService {
     };
   }
 
+  async removeMe(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.prisma.user.delete({
+      where: { id: userId },
+    });
+
+    return {
+      success: true,
+      message: 'Your account has been deleted successfully',
+    };
+  }
+
   private toUserResponse(user: {
     id: string;
     email: string;

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Patch,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -14,7 +15,6 @@ import {
   ApiResponse,
   ApiParam,
   ApiBearerAuth,
-  ApiQuery,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import {
@@ -216,5 +216,16 @@ export class UsersController {
     @CurrentUser() admin: JwtPayload,
   ) {
     return this.usersService.deleteUser(id, admin.sub);
+  }
+
+  @Delete('me')
+  @ApiOperation({ summary: 'Xóa vĩnh viễn tài khoản cá nhân [APPLE REQUIREMENT]' })
+  @ApiResponse({
+    status: 200,
+    description: 'Xóa tài khoản thành công',
+  })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực' })
+  async removeMe(@CurrentUser() user: JwtPayload) {
+    return this.usersService.removeMe(user.sub);
   }
 }

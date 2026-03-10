@@ -398,27 +398,70 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 - [x] XSS prevention
 - [x] CORS configuration
 
----
+### 10.4 Professional UI & Animations (Aesthetics Pro Max)
 
-## Phase 11: Deployment (Week 16-17)
+> [!IMPORTANT]
+> Mục tiêu: Nâng tầm UX/UI của ứng dụng Mobile lên mức "Premium" bằng cách áp dụng các micro-animations, layout transitions và hiệu ứng mượt mà (60FPS).
 
-### 11.1 Production Setup
-
-- [ ] Production Dockerfile
-- [ ] CI/CD pipeline
-- [ ] Environment configuration
-- [ ] Database migrations
-
-### 11.2 Monitoring
-
-- [ ] Logging (Winston/Pino)
-- [ ] Health checks
-- [ ] Error tracking (Sentry)
-- [ ] Performance monitoring
+- [ ] **Library Setup**: Cài đặt `react-native-reanimated`, `moti`, `react-native-gesture-handler`.
+- [ ] **Entrance Animations**: Áp dụng hiệu ứng Staggered Fade-in cho các form đăng nhập, đăng ký và danh sách Game.
+- [ ] **Layout Transitions**: Sử dụng `Layout Animations` của Reanimated để các phần tử di chuyển mượt mà khi lọc (Filter) hoặc xóa item.
+- [ ] **Micro-interactions**: 
+  - Hiệu ứng "Like" (Heart burst) sinh động.
+  - Hiệu ứng bấm nút (Haptic-like scaling).
+  - Shimmer Loading thay thế cho ActivityIndicator truyền thống.
+- [ ] **Chat Animations**: Tin nhắn mới bay vào mượt mà, bong bóng chat co giãn nhẹ.
+- [ ] **Lottie Integration**: Thêm các animation vector cho màn hình thành công (Success checkmark) hoặc khi không có dữ liệu (Empty states).
 
 ---
 
-## Phase 12: Scaling & Redis Integration (Future)
+## Phase 11: Professional Deployment & DevOps (Week 16-17)
+
+### 11.1 Containerization (Docker)
+- [ ] **Backend Dockerization**: Create multi-stage `Dockerfile` (Node Alpine) for NestJS to minimize image size (~150MB).
+- [ ] **Admin Dashboard Dockerization**: Create `Dockerfile` + `nginx.conf` for the React Dashboard.
+- [ ] **Docker Compose**: Orchestrate Backend, Admin Dashboard, and Nginx Reverse Proxy.
+- [ ] **Local Testing**: Run entire stack locally using `docker-compose up` to ensure consistency.
+
+### 11.2 Infrastructure & Networking (VPS - MVD)
+- [ ] **Nginx Reverse Proxy**: Cấu hình Nginx cơ bản để trỏ domain vào container.
+- [ ] **SSL (Certbot)**: Thiết lập HTTPS (bắt buộc để login qua Mobile/Google).
+- [ ] **Supabase Keep-Alive**: Thiết lập một script/cron-job nhỏ để tự động "ping" database, đảm bảo gói FREE không bị tạm dừng.
+- [ ] **Security**: Mở port 80, 443 và cấu hình Firewall cơ bản.
+
+### 11.3 CI/CD Pipeline (GitHub Actions)
+> [!NOTE]
+> Phần này sẽ thực hiện sau khi hệ thống đã chạy ổn định với Docker manual (Phase 11.1 & 11.2) để ưu tiên hoàn thiện sản phẩm trước.
+
+- [ ] **Automated Build**: Workflow to build Docker images on every push to `main`.
+- [ ] **Image Registry**: Push built images to Docker Hub or GitHub Packages.
+- [ ] **Auto-Deploy**: SSH into VPS, pull latest images, and restart containers automatically.
+- [ ] **Environment Secrets**: Securely manage `.env` using GitHub Secrets.
+
+---
+
+## Phase 12: Landing Page & Public Launch (Week 17-18)
+
+### 12.1 Project Setup
+- [ ] Khởi tạo `LandingPage` project (Vite + React + Tailwind v4).
+- [ ] Thiết kế **Hero Section** ấn tượng với hiệu ứng Framer Motion.
+- [ ] Tích hợp App Mockups (Showcase giao diện Mobile App).
+
+### 12.2 Deployment & SEO
+- [ ] **Vercel Deployment**: Cấu hình auto-deploy tới Vercel cho Landing Page.
+- [ ] **Domain Mapping**: Trỏ `gamezone.vn` về Vercel.
+- [ ] **SEO Optimization**: Meta tags, OpenGraph images, and Sitemap.
+
+### 12.3 App Store Readiness & Final Polish
+- [ ] **Data Deletion**: Implement `DELETE /users/me` cho user tự xóa account (Apple requirement).
+- [ ] **Blocking System**: Thêm tính năng Block User để đáp ứng chính sách Safety của Store.
+- [ ] **Privacy & Terms**: Soạn thảo và host trang Chính sách bảo mật trên Landing Page.
+- [ ] **App Store Assets**: Chuẩn bị Screenshots chuyên nghiệp từ Landing Page Mockups.
+- [ ] **Monitoring**: Tích hợp Sentry/Checkly để theo dõi lỗi và Uptime (nếu cần).
+
+---
+
+## Phase 13: Scaling & Redis Integration (Future)
 
 *(Thực hiện khi hệ thống đạt khoảng 5,000 - 10,000 Active Users)*
 
@@ -439,6 +482,7 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 ### 12.4 Security & Session
 - [ ] Lưu trữ và quản lý Rate Limiting (`ThrottlerModule`) tập trung bằng Redis.
 - [ ] Lưu trữ ngắn hạn OTP / mã xác nhận cấp lại mật khẩu kèm cơ chế TTL tự hủy.
+
 
 ---
 
@@ -515,6 +559,7 @@ src/
 | P1 (Should have)  | Chat, Notifications, **Admin User Management, Admin Dashboard** |
 | P2 (Nice to have) | Reports, Advanced filters, Caching                             |
 | P3 (Phase 9)      | **Friend List**, **Zone Invite**, **Quick Match**, **Suggested Zones**, **Top User (Like)** |
+| P4 (Phase 11-12)  | **Dockerization**, **CI/CD**, **Landing Page**, **Production Launch** |
 
 ---
 

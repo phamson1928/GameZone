@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, Save } from 'lucide-react-native';
+import { ArrowLeft, Save, UserX, Trash2 } from 'lucide-react-native';
 import { useMutation } from '@tanstack/react-query';
 
 import { Container } from '../components/Container';
@@ -24,7 +24,7 @@ const PLAY_STYLES = ['Vui vẻ', 'Cạnh tranh', 'Chill', 'Hardcore'];
 
 export const EditProfileScreen = () => {
   const navigation = useNavigation();
-  const { user, updateUser } = useAuthStore();
+  const { user, updateUser, logout } = useAuthStore();
 
   const [bio, setBio] = useState(user?.profile?.bio || '');
   const [playStyle, setPlayStyle] = useState(user?.profile?.playStyle || PLAY_STYLES[0]);
@@ -52,6 +52,30 @@ export const EditProfileScreen = () => {
       playStyle,
       timezone,
     });
+  };
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      await apiClient.delete('/users/me');
+    },
+    onSuccess: () => {
+      Alert.alert('Thành công', 'Tài khoản của bạn đã được xóa hoàn toàn');
+      logout();
+    },
+    onError: () => {
+      Alert.alert('Lỗi', 'Không thể xóa tài khoản. Vui lòng thử lại.');
+    },
+  });
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Xóa tài khoản vĩnh viễn',
+      'Hành động này không thể hoàn tác. Toàn bộ dữ liệu hồ sơ, game, zone, và tin nhắn của bạn sẽ bị xóa sạch.',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        { text: 'Xóa vĩnh viễn', style: 'destructive', onPress: () => deleteAccountMutation.mutate() },
+      ]
+    );
   };
 
   return (
@@ -114,6 +138,36 @@ export const EditProfileScreen = () => {
           style={styles.saveButton}
           loading={updateProfileMutation.isPending}
         />
+
+        <View style={styles.dangerZone}>
+          <Text style={styles.dangerTitle}>Vùng nguy hiểm</Text>
+
+          <TouchableOpacity
+            style={styles.dangerActionBlock}
+            onPress={() => navigation.navigate('BlockedUsers' as never)}
+          >
+            <View style={styles.dangerIconBg}><UserX size={20} color={theme.colors.text} /></View>
+            <View style={styles.dangerActionContent}>
+              <Text style={styles.dangerActionTitle}>Quản lý người dùng bị chặn</Text>
+              <Text style={styles.dangerActionSubtitle}>Xem danh sách và bỏ chặn người dùng</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.deleteAccountButton}
+            onPress={handleDeleteAccount}
+            disabled={deleteAccountMutation.isPending}
+          >
+            {deleteAccountMutation.isPending ? (
+              <ActivityIndicator color={theme.colors.error} />
+            ) : (
+              <>
+                <Trash2 size={20} color={theme.colors.error} />
+                <Text style={styles.deleteAccountText}>Xóa tài khoản vĩnh viễn</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </Container>
   );
@@ -183,5 +237,66 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: theme.spacing.xl,
+  },
+  dangerZone: {
+    marginTop: 40,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    paddingTop: theme.spacing.lg,
+    gap: 16,
+  },
+  dangerTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: theme.colors.error,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  dangerActionBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  dangerIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  dangerActionContent: {
+    flex: 1,
+  },
+  dangerActionTitle: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  dangerActionSubtitle: {
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  deleteAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+    gap: 12,
+  },
+  deleteAccountText: {
+    color: theme.colors.error,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

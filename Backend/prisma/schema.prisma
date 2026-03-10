@@ -157,6 +157,9 @@ model User {
   quickMatchQueue       QuickMatchQueue?
   likesReceived         UserLike[]       @relation("LikedUser")
   likesGiven            UserLike[]       @relation("LikerUser")
+
+  blocksSent     UserBlock[] @relation("BlockerUser")
+  blocksReceived UserBlock[] @relation("BlockedUser")
 }
 
 model UserProfile {
@@ -166,7 +169,7 @@ model UserProfile {
   timezone     String?
   lastActiveAt DateTime?
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model RefreshToken {
@@ -176,7 +179,7 @@ model RefreshToken {
   expiresAt DateTime
   revoked   Boolean  @default(false)
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PasswordResetToken {
@@ -186,7 +189,7 @@ model PasswordResetToken {
   expiresAt DateTime
   used      Boolean  @default(false)
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 }
@@ -218,8 +221,8 @@ model UserGameProfile {
   gameId    String
   rankLevel RankLevel
 
-  user User @relation(fields: [userId], references: [id])
-  game Game @relation(fields: [gameId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@unique([userId, gameId])
 }
@@ -240,8 +243,8 @@ model Zone {
   autoApprove     Boolean    @default(false)
   status          ZoneStatus @default(OPEN)
 
-  game  Game @relation(fields: [gameId], references: [id])
-  owner User @relation("ZoneOwner", fields: [ownerId], references: [id])
+  game  Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  owner User @relation("ZoneOwner", fields: [ownerId], references: [id], onDelete: Cascade)
 
   tags         ZoneTagRelation[]
   contacts     ZoneContactMethod[]
@@ -295,7 +298,7 @@ model ZoneJoinRequest {
   status JoinRequestStatus @default(PENDING)
 
   zone Zone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
@@ -310,8 +313,8 @@ model Group {
   isActive Boolean @default(true)
 
   zone   Zone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
-  leader User @relation("GroupLeader", fields: [leaderId], references: [id])
-  game   Game @relation(fields: [gameId], references: [id])
+  leader User @relation("GroupLeader", fields: [leaderId], references: [id], onDelete: Cascade)
+  game   Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   members  GroupMember[]
   messages Message[]
@@ -325,7 +328,7 @@ model GroupMember {
   role    GroupMemberRole
 
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   joinedAt DateTime @default(now())
 
@@ -343,7 +346,7 @@ model Message {
   content  String @db.VarChar(2000)
 
   group  Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  sender User  @relation(fields: [senderId], references: [id])
+  sender User  @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
@@ -406,8 +409,8 @@ model Friendship {
   receiverId String
   status     FriendStatus @default(PENDING)
 
-  sender   User @relation("FriendUser", fields: [senderId], references: [id])
-  receiver User @relation("FriendFriend", fields: [receiverId], references: [id])
+  sender   User @relation("FriendUser", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("FriendFriend", fields: [receiverId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
@@ -426,8 +429,8 @@ model ZoneInvite {
   status    ZoneInviteStatus @default(PENDING)
 
   zone    Zone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
-  inviter User @relation("ZoneInviter", fields: [inviterId], references: [id])
-  invitee User @relation("ZoneInvitee", fields: [inviteeId], references: [id])
+  inviter User @relation("ZoneInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee User @relation("ZoneInvitee", fields: [inviteeId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
@@ -471,4 +474,23 @@ model UserLike {
   @@unique([userId, likerId])
   @@index([userId])
   @@index([createdAt])
+}
+
+////////////////////
+/// BLOCKING SYSTEM
+////////////////////
+
+model UserBlock {
+  id        String @id @default(uuid())
+  blockerId String
+  blockedId String
+
+  blocker User @relation("BlockerUser", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlockedUser", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
 }

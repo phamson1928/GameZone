@@ -10,8 +10,9 @@ import {
 import { Image } from 'expo-image';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Gamepad2, Heart, Trophy, ChevronLeft, MapPin, Search } from 'lucide-react-native';
+import { Gamepad2, Heart, Trophy, ChevronLeft, MapPin, Search, UserX } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Alert } from 'react-native';
 
 import { Container } from '../components/Container';
 import { theme, getBorderColorById } from '../theme';
@@ -82,6 +83,32 @@ export const PublicProfileScreen = () => {
         }
     });
 
+    const blockUserMutation = useMutation({
+        mutationFn: async () => {
+            await apiClient.post(`/blocks/${userId}`);
+        },
+        onSuccess: () => {
+            Alert.alert('Thành công', 'Đã chặn người dùng này');
+            // Go back because we likely don't want to see their profile anymore
+            navigation.goBack();
+        },
+        onError: (err: any) => {
+            const message = err.response?.data?.message || 'Không thể chặn người dùng';
+            Alert.alert('Lỗi', Array.isArray(message) ? message[0] : message);
+        }
+    });
+
+    const handleBlock = () => {
+        Alert.alert(
+            'Chặn người dùng',
+            'Bạn có chắc chắn muốn chặn người này? \n• Sẽ xóa bạn bè (nếu có)\n• Sẽ không thể mời nhau vào zone\n• Không thể gửi tin nhắn',
+            [
+                { text: 'Hủy', style: 'cancel' },
+                { text: 'Chặn', style: 'destructive', onPress: () => blockUserMutation.mutate() }
+            ]
+        );
+    };
+
     const isMe = currentUserId === userId;
 
     if (isLoading) {
@@ -107,7 +134,13 @@ export const PublicProfileScreen = () => {
                     <ChevronLeft color="#fff" size={24} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>HỒ SƠ</Text>
-                <View style={{ width: 42 }} />
+                {!isMe ? (
+                    <TouchableOpacity style={styles.blockButtonTop} onPress={handleBlock}>
+                        <UserX color={theme.colors.error} size={20} />
+                    </TouchableOpacity>
+                ) : (
+                    <View style={{ width: 42 }} />
+                )}
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
@@ -205,6 +238,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.07)',
+    },
+    blockButtonTop: {
+        width: 42,
+        height: 42,
+        borderRadius: 13,
+        backgroundColor: 'rgba(239,68,68,0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(239,68,68,0.2)',
     },
     content: {
         padding: theme.spacing.lg,

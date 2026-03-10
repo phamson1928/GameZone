@@ -597,6 +597,35 @@ curl -s -X PATCH http://localhost:3000/users/me/avatar \
 
 ---
 
+### DELETE `/users/me`
+
+Xóa vĩnh viễn tài khoản và tất cả dữ liệu liên quan (Apple Store Requirement).
+
+**Auth Required:** Yes
+
+```bash
+curl -s -X DELETE http://localhost:3000/users/me \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Behavior:**
+- Xóa bản ghi `User` và tất cả dữ liệu liên quan (Cascade delete): Profile, Games, Zones, Messages, Friendships, v.v.
+- Link Google (nếu có) cũng bị gỡ bỏ.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Tài khoản của bạn đã được xóa thành công"
+  },
+  "timestamp": "2026-03-10T23:15:00.000Z"
+}
+```
+
+---
+
 ### GET `/users/:id`
 
 Lấy thông tin public profile của user khác.
@@ -3431,3 +3460,108 @@ QUICK_MATCH_FOUND // Tìm thấy trận đấu phù hợp
 Các modules sau chỉ có boilerplate, cần implement thêm:
 
 - `/reports` - Báo cáo vi phạm
+---
+
+## 8. Blocks
+
+### POST `/blocks/:id`
+
+Chặn một người dùng khác.
+
+**Auth Required:** Yes
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | ID của người dùng muốn chặn |
+
+```bash
+curl -s -X POST http://localhost:3000/blocks/user-uuid \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Behavior:**
+- Khi chặn: Tự động xóa quan hệ bạn bè (Friendship) nếu có.
+- Người bị chặn không thể: gửi lời mời kết bạn, gửi request join zone, hoặc mời inviter vào zone.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "block-uuid",
+    "blockerId": "my-id",
+    "blockedId": "user-uuid",
+    "blocked": {
+      "id": "user-uuid",
+      "username": "blocked_user",
+      "avatarUrl": null
+    }
+  }
+}
+```
+
+---
+
+### DELETE `/blocks/:id`
+
+Bỏ chặn một người dùng.
+
+**Auth Required:** Yes
+
+**Path Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string (UUID) | Yes | ID của người dùng muốn bỏ chặn |
+
+```bash
+curl -s -X DELETE http://localhost:3000/blocks/user-uuid \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "block-uuid",
+    "blockerId": "my-id",
+    "blockedId": "user-uuid",
+    "createdAt": "2026-03-10T23:15:00.000Z"
+  }
+}
+```
+
+---
+
+### GET `/blocks`
+
+Lấy danh sách những người mình đã chặn.
+
+**Auth Required:** Yes
+
+```bash
+curl -s http://localhost:3000/blocks \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "block-uuid",
+      "blocked": {
+        "id": "user-uuid",
+        "username": "blocked_user",
+        "avatarUrl": "https://..."
+      },
+      "createdAt": "2026-03-10T22:55:00.000Z"
+    }
+  ]
+}
+```
