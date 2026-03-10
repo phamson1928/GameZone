@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la Backend/.env* 2>/dev/null | head -5; echo \"---\"; ls -la Frontend/.env* 2>/dev/null | head -5)",
+      "WebSearch",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(cd /tmp/ecc && bash install.sh typescript 2>&1)",
+      "Bash(CLAUDE_PLUGIN_ROOT=\"$HOME/.claude\" node -e \"\nconst fs = require\\('fs'\\);\nconst path = require\\('path'\\);\nconst root = process.env.CLAUDE_PLUGIN_ROOT || \\(process.env.HOME + '/.claude'\\);\nconst utils = path.join\\(root, 'scripts/lib/utils.js'\\);\nconst pm = path.join\\(root, 'scripts/lib/package-manager.js'\\);\nconsole.log\\('utils.js exists:', fs.existsSync\\(utils\\)\\);\nconsole.log\\('package-manager.js exists:', fs.existsSync\\(pm\\)\\);\nconsole.log\\('run-with-flags.js exists:', fs.existsSync\\(path.join\\(root, 'scripts/hooks/run-with-flags.js'\\)\\)\\);\nconsole.log\\('session-start.js exists:', fs.existsSync\\(path.join\\(root, 'scripts/hooks/session-start.js'\\)\\)\\);\n\")"
+    ]
+  }
+}

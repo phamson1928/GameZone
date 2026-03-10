@@ -373,11 +373,11 @@ TeamZoneVN là nền tảng tìm bạn chơi game, cho phép người dùng tạ
 - [x] `GET /dashboard/charts/peak-hours` - Peak hours (Đã có: getActivityByHourChart)
 - [x] `GET /dashboard/charts/moderation` - Moderation workload
 
-### 10.1 Testing
+### 10.1 Testing (Completed)
 
-- [ ] Unit tests cho services
-- [ ] E2E tests cho API endpoints
-- [ ] WebSocket tests
+- [x] Unit tests cho services quan trọng (Dashboard, Friends, Reports, Chat)
+- [x] E2E tests cho API endpoints (Dashboard, Friends)
+- [x] WebSocket logic testing
 
 ### 10.2 Performance
 
